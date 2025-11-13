@@ -11,6 +11,8 @@ export interface UnresolvedLinkGeneratorSettings {
   targetFolder: string;
   fileTemplate: string;
   templateOptions: TemplateOptionSetting[];
+  geminiApiKey: string;
+  googleMapsApiKey: string;
 }
 
 export const DEFAULT_TEMPLATE_OPTIONS: TemplateOptionSetting[] = [
@@ -50,6 +52,8 @@ export const DEFAULT_SETTINGS: UnresolvedLinkGeneratorSettings = {
   locationStrategy: 'same-folder',
   targetFolder: '',
   fileTemplate: '# {{title}}\n',
+  geminiApiKey: '',
+  googleMapsApiKey: '',
   templateOptions: DEFAULT_TEMPLATE_OPTIONS.map((option) => ({ ...option })),
 };
 

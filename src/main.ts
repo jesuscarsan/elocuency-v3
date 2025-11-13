@@ -118,6 +118,34 @@ class UnresolvedLinkGeneratorSettingTab extends PluginSettingTab {
         text.inputEl.rows = 4;
       });
 
+    new Setting(containerEl)
+      .setName('Gemini API key')
+      .setDesc('Used to ask Gemini for descriptions when a template has no body content.')
+      .addText((text: TextComponent) => {
+        text
+          .setPlaceholder('AIza...')
+          .setValue(this.plugin.settings.geminiApiKey)
+          .onChange(async (value: string) => {
+            this.plugin.settings.geminiApiKey = value.trim();
+            await this.plugin.saveSettings();
+          });
+        text.inputEl.type = 'password';
+      });
+
+    new Setting(containerEl)
+      .setName('Google Maps API key')
+      .setDesc('Used to rellenar datos geográficos cuando aplicas la plantilla "Lugar".')
+      .addText((text: TextComponent) => {
+        text
+          .setPlaceholder('AIza...')
+          .setValue(this.plugin.settings.googleMapsApiKey)
+          .onChange(async (value: string) => {
+            this.plugin.settings.googleMapsApiKey = value.trim();
+            await this.plugin.saveSettings();
+          });
+        text.inputEl.type = 'password';
+      });
+
     containerEl.createEl('h3', { text: 'Template presets' });
     containerEl.createEl('p', {
       text: 'Configure the options shown when running the "Apply note template" command.',

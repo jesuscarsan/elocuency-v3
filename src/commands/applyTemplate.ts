@@ -4,8 +4,6 @@ import {
   SuggestModal,
   TFile,
   normalizePath,
-  parseYaml,
-  stringifyYaml,
 } from 'obsidian';
 import { showMessage } from '../utils/Messages';
 import {
@@ -13,7 +11,10 @@ import {
   DEFAULT_TEMPLATE_OPTIONS,
 } from '../settings';
 import type { TemplateOptionSetting } from '../settings';
-import { ensureFolderExists, getTemplatesFolder } from '../utils/vault';
+import { ensureFolderExists, getTemplatesFolder } from '../utils/Vault';
+import { formatFrontmatterBlock, mergeFrontmatterSuggestions, mergeNotes, parseFrontmatter, splitFrontmatter } from 'src/utils/Notes';
+import { requestPlaceDetails } from 'src/utils/Maps';
+import { requestGeminiEnrichment } from 'src/utils/AI';
 
 type TemplateOption = TemplateOptionSetting;
 
@@ -27,6 +28,7 @@ export async function applyTemplate(
     return;
   }
 
+  const file = view.file;
   const templateOptions = buildTemplateOptions(settings);
   if (templateOptions.length === 0) {
     showMessage(
@@ -71,7 +73,84 @@ export async function applyTemplate(
   const templateContent = await app.vault.read(templateFile);
   const editor = view.editor;
   const mergedContent = mergeNotes(templateContent, editor.getValue());
-  editor.setValue(mergedContent);
+  const mergedSplit = splitFrontmatter(mergedContent);
+  let mergedFrontmatter = parseFrontmatter(mergedSplit.frontmatterText);
+  const bodyIsEmpty = mergedSplit.body.trim().length === 0;
+
+  const shouldEnrichPlace = selection.label.trim().toLowerCase() === 'lugar';
+
+  if (shouldEnrichPlace) {
+    const placeDetails = await requestPlaceDetails({
+      apiKey: settings.googleMapsApiKey ?? '',
+      placeName: file.basename,
+    });
+
+    if (placeDetails) {
+      const base = mergedFrontmatter ? { ...mergedFrontmatter } : {};
+
+      for (const [key, value] of Object.entries(placeDetails)) {
+        const currentValue = base[key];
+        const hasMeaningfulValue =
+          currentValue !== undefined &&
+          currentValue !== null &&
+          !(typeof currentValue === 'string' && currentValue.trim().length === 0);
+
+        if (!hasMeaningfulValue) {
+          base[key] = value;
+        }
+      }
+
+      mergedFrontmatter = Object.keys(base).length > 0 ? base : null;
+    }
+  }
+
+  const recomposedSegments: string[] = [];
+  if (mergedFrontmatter) {
+    recomposedSegments.push(formatFrontmatterBlock(mergedFrontmatter));
+  }
+
+  const normalizedBody = mergedSplit.body.replace(/^[\n\r]+/, '');
+  if (normalizedBody) {
+    recomposedSegments.push(normalizedBody);
+  }
+
+  let finalContent = recomposedSegments.join('\n\n');
+
+  if (bodyIsEmpty) {
+    const enrichment = await requestGeminiEnrichment({
+      apiKey: settings.geminiApiKey,
+      title: file.basename,
+      templateLabel: selection.label,
+      currentFrontmatter: mergedFrontmatter,
+    });
+
+    if (enrichment) {
+      const updatedFrontmatter = mergeFrontmatterSuggestions(
+        mergedFrontmatter,
+        enrichment.frontmatter,
+      );
+
+      const frontmatterBlock = updatedFrontmatter
+        ? formatFrontmatterBlock(updatedFrontmatter)
+        : '';
+      const bodyFromGemini = enrichment.description
+        ? enrichment.description.trim()
+        : '';
+      const segments: string[] = [];
+
+      if (frontmatterBlock) {
+        segments.push(frontmatterBlock);
+      }
+
+      if (bodyFromGemini) {
+        segments.push(bodyFromGemini);
+      }
+
+      finalContent = segments.join('\n\n');
+    }
+  }
+
+  editor.setValue(finalContent);
 
   const targetFolder = selection.targetFolder.trim();
   if (!targetFolder) {
@@ -82,7 +161,6 @@ export async function applyTemplate(
   }
 
   const normalizedFolder = normalizePath(targetFolder).replace(/\/+$/, '');
-  const file = view.file;
   const currentPath = file.path;
   const alreadyInTarget =
     currentPath === normalizedFolder ||
@@ -185,181 +263,4 @@ function buildTemplateOptions(
       targetFolder: option.targetFolder.trim(),
     }))
     .filter((option) => option.label.length > 0);
-}
-
-type FrontmatterSplit = {
-  frontmatterText: string | null;
-  body: string;
-};
-
-function mergeNotes(noteB: string, noteA: string): string {
-  const templateSplit = splitFrontmatter(noteB);
-  const currentSplit = splitFrontmatter(noteA);
-  const mergedFrontmatter = buildMergedFrontmatter(
-    templateSplit.frontmatterText,
-    currentSplit.frontmatterText,
-  );
-  const mergedFrontmatterBlock = mergedFrontmatter
-    ? formatFrontmatterBlock(mergedFrontmatter)
-    : '';
-
-  const mergedBody = mergeBodyContent(templateSplit.body, currentSplit.body);
-  const normalizedBody = mergedBody.replace(/^[\n\r]+/, '');
-
-  const segments: string[] = [];
-  if (mergedFrontmatterBlock) {
-    segments.push(mergedFrontmatterBlock);
-  }
-  if (normalizedBody) {
-    segments.push(normalizedBody);
-  }
-
-  return segments.join('\n\n');
-}
-
-function splitFrontmatter(content: string): FrontmatterSplit {
-  const match = content.match(/^---\s*\n([\s\S]*?)\n---\s*(?:\n|$)/);
-  if (!match || match.index !== 0) {
-    return {
-      frontmatterText: null,
-      body: content,
-    };
-  }
-
-  const [block, text] = match;
-  const body = content.slice(block.length);
-
-  return {
-    frontmatterText: text,
-    body,
-  };
-}
-
-function buildMergedFrontmatter(
-  templateFrontmatter: string | null,
-  currentFrontmatter: string | null,
-): Record<string, unknown> | null {
-  const templateData = parseFrontmatter(templateFrontmatter);
-  const currentData = parseFrontmatter(currentFrontmatter);
-  const mergedEntries: Array<[string, unknown]> = [];
-  const keyPositions = new Map<string, number>();
-
-  if (templateData) {
-    for (const key of Object.keys(templateData)) {
-      const templateValue = templateData[key];
-      const currentValue = currentData ? currentData[key] : undefined;
-      const valueToUse = hasMeaningfulValue(currentValue)
-        ? currentValue
-        : templateValue;
-
-      upsertEntry(mergedEntries, keyPositions, key, valueToUse);
-    }
-  }
-
-  if (currentData) {
-    for (const key of Object.keys(currentData)) {
-      const currentValue = currentData[key];
-      if (!hasMeaningfulValue(currentValue)) {
-        continue;
-      }
-
-      upsertEntry(mergedEntries, keyPositions, key, currentValue);
-    }
-  }
-
-  if (mergedEntries.length === 0) {
-    return null;
-  }
-
-  const merged: Record<string, unknown> = {};
-  for (const [key, value] of mergedEntries) {
-    merged[key] = value;
-  }
-
-  return merged;
-}
-
-function mergeBodyContent(templateBody: string, currentBody: string): string {
-  const cleanTemplate = stripLeadingFrontmatter(templateBody);
-  const cleanCurrent = stripLeadingFrontmatter(currentBody);
-
-  const normalizedTemplate = cleanTemplate.replace(/\s+$/, '');
-  const normalizedCurrent = cleanCurrent.replace(/^\s+/, '');
-
-  if (!normalizedTemplate) {
-    return normalizedCurrent;
-  }
-
-  if (!normalizedCurrent) {
-    return normalizedTemplate;
-  }
-
-  return `${normalizedTemplate}\n\n${normalizedCurrent}`;
-}
-
-function parseFrontmatter(frontmatter: string | null): Record<string, unknown> | null {
-  if (!frontmatter) {
-    return null;
-  }
-
-  try {
-    const parsed = parseYaml(frontmatter);
-    if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
-      return parsed as Record<string, unknown>;
-    }
-  } catch (error) {
-    console.error('Failed to parse frontmatter', error);
-  }
-
-  return null;
-}
-
-function hasMeaningfulValue(value: unknown): boolean {
-  if (value === null || value === undefined) {
-    return false;
-  }
-
-  if (typeof value === 'string') {
-    return value.trim().length > 0;
-  }
-
-  if (Array.isArray(value)) {
-    return value.length > 0;
-  }
-
-  if (typeof value === 'object') {
-    return Object.keys(value as Record<string, unknown>).length > 0;
-  }
-
-  return true;
-}
-
-function formatFrontmatterBlock(data: Record<string, unknown>): string {
-  const yaml = stringifyYaml(data).replace(/\s+$/, '');
-  return `---\n${yaml}\n---`;
-}
-
-function stripLeadingFrontmatter(text: string): string {
-  const match = text.match(/^---\s*\n([\s\S]*?)\n---\s*(?:\n|$)/);
-  if (!match || match.index !== 0) {
-    return text;
-  }
-
-  return text.slice(match[0].length).replace(/^[\n\r]+/, '');
-}
-
-function upsertEntry(
-  entries: Array<[string, unknown]>,
-  positions: Map<string, number>,
-  key: string,
-  value: unknown,
-): void {
-  if (positions.has(key)) {
-    const index = positions.get(key)!;
-    entries[index][1] = value;
-    return;
-  }
-
-  positions.set(key, entries.length);
-  entries.push([key, value]);
 }

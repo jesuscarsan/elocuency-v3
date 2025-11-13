@@ -4,7 +4,7 @@ import {
   LocationStrategy,
 } from '../settings';
 import { showMessage } from '../utils/Messages';
-import { ensureFolderExists, pathExists } from '../utils/vault';
+import { ensureFolderExists, pathExists } from '../utils/Vault';
 
 type UnresolvedLinks = Record<string, Record<string, number>>;
 
