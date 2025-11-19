@@ -1,8 +1,6 @@
-import {
-  Notice,
-} from 'obsidian';
+import { Notice } from 'obsidian';
 
 export function showMessage(message: string) {
-  console.log(message)
+  console.log(message);
   new Notice(message, 3000);
 }

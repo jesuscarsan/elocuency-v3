@@ -57,7 +57,9 @@ export const DEFAULT_SETTINGS: UnresolvedLinkGeneratorSettings = {
   templateOptions: DEFAULT_TEMPLATE_OPTIONS.map((option) => ({ ...option })),
 };
 
-export function normalizeTemplateOptions(value: unknown): TemplateOptionSetting[] {
+export function normalizeTemplateOptions(
+  value: unknown,
+): TemplateOptionSetting[] {
   if (!Array.isArray(value)) {
     return DEFAULT_TEMPLATE_OPTIONS.map((option) => ({ ...option }));
   }
@@ -71,12 +73,12 @@ export function normalizeTemplateOptions(value: unknown): TemplateOptionSetting[
 
     const record = entry as Partial<TemplateOptionSetting>;
     const label = typeof record.label === 'string' ? record.label.trim() : '';
-    const templateFilename = typeof record.templateFilename === 'string'
-      ? extractTemplateFilename(record.templateFilename)
-      : '';
-    const targetFolder = typeof record.targetFolder === 'string'
-      ? record.targetFolder.trim()
-      : '';
+    const templateFilename =
+      typeof record.templateFilename === 'string'
+        ? extractTemplateFilename(record.templateFilename)
+        : '';
+    const targetFolder =
+      typeof record.targetFolder === 'string' ? record.targetFolder.trim() : '';
 
     if (!label && !templateFilename && !targetFolder) {
       continue;

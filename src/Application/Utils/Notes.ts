@@ -1,8 +1,9 @@
-import {
-  parseYaml,
-  stringifyYaml,
-} from 'obsidian';
+import { parseYaml, stringifyYaml } from 'obsidian';
 
+type FrontmatterSplit = {
+  frontmatterText: string | null;
+  body: string;
+};
 
 export function mergeNotes(noteB: string, noteA: string): string {
   const templateSplit = splitFrontmatter(noteB);
@@ -47,8 +48,9 @@ export function splitFrontmatter(content: string): FrontmatterSplit {
   };
 }
 
-
-export function parseFrontmatter(frontmatter: string | null): Record<string, unknown> | null {
+export function parseFrontmatter(
+  frontmatter: string | null,
+): Record<string, unknown> | null {
   if (!frontmatter) {
     return null;
   }
@@ -185,12 +187,6 @@ export function mergeFrontmatterSuggestions(
 
   return changed ? base : null;
 }
-
-
-type FrontmatterSplit = {
-  frontmatterText: string | null;
-  body: string;
-};
 
 function upsertEntry(
   entries: Array<[string, unknown]>,
