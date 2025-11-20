@@ -5,6 +5,8 @@ import {
   normalizeTemplateOptions,
 } from './settings';
 import { ApplyTemplateCommand } from './Application/Commands/ApplyTemplateCommand';
+import { ApplyGeocoderCommand } from './Application/Commands/ApplyGeocoderCommand';
+import { ApplyStreamBriefCommand } from './Application/Commands/ApplyStreamBriefCommand';
 import { GoogleGeminiAdapter } from './Infrastructure/Adapters/GoogleGeminiAdapter/GoogleGeminiAdapter';
 import { GoogleMapsAdapter } from './Infrastructure/Adapters/GoogleMapsAdapter/GoogleMapsAdapter';
 import { GenerateMissingNotesCommand } from './Application/Commands/GenerateMissingNotesCommand';
@@ -36,16 +38,39 @@ export default class ObsidianExtension extends Plugin {
     });
 
     this.addCommand({
-      id: 'elo-apply-note-template',
+      id: 'elo-apply-template',
       name: 'Apply note template',
       callback: () => {
         const applyTemplateCommand = new ApplyTemplateCommand(
           llm,
-          geocoder,
           this.app,
           this.settings,
         );
         applyTemplateCommand.execute();
+      },
+    });
+
+    this.addCommand({
+      id: 'elo-apply-stream-brief',
+      name: 'Apply stream brief',
+      callback: () => {
+        const applyStreamBriefCommand = new ApplyStreamBriefCommand(
+          llm,
+          this.app,
+        );
+        applyStreamBriefCommand.execute();
+      },
+    });
+
+    this.addCommand({
+      id: 'elo-apply-geocoder',
+      name: 'Apply Geocoder',
+      callback: () => {
+        const applyGeocoderCommand = new ApplyGeocoderCommand(
+          geocoder,
+          this.app,
+        );
+        applyGeocoderCommand.execute();
       },
     });
 

@@ -1,7 +1,5 @@
 export type LlmParams = {
-  title: string;
-  templateLabel: string;
-  currentFrontmatter: Record<string, unknown> | null;
+  prompt: string;
 };
 
 export type LlmResponse = {
@@ -9,6 +7,11 @@ export type LlmResponse = {
   frontmatter?: Record<string, unknown>;
 };
 
+export type StreamBriefParams = {
+  prompt: string;
+};
+
 export interface LlmPort {
   requestEnrichment(params: LlmParams): Promise<LlmResponse | null>;
+  requestStreamBrief(params: StreamBriefParams): Promise<string | null>;
 }

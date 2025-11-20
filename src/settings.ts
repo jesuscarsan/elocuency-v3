@@ -19,37 +19,7 @@ export const DEFAULT_TEMPLATE_OPTIONS: TemplateOptionSetting[] = [
   {
     templateFilename: 'Persona.md',
     targetFolder: 'Personas',
-    commands: ['elocuency:elo-apply-note-template'],
-  },
-  {
-    templateFilename: 'Persona/Persona.md',
-    targetFolder: 'Personas',
-    commands: [],
-  },
-  {
-    templateFilename: 'Obra Audiovisual.md',
-    targetFolder: 'Obras/Álbumes de música',
-    commands: [],
-  },
-  {
-    templateFilename: 'Obra Audiovisual.md',
-    targetFolder: 'Obras/Películas',
-    commands: [],
-  },
-  {
-    templateFilename: 'Obra Escrita.md',
-    targetFolder: 'Obras/Libros',
-    commands: [],
-  },
-  {
-    templateFilename: 'Obra Audiovisual.md',
-    targetFolder: 'Obras/Streaming',
-    commands: [],
-  },
-  {
-    templateFilename: 'Tecnología.md',
-    targetFolder: 'Tecnología/-Diccionario',
-    commands: [],
+    commands: ['elocuency:elo-apply-template'],
   },
 ];
 
@@ -88,8 +58,8 @@ export function normalizeTemplateOptions(
       ? record.commands
         .filter((c): c is string => typeof c === 'string')
         .map((c) =>
-          c === 'elo-apply-note-template'
-            ? 'elocuency:elo-apply-note-template'
+          c === 'elo-apply-template'
+            ? 'elocuency:elo-apply-template'
             : c,
         )
       : [];

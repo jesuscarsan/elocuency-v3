@@ -193,7 +193,7 @@ export class SettingsView extends PluginSettingTab {
         )
         .addText((text: TextComponent) => {
           text
-            .setPlaceholder('elo-apply-note-template, other-command')
+            .setPlaceholder('elo-apply-template, other-command')
             .setValue(option.commands ? option.commands.join(', ') : '')
             .onChange(async (value: string) => {
               this.plugin.settings.templateOptions[index].commands = value

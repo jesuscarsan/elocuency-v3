@@ -21,17 +21,15 @@ import {
   splitFrontmatter,
 } from 'src/Application/Utils/Notes';
 import type { LlmPort } from 'src/Domain/Ports/LlmPort';
-import type { GeocodingPort } from 'src/Domain/Ports/GeocodingPort';
 
 type TemplateOption = TemplateOptionSetting;
 
 export class ApplyTemplateCommand {
   constructor(
     private readonly llm: LlmPort,
-    private readonly geocoder: GeocodingPort,
     private readonly obsidian: ObsidianApp,
     private readonly settings: UnresolvedLinkGeneratorSettings,
-  ) {}
+  ) { }
 
   async execute() {
     const view = this.obsidian.workspace.getActiveViewOfType(MarkdownView);
@@ -84,19 +82,8 @@ export class ApplyTemplateCommand {
     const editor = view.editor;
     const mergedContent = mergeNotes(templateContent, editor.getValue());
     const mergedSplit = splitFrontmatter(mergedContent);
-    let mergedFrontmatter = parseFrontmatter(mergedSplit.frontmatterText);
+    const mergedFrontmatter = parseFrontmatter(mergedSplit.frontmatterText);
     const bodyIsEmpty = mergedSplit.body.trim().length === 0;
-
-    const shouldEnrichPlace =
-      typeof label === 'string' && label.trim().toLowerCase() === 'lugar';
-
-    // Apply Lugar enrichment if applicable
-    if (shouldEnrichPlace) {
-      mergedFrontmatter = await this.enrichPlaceDetails(
-        file.basename,
-        mergedFrontmatter,
-      );
-    }
 
     const recomposedSegments: string[] = [];
     if (mergedFrontmatter) {
@@ -111,10 +98,10 @@ export class ApplyTemplateCommand {
     let finalContent = recomposedSegments.join('\n\n');
 
     if (bodyIsEmpty) {
+      const prompt = this.buildPrompt(file.basename, label, mergedFrontmatter);
+
       const enrichment = await this.llm.requestEnrichment({
-        title: file.basename,
-        templateLabel: label,
-        currentFrontmatter: mergedFrontmatter,
+        prompt,
       });
 
       if (enrichment) {
@@ -146,6 +133,44 @@ export class ApplyTemplateCommand {
     editor.setValue(finalContent);
   }
 
+  private buildPrompt(
+    title: string,
+    templateLabel: string,
+    currentFrontmatter: Record<string, unknown> | null,
+  ): string {
+    const frontmatterJson = this.stringifyFrontmatter(currentFrontmatter);
+    return [
+      'Genera contenido para una nota de Obsidian.',
+      `Título: "${title}".`,
+      `Tipo de plantilla: "${templateLabel}".`,
+      'Frontmatter actual (JSON):',
+      frontmatterJson,
+      'Devuelve un JSON con los campos:',
+      '"description": resumen breve en español (máximo tres frases) que pueda ir en el cuerpo de la nota.',
+      '"frontmatter": objeto con claves y valores sugeridos SOLO para los campos que falten o estén vacíos en el frontmatter actual.',
+      'No añadas texto fuera del JSON y evita marcar código.',
+    ].join('\n');
+  }
+
+  private stringifyFrontmatter(
+    frontmatter: Record<string, unknown> | null,
+  ): string {
+    if (!frontmatter) {
+      return '{}';
+    }
+
+    try {
+      return JSON.stringify(
+        frontmatter,
+        (_key, value) => (value === undefined ? null : value),
+        2,
+      );
+    } catch (error) {
+      console.error('Failed to serialise frontmatter for Gemini prompt', error);
+      return '{}';
+    }
+  }
+
   private findTemplateForFolder(folderPath: string): TemplateOption | null {
     const source =
       this.settings.templateOptions && this.settings.templateOptions.length > 0
@@ -160,34 +185,5 @@ export class ApplyTemplateCommand {
         return target === normalizedFolder;
       }) || null
     );
-  }
-
-  private async enrichPlaceDetails(
-    placeName: string,
-    currentFrontmatter: Record<string, any> | null,
-  ): Promise<Record<string, any> | null> {
-    const placeDetails = await this.geocoder.requestPlaceDetails({
-      placeName,
-    });
-
-    if (!placeDetails) {
-      return currentFrontmatter;
-    }
-
-    const base = currentFrontmatter ? { ...currentFrontmatter } : {};
-
-    for (const [key, value] of Object.entries(placeDetails)) {
-      const currentValue = base[key];
-      const hasMeaningfulValue =
-        currentValue !== undefined &&
-        currentValue !== null &&
-        !(typeof currentValue === 'string' && currentValue.trim().length === 0);
-
-      if (!hasMeaningfulValue) {
-        base[key] = value;
-      }
-    }
-
-    return Object.keys(base).length > 0 ? base : null;
   }
 }
