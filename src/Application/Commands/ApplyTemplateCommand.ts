@@ -1,7 +1,6 @@
 import {
   App as ObsidianApp,
   MarkdownView,
-  SuggestModal,
   TFile,
   normalizePath,
 } from 'obsidian';
@@ -12,7 +11,6 @@ import {
 } from 'src/settings';
 import type { TemplateOptionSetting } from 'src/settings';
 import {
-  ensureFolderExists,
   getTemplatesFolder,
 } from 'src/Application/Utils/Vault';
 import {
@@ -33,7 +31,7 @@ export class ApplyTemplateCommand {
     private readonly geocoder: GeocodingPort,
     private readonly obsidian: ObsidianApp,
     private readonly settings: UnresolvedLinkGeneratorSettings,
-  ) { }
+  ) {}
 
   async execute() {
     const view = this.obsidian.workspace.getActiveViewOfType(MarkdownView);
@@ -43,23 +41,18 @@ export class ApplyTemplateCommand {
     }
 
     const file = view.file;
-    const templateOptions = this.buildTemplateOptions(this.settings);
-    if (templateOptions.length === 0) {
-      showMessage(
-        'Configure at least one template in the plugin settings before applying it.',
-      );
-      return;
-    }
+    const parentPath = file.parent ? file.parent.path : '/';
 
-    const templatePicked = await this.pickTemplateOption(templateOptions);
+    const templatePicked = this.findTemplateForFolder(parentPath);
+
     if (!templatePicked) {
-      showMessage('Template application cancelled.');
+      showMessage(`No template configured for folder: ${parentPath}`);
       return;
     }
 
     if (!templatePicked.templateFilename) {
       showMessage(
-        `Configure a template file for ${templatePicked.label} in the plugin settings before applying it.`,
+        `Configure a template file for folder ${templatePicked.targetFolder} in the plugin settings before applying it.`,
       );
       return;
     }
@@ -67,7 +60,7 @@ export class ApplyTemplateCommand {
     const templatesFolder = getTemplatesFolder(this.obsidian);
     if (!templatesFolder) {
       showMessage(
-        `Enable the Templates core plugin and set a templates folder before applying the ${templatePicked.label} template.`,
+        `Enable the Templates core plugin and set a templates folder before applying the template.`,
       );
       return;
     }
@@ -84,7 +77,8 @@ export class ApplyTemplateCommand {
       return;
     }
 
-    showMessage(`Applying ${templatePicked.label} template...`);
+    const label = (templatePicked as any).label || templatePicked.targetFolder;
+    showMessage(`Applying ${label} template...`);
 
     const templateContent = await this.obsidian.vault.read(templateFile);
     const editor = view.editor;
@@ -94,7 +88,7 @@ export class ApplyTemplateCommand {
     const bodyIsEmpty = mergedSplit.body.trim().length === 0;
 
     const shouldEnrichPlace =
-      templatePicked.label.trim().toLowerCase() === 'lugar';
+      typeof label === 'string' && label.trim().toLowerCase() === 'lugar';
 
     // Apply Lugar enrichment if applicable
     if (shouldEnrichPlace) {
@@ -119,7 +113,7 @@ export class ApplyTemplateCommand {
     if (bodyIsEmpty) {
       const enrichment = await this.llm.requestEnrichment({
         title: file.basename,
-        templateLabel: templatePicked.label,
+        templateLabel: label,
         currentFrontmatter: mergedFrontmatter,
       });
 
@@ -150,30 +144,22 @@ export class ApplyTemplateCommand {
     }
 
     editor.setValue(finalContent);
+  }
 
-    const targetFolder = templatePicked.targetFolder.trim();
-    if (!targetFolder) {
-      showMessage(
-        `Configure a destination folder for ${templatePicked.label} in the plugin settings before applying it.`,
-      );
-      return;
-    }
+  private findTemplateForFolder(folderPath: string): TemplateOption | null {
+    const source =
+      this.settings.templateOptions && this.settings.templateOptions.length > 0
+        ? this.settings.templateOptions
+        : DEFAULT_TEMPLATE_OPTIONS;
 
-    const normalizedFolder = normalizePath(targetFolder).replace(/\/+$/, '');
-    const currentPath = file.path;
-    const alreadyInTarget =
-      currentPath === normalizedFolder ||
-      currentPath.startsWith(`${normalizedFolder}/`);
+    const normalizedFolder = normalizePath(folderPath);
 
-    if (alreadyInTarget) {
-      showMessage(`File is already in ${normalizedFolder}.`);
-      return;
-    }
-
-    const newPath = normalizePath(`${normalizedFolder}/${file.name}`);
-    await ensureFolderExists(this.obsidian, newPath);
-    await this.obsidian.fileManager.renameFile(file, newPath);
-    showMessage(`Moved note to ${normalizedFolder}.`);
+    return (
+      source.find((option) => {
+        const target = normalizePath(option.targetFolder);
+        return target === normalizedFolder;
+      }) || null
+    );
   }
 
   private async enrichPlaceDetails(
@@ -203,91 +189,5 @@ export class ApplyTemplateCommand {
     }
 
     return Object.keys(base).length > 0 ? base : null;
-  }
-
-  private buildTemplateOptions(
-    settings: UnresolvedLinkGeneratorSettings,
-  ): TemplateOption[] {
-    const source =
-      settings.templateOptions && settings.templateOptions.length > 0
-        ? settings.templateOptions
-        : DEFAULT_TEMPLATE_OPTIONS;
-
-    return source
-      .map((option) => ({
-        label: option.label.trim(),
-        templateFilename: option.templateFilename.trim(),
-        targetFolder: option.targetFolder.trim(),
-      }))
-      .filter((option) => option.label.length > 0);
-  }
-
-  private async pickTemplateOption(
-    options: TemplateOption[],
-  ): Promise<TemplateOption | null> {
-    if (options.length === 0) {
-      return null;
-    }
-
-    if (options.length === 1) {
-      return options[0];
-    }
-
-    return new Promise((resolve) => {
-      new TemplateSelectionModal(this.obsidian, options, resolve).open();
-    });
-  }
-}
-
-class TemplateSelectionModal extends SuggestModal<TemplateOption> {
-  private resolved = false;
-
-  constructor(
-    app: ObsidianApp,
-    private readonly options: TemplateOption[],
-    private readonly onResolve: (choice: TemplateOption | null) => void,
-  ) {
-    super(app);
-    this.setPlaceholder('Choose a template to apply');
-  }
-
-  getSuggestions(query: string): TemplateOption[] {
-    const normalizedQuery = query.trim().toLowerCase();
-    if (!normalizedQuery) {
-      return this.options;
-    }
-
-    return this.options.filter((option) =>
-      option.label.toLowerCase().includes(normalizedQuery),
-    );
-  }
-
-  renderSuggestion(option: TemplateOption, el: HTMLElement) {
-    el.createEl('div', { text: option.label });
-
-    const messages: string[] = [];
-    if (!option.templateFilename) {
-      messages.push('Template path not configured');
-    }
-    if (!option.targetFolder.trim()) {
-      messages.push('Target folder not configured');
-    }
-
-    if (messages.length > 0) {
-      el.createEl('small', { text: messages.join(' · ') });
-    }
-  }
-
-  onChooseSuggestion(item: TemplateOption) {
-    this.resolved = true;
-    this.onResolve(item);
-  }
-
-  onClose() {
-    setTimeout(() => {
-      if (!this.resolved) {
-        this.onResolve(null);
-      }
-    }, 0);
   }
 }

@@ -6,7 +6,7 @@ import type { LlmResponse, LlmPort, LlmParams } from 'src/Domain/Ports/LlmPort';
 const GEMINI_MODEL_NAME = 'gemini-2.5-flash';
 const GEMINI_GENERATION_CONFIG = {
   temperature: 0.4,
-  maxOutputTokens: 1000,
+  // maxOutputTokens: 10000,
   responseMimeType: 'application/json',
 };
 
@@ -79,8 +79,8 @@ export class GoogleGeminiAdapter implements LlmPort {
       const frontmatterValue = parsedRecord.frontmatter;
       const frontmatter =
         frontmatterValue &&
-        typeof frontmatterValue === 'object' &&
-        !Array.isArray(frontmatterValue)
+          typeof frontmatterValue === 'object' &&
+          !Array.isArray(frontmatterValue)
           ? (frontmatterValue as Record<string, unknown>)
           : undefined;
 

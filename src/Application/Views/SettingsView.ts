@@ -8,6 +8,7 @@ import {
   TextAreaComponent,
 } from 'obsidian';
 import ObsidianExtension from 'src/main';
+import { LocationStrategy } from 'src/settings';
 
 export class SettingsView extends PluginSettingTab {
   plugin: ObsidianExtension;
@@ -184,6 +185,24 @@ export class SettingsView extends PluginSettingTab {
               await this.plugin.saveSettings();
             });
         });
+
+      new Setting(optionWrapper)
+        .setName('Commands')
+        .setDesc(
+          'Comma-separated list of command IDs to execute when a note is moved to the target folder.',
+        )
+        .addText((text: TextComponent) => {
+          text
+            .setPlaceholder('elo-apply-note-template, other-command')
+            .setValue(option.commands ? option.commands.join(', ') : '')
+            .onChange(async (value: string) => {
+              this.plugin.settings.templateOptions[index].commands = value
+                .split(',')
+                .map((c) => c.trim())
+                .filter((c) => c.length > 0);
+              await this.plugin.saveSettings();
+            });
+        });
     });
 
     new Setting(containerEl)
@@ -198,6 +217,7 @@ export class SettingsView extends PluginSettingTab {
               label: 'New template',
               templateFilename: '',
               targetFolder: '',
+              commands: [],
             });
             await this.plugin.saveSettings();
             this.renderTemplateOptions(containerEl);

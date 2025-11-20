@@ -1,9 +1,9 @@
 export type LocationStrategy = 'same-folder' | 'fixed-folder';
 
 export interface TemplateOptionSetting {
-  label: string;
-  templateFilename: string;
   targetFolder: string;
+  templateFilename: string;
+  commands: string[];
 }
 
 export interface UnresolvedLinkGeneratorSettings {
@@ -17,34 +17,39 @@ export interface UnresolvedLinkGeneratorSettings {
 
 export const DEFAULT_TEMPLATE_OPTIONS: TemplateOptionSetting[] = [
   {
-    label: 'Persona',
     templateFilename: 'Persona.md',
     targetFolder: 'Personas',
+    commands: ['elocuency:elo-apply-note-template'],
   },
   {
-    label: 'Obra > Albúm de música',
+    templateFilename: 'Persona/Persona.md',
+    targetFolder: 'Personas',
+    commands: [],
+  },
+  {
     templateFilename: 'Obra Audiovisual.md',
     targetFolder: 'Obras/Álbumes de música',
+    commands: [],
   },
   {
-    label: 'Obra > Película',
     templateFilename: 'Obra Audiovisual.md',
     targetFolder: 'Obras/Películas',
+    commands: [],
   },
   {
-    label: 'Obra > Libro',
     templateFilename: 'Obra Escrita.md',
     targetFolder: 'Obras/Libros',
+    commands: [],
   },
   {
-    label: 'Obra > Streaming',
     templateFilename: 'Obra Audiovisual.md',
     targetFolder: 'Obras/Streaming',
+    commands: [],
   },
   {
-    label: 'Tecnología',
     templateFilename: 'Tecnología.md',
     targetFolder: 'Tecnología/-Diccionario',
+    commands: [],
   },
 ];
 
@@ -79,6 +84,15 @@ export function normalizeTemplateOptions(
         : '';
     const targetFolder =
       typeof record.targetFolder === 'string' ? record.targetFolder.trim() : '';
+    const commands = Array.isArray(record.commands)
+      ? record.commands
+        .filter((c): c is string => typeof c === 'string')
+        .map((c) =>
+          c === 'elo-apply-note-template'
+            ? 'elocuency:elo-apply-note-template'
+            : c,
+        )
+      : [];
 
     if (!label && !templateFilename && !targetFolder) {
       continue;
@@ -88,6 +102,7 @@ export function normalizeTemplateOptions(
       label,
       templateFilename,
       targetFolder,
+      commands,
     });
   }
 

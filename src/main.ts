@@ -1,4 +1,4 @@
-import { Plugin } from 'obsidian';
+import { Plugin, TFile } from 'obsidian';
 import {
   DEFAULT_SETTINGS,
   UnresolvedLinkGeneratorSettings,
@@ -48,6 +48,45 @@ export default class ObsidianExtension extends Plugin {
         applyTemplateCommand.execute();
       },
     });
+
+    this.registerEvent(
+      this.app.vault.on('rename', async (file, oldPath) => {
+        if (!(file instanceof TFile) || file.extension !== 'md') {
+          return;
+        }
+
+        const parentPath = file.parent?.path;
+        if (!parentPath) {
+          return;
+        }
+
+        const matchingTemplate = this.settings.templateOptions.find(
+          (option) => option.targetFolder === parentPath,
+        );
+
+        if (
+          matchingTemplate &&
+          matchingTemplate.commands &&
+          matchingTemplate.commands.length > 0
+        ) {
+          console.log(
+            `[Elocuency] Note moved to ${parentPath}. Executing commands: ${matchingTemplate.commands.join(', ')}`,
+          );
+
+          const leaf = this.app.workspace.getLeaf(false);
+          await leaf.openFile(file);
+
+          for (const commandId of matchingTemplate.commands) {
+            const command = (this.app as any).commands.findCommand(commandId);
+            if (command) {
+              (this.app as any).commands.executeCommandById(commandId);
+            } else {
+              console.warn(`[Elocuency] Command not found: ${commandId}`);
+            }
+          }
+        }
+      }),
+    );
 
     this.addSettingTab(new SettingsView(this.app, this));
   }
