@@ -80,7 +80,7 @@ export class ApplyTemplateCommand {
 
     const templateContent = await this.obsidian.vault.read(templateFile);
     const editor = view.editor;
-    const mergedContent = mergeNotes(templateContent, editor.getValue());
+    const mergedContent = mergeNotes(templateContent, editor.getValue(), false);
     const mergedSplit = splitFrontmatter(mergedContent);
     const mergedFrontmatter = parseFrontmatter(mergedSplit.frontmatterText);
     const bodyIsEmpty = mergedSplit.body.trim().length === 0;

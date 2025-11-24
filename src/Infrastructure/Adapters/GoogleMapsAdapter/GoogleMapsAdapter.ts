@@ -199,6 +199,8 @@ export class GoogleMapsAdapter implements GeocodingPort {
         );
       }
 
+      this.normalizeSpanishRegion(mergedPlace);
+
       return mergedPlace;
     } catch (error) {
       console.error(
@@ -322,4 +324,105 @@ export class GoogleMapsAdapter implements GeocodingPort {
 
     return merged;
   }
+
+  private normalizeSpanishRegion(place: GeocodingResponse): void {
+    if (
+      !place.pais ||
+      (place.pais.toLowerCase() !== 'españa' &&
+        place.pais.toLowerCase() !== 'spain')
+    ) {
+      return;
+    }
+
+    if (!place.provincia) {
+      return;
+    }
+
+    const normalizedProvincia = place.provincia.trim();
+    const region = PROVINCE_TO_REGION[normalizedProvincia];
+
+    if (region) {
+      console.info(
+        `${LOG_PREFIX} Normalizando región para España: "${normalizedProvincia}" -> "${region}"`,
+      );
+      place.region = region;
+    }
+  }
 }
+
+const PROVINCE_TO_REGION: Record<string, string> = {
+  Alava: 'País Vasco',
+  Álava: 'País Vasco',
+  Araba: 'País Vasco',
+  Albacete: 'Castilla-La Mancha',
+  Alicante: 'Comunitat Valenciana',
+  Alacant: 'Comunitat Valenciana',
+  Almería: 'Andalucía',
+  Asturias: 'Principado de Asturias',
+  Avila: 'Castilla y León',
+  Ávila: 'Castilla y León',
+  Badajoz: 'Extremadura',
+  Baleares: 'Illes Balears',
+  'Illes Balears': 'Illes Balears',
+  Barcelona: 'Cataluña',
+  Burgos: 'Castilla y León',
+  Caceres: 'Extremadura',
+  Cáceres: 'Extremadura',
+  Cadiz: 'Andalucía',
+  Cádiz: 'Andalucía',
+  Cantabria: 'Cantabria',
+  Castellon: 'Comunitat Valenciana',
+  Castellón: 'Comunitat Valenciana',
+  Castelló: 'Comunitat Valenciana',
+  Ceuta: 'Ceuta',
+  'Ciudad Real': 'Castilla-La Mancha',
+  Cordoba: 'Andalucía',
+  Córdoba: 'Andalucía',
+  Cuenca: 'Castilla-La Mancha',
+  Gerona: 'Cataluña',
+  Girona: 'Cataluña',
+  Granada: 'Andalucía',
+  Guadalajara: 'Castilla-La Mancha',
+  Guipuzcoa: 'País Vasco',
+  Guipúzcoa: 'País Vasco',
+  Gipuzkoa: 'País Vasco',
+  Huelva: 'Andalucía',
+  Huesca: 'Aragón',
+  Jaen: 'Andalucía',
+  Jaén: 'Andalucía',
+  'La Coruña': 'Galicia',
+  'A Coruña': 'Galicia',
+  'La Rioja': 'La Rioja',
+  'Las Palmas': 'Canarias',
+  Leon: 'Castilla y León',
+  León: 'Castilla y León',
+  Lerida: 'Cataluña',
+  Lérida: 'Cataluña',
+  Lleida: 'Cataluña',
+  Lugo: 'Galicia',
+  Madrid: 'Comunidad de Madrid',
+  Malaga: 'Andalucía',
+  Málaga: 'Andalucía',
+  Melilla: 'Melilla',
+  Murcia: 'Región de Murcia',
+  Navarra: 'Comunidad Foral de Navarra',
+  Orense: 'Galicia',
+  Ourense: 'Galicia',
+  Palencia: 'Castilla y León',
+  Pontevedra: 'Galicia',
+  Salamanca: 'Castilla y León',
+  'Santa Cruz de Tenerife': 'Canarias',
+  Segovia: 'Castilla y León',
+  Sevilla: 'Andalucía',
+  Soria: 'Castilla y León',
+  Tarragona: 'Cataluña',
+  Teruel: 'Aragón',
+  Toledo: 'Castilla-La Mancha',
+  Valencia: 'Comunitat Valenciana',
+  València: 'Comunitat Valenciana',
+  Valladolid: 'Castilla y León',
+  Vizcaya: 'País Vasco',
+  Bizkaia: 'País Vasco',
+  Zamora: 'Castilla y León',
+  Zaragoza: 'Aragón',
+};

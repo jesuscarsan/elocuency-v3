@@ -5,7 +5,7 @@ type FrontmatterSplit = {
   body: string;
 };
 
-export function mergeNotes(noteB: string, noteA: string): string {
+export function mergeNotes(noteB: string, noteA: string, useTemplateBody: boolean = true): string {
   const templateSplit = splitFrontmatter(noteB);
   const currentSplit = splitFrontmatter(noteA);
   const mergedFrontmatter = buildMergedFrontmatter(
@@ -16,7 +16,9 @@ export function mergeNotes(noteB: string, noteA: string): string {
     ? formatFrontmatterBlock(mergedFrontmatter)
     : '';
 
-  const mergedBody = mergeBodyContent(templateSplit.body, currentSplit.body);
+  const mergedBody = useTemplateBody
+    ? mergeBodyContent(templateSplit.body, currentSplit.body)
+    : currentSplit.body;
   const normalizedBody = mergedBody.replace(/^[\n\r]+/, '');
 
   const segments: string[] = [];
