@@ -12,7 +12,7 @@ export class GenerateMissingNotesCommand {
   constructor(
     private readonly app: App,
     private readonly settings: UnresolvedLinkGeneratorSettings,
-  ) {}
+  ) { }
 
   async execute(): Promise<void> {
     const unresolved = this.app.metadataCache
@@ -51,7 +51,7 @@ export class GenerateMissingNotesCommand {
       }
 
       await ensureFolderExists(this.app, targetPath);
-      const content = this.renderTemplate(linkName, this.settings.fileTemplate);
+      const content = this.renderTemplate(linkName, this.settings.missingNotesTemplatePath);
       await this.app.vault.create(targetPath, content);
       createdPaths.push(targetPath);
     }

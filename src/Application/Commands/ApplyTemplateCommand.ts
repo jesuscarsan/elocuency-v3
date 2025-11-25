@@ -16,11 +16,13 @@ import {
 import {
   formatFrontmatterBlock,
   mergeFrontmatterSuggestions,
-  mergeNotes,
   parseFrontmatter,
   splitFrontmatter,
-} from 'src/Application/Utils/Notes';
+} from 'src/Application/Utils/Frontmatter';
+import { isFolderMatch } from 'src/Application/Utils/Vault';
 import type { LlmPort } from 'src/Domain/Ports/LlmPort';
+import { extractConfigFromTemplate } from 'src/Application/Utils/TemplateConfig';
+import { mergeNotes } from 'src/Application/Utils/Notes';
 
 type TemplateOption = TemplateOptionSetting;
 
@@ -75,12 +77,13 @@ export class ApplyTemplateCommand {
       return;
     }
 
-    const label = (templatePicked as any).label || templatePicked.targetFolder;
-    showMessage(`Applying ${label} template...`);
+    showMessage(`Applying template for ${templatePicked.targetFolder}...`);
 
     const templateContent = await this.obsidian.vault.read(templateFile);
+    const { config, cleanedContent } = extractConfigFromTemplate(templateContent);
+
     const editor = view.editor;
-    const mergedContent = mergeNotes(templateContent, editor.getValue(), false);
+    const mergedContent = mergeNotes(cleanedContent, editor.getValue(), false);
     const mergedSplit = splitFrontmatter(mergedContent);
     const mergedFrontmatter = parseFrontmatter(mergedSplit.frontmatterText);
     const bodyIsEmpty = mergedSplit.body.trim().length === 0;
@@ -90,15 +93,15 @@ export class ApplyTemplateCommand {
       recomposedSegments.push(formatFrontmatterBlock(mergedFrontmatter));
     }
 
-    const normalizedBody = mergedSplit.body.replace(/^[\n\r]+/, '');
+    const normalizedBody = mergedSplit.body;
     if (normalizedBody) {
       recomposedSegments.push(normalizedBody);
     }
 
     let finalContent = recomposedSegments.join('\n\n');
 
-    if (bodyIsEmpty) {
-      const prompt = this.buildPrompt(file.basename, label, mergedFrontmatter);
+    if (bodyIsEmpty && config.prompt) {
+      const prompt = this.buildPrompt(file.basename, mergedFrontmatter, config.prompt);
 
       const enrichment = await this.llm.requestEnrichment({
         prompt,
@@ -131,45 +134,20 @@ export class ApplyTemplateCommand {
     }
 
     editor.setValue(finalContent);
+
   }
 
   private buildPrompt(
     title: string,
-    templateLabel: string,
     currentFrontmatter: Record<string, unknown> | null,
+    promptTemplate: string,
   ): string {
-    const frontmatterJson = this.stringifyFrontmatter(currentFrontmatter);
-    return [
-      'Genera contenido para una nota de Obsidian.',
-      `Título: "${title}".`,
-      `Tipo de plantilla: "${templateLabel}".`,
-      'Frontmatter actual (JSON):',
-      frontmatterJson,
-      'Devuelve un JSON con los campos:',
-      '"description": resumen breve en español (máximo tres frases) que pueda ir en el cuerpo de la nota.',
-      '"frontmatter": objeto con claves y valores sugeridos SOLO para los campos que falten o estén vacíos en el frontmatter actual.',
-      'No añadas texto fuera del JSON y evita marcar código.',
-    ].join('\n');
+    const frontmatterJson = JSON.stringify(currentFrontmatter || {}, null, 2);
+    return promptTemplate
+      .replace('{{title}}', title)
+      .replace('{{frontmatter}}', frontmatterJson);
   }
 
-  private stringifyFrontmatter(
-    frontmatter: Record<string, unknown> | null,
-  ): string {
-    if (!frontmatter) {
-      return '{}';
-    }
-
-    try {
-      return JSON.stringify(
-        frontmatter,
-        (_key, value) => (value === undefined ? null : value),
-        2,
-      );
-    } catch (error) {
-      console.error('Failed to serialise frontmatter for Gemini prompt', error);
-      return '{}';
-    }
-  }
 
   private findTemplateForFolder(folderPath: string): TemplateOption | null {
     const source =
@@ -181,8 +159,7 @@ export class ApplyTemplateCommand {
 
     return (
       source.find((option) => {
-        const target = normalizePath(option.targetFolder);
-        return target === normalizedFolder;
+        return isFolderMatch(normalizedFolder, option.targetFolder);
       }) || null
     );
   }

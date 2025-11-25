@@ -4,7 +4,7 @@ import {
   formatFrontmatterBlock,
   parseFrontmatter,
   splitFrontmatter,
-} from 'src/Application/Utils/Notes';
+} from 'src/Application/Utils/Frontmatter';
 import { getStreamTranscript } from 'src/Application/Utils/Streams';
 import type { LlmPort } from 'src/Domain/Ports/LlmPort';
 

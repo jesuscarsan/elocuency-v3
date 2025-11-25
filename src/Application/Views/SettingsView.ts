@@ -64,9 +64,9 @@ export class SettingsView extends PluginSettingTab {
       .addTextArea((text: TextAreaComponent) => {
         text
           .setPlaceholder('# {{title}}')
-          .setValue(this.plugin.settings.fileTemplate)
+          .setValue(this.plugin.settings.missingNotesTemplatePath)
           .onChange(async (value: string) => {
-            this.plugin.settings.fileTemplate = value;
+            this.plugin.settings.missingNotesTemplatePath = value;
             await this.plugin.saveSettings();
           });
         text.inputEl.rows = 4;
@@ -131,35 +131,12 @@ export class SettingsView extends PluginSettingTab {
         cls: 'elo-template-option',
       });
       const optionHeading = optionWrapper.createEl('h4', {
-        text: option.label.trim() || `Template ${index + 1}`,
+        text: option.targetFolder.trim() || `Template ${index + 1}`,
       });
 
-      const labelSetting = new Setting(optionWrapper)
-        .setName('Label')
-        .setDesc('Displayed in the template picker.')
-        .addText((text: TextComponent) => {
-          text
-            .setPlaceholder('Persona')
-            .setValue(option.label)
-            .onChange(async (value: string) => {
-              this.plugin.settings.templateOptions[index].label = value;
-              optionHeading.setText(value.trim() || `Template ${index + 1}`);
-              await this.plugin.saveSettings();
-            });
-        });
 
-      labelSetting.addExtraButton((button) => {
-        button
-          .setIcon('trash')
-          .setTooltip('Remove template')
-          .onClick(async () => {
-            this.plugin.settings.templateOptions.splice(index, 1);
-            await this.plugin.saveSettings();
-            this.renderTemplateOptions(containerEl);
-          });
-      });
 
-      new Setting(optionWrapper)
+      const templateFilenameSetting = new Setting(optionWrapper)
         .setName('Template filename')
         .setDesc('File inside the Templates core plugin folder.')
         .addText((text: TextComponent) => {
@@ -172,6 +149,17 @@ export class SettingsView extends PluginSettingTab {
               await this.plugin.saveSettings();
             });
         });
+
+      templateFilenameSetting.addExtraButton((button) => {
+        button
+          .setIcon('trash')
+          .setTooltip('Remove template')
+          .onClick(async () => {
+            this.plugin.settings.templateOptions.splice(index, 1);
+            await this.plugin.saveSettings();
+            this.renderTemplateOptions(containerEl);
+          });
+      });
 
       new Setting(optionWrapper)
         .setName('Target folder')
@@ -186,23 +174,7 @@ export class SettingsView extends PluginSettingTab {
             });
         });
 
-      new Setting(optionWrapper)
-        .setName('Commands')
-        .setDesc(
-          'Comma-separated list of command IDs to execute when a note is moved to the target folder.',
-        )
-        .addText((text: TextComponent) => {
-          text
-            .setPlaceholder('elo-apply-template, other-command')
-            .setValue(option.commands ? option.commands.join(', ') : '')
-            .onChange(async (value: string) => {
-              this.plugin.settings.templateOptions[index].commands = value
-                .split(',')
-                .map((c) => c.trim())
-                .filter((c) => c.length > 0);
-              await this.plugin.saveSettings();
-            });
-        });
+
     });
 
     new Setting(containerEl)
@@ -214,10 +186,10 @@ export class SettingsView extends PluginSettingTab {
           .setCta()
           .onClick(async () => {
             this.plugin.settings.templateOptions.push({
-              label: 'New template',
+
               templateFilename: '',
               targetFolder: '',
-              commands: [],
+
             });
             await this.plugin.saveSettings();
             this.renderTemplateOptions(containerEl);

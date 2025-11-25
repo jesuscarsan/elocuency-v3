@@ -4,7 +4,7 @@ import {
     formatFrontmatterBlock,
     parseFrontmatter,
     splitFrontmatter,
-} from 'src/Application/Utils/Notes';
+} from 'src/Application/Utils/Frontmatter';
 import type { GeocodingPort } from 'src/Domain/Ports/GeocodingPort';
 
 export class ApplyGeocoderCommand {

@@ -3,7 +3,7 @@ export type LlmParams = {
 };
 
 export type LlmResponse = {
-  description?: string;
+  body?: string;
   frontmatter?: Record<string, unknown>;
 };
 

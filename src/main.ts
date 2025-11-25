@@ -11,6 +11,8 @@ import { GoogleGeminiAdapter } from './Infrastructure/Adapters/GoogleGeminiAdapt
 import { GoogleMapsAdapter } from './Infrastructure/Adapters/GoogleMapsAdapter/GoogleMapsAdapter';
 import { GenerateMissingNotesCommand } from './Application/Commands/GenerateMissingNotesCommand';
 import { SettingsView } from './Application/Views/SettingsView';
+import { EnhanceNoteCommand } from './Application/Commands/EnhanceNoteCommand';
+import { EnhanceByAiCommand } from './Application/Commands/EnhanceByAiCommand';
 
 export default class ObsidianExtension extends Plugin {
   settings: UnresolvedLinkGeneratorSettings = DEFAULT_SETTINGS;
@@ -74,42 +76,30 @@ export default class ObsidianExtension extends Plugin {
       },
     });
 
+    this.addCommand({
+      id: 'elo-enhance-note',
+      name: 'Enhance note',
+      callback: () => {
+        const activeFile = this.app.workspace.getActiveFile();
+        if (activeFile) {
+          new EnhanceNoteCommand(this, llm).execute(activeFile);
+        }
+      },
+    });
+
+    this.addCommand({
+      id: 'elo-enhance-by-prompt',
+      name: 'Enhance note by prompt',
+      callback: () => {
+        new EnhanceByAiCommand(this.app, this.settings, llm).execute();
+      },
+    });
+
+
     this.registerEvent(
       this.app.vault.on('rename', async (file, oldPath) => {
-        if (!(file instanceof TFile) || file.extension !== 'md') {
-          return;
-        }
+        new EnhanceNoteCommand(this, llm).execute(file);
 
-        const parentPath = file.parent?.path;
-        if (!parentPath) {
-          return;
-        }
-
-        const matchingTemplate = this.settings.templateOptions.find(
-          (option) => option.targetFolder === parentPath,
-        );
-
-        if (
-          matchingTemplate &&
-          matchingTemplate.commands &&
-          matchingTemplate.commands.length > 0
-        ) {
-          console.log(
-            `[Elocuency] Note moved to ${parentPath}. Executing commands: ${matchingTemplate.commands.join(', ')}`,
-          );
-
-          const leaf = this.app.workspace.getLeaf(false);
-          await leaf.openFile(file);
-
-          for (const commandId of matchingTemplate.commands) {
-            const command = (this.app as any).commands.findCommand(commandId);
-            if (command) {
-              (this.app as any).commands.executeCommandById(commandId);
-            } else {
-              console.warn(`[Elocuency] Command not found: ${commandId}`);
-            }
-          }
-        }
       }),
     );
 
