@@ -13,9 +13,17 @@ import { GenerateMissingNotesCommand } from './Application/Commands/GenerateMiss
 import { SettingsView } from './Application/Views/SettingsView';
 import { EnhanceNoteCommand } from './Application/Commands/EnhanceNoteCommand';
 import { EnhanceByAiCommand } from './Application/Commands/EnhanceByAiCommand';
+import { registerSpotifyRenderer } from './Application/Views/SpotifyPlayer';
+import { SpotifyAdapter } from './Infrastructure/Adapters/SpotifyAdapter/SpotifyAdapter';
+import { SpotifyModal } from './Application/Views/SpotifyModal';
+import { SpotifyPlaylistModal } from './Application/Views/SpotifyPlaylistModal';
+import { InputModal } from './Application/Views/InputModal';
+import { Notice } from 'obsidian';
+import { registerGoogleMapsRenderer } from './Application/Views/GoogleMapsRenderer';
 
 export default class ObsidianExtension extends Plugin {
   settings: UnresolvedLinkGeneratorSettings = DEFAULT_SETTINGS;
+  spotifyAdapter!: SpotifyAdapter;
 
   async onload() {
     console.log('Elocuency plugin loaded');
@@ -25,10 +33,16 @@ export default class ObsidianExtension extends Plugin {
     const llm = new GoogleGeminiAdapter(this.settings.geminiApiKey ?? '');
     const geocoder = new GoogleMapsAdapter(
       this.settings.googleMapsApiKey ?? '',
+      this.app
+    );
+
+    this.spotifyAdapter = new SpotifyAdapter(
+      this.settings.spotifyClientId,
+      this.settings.spotifyAccessToken
     );
 
     this.addCommand({
-      id: 'elo-generate-notes-for-unresolved-links',
+      id: 'GenerateMissingNotesCommand',
       name: 'Create notes for unresolved links',
       callback: async () => {
         const generateMissingNotesCommand = new GenerateMissingNotesCommand(
@@ -40,8 +54,8 @@ export default class ObsidianExtension extends Plugin {
     });
 
     this.addCommand({
-      id: 'elo-apply-template',
-      name: 'Apply note template',
+      id: 'ApplyTemplateCommand',
+      name: 'Apply template',
       callback: () => {
         const applyTemplateCommand = new ApplyTemplateCommand(
           llm,
@@ -53,7 +67,7 @@ export default class ObsidianExtension extends Plugin {
     });
 
     this.addCommand({
-      id: 'elo-apply-stream-brief',
+      id: 'ApplyStreamBriefCommand',
       name: 'Apply stream brief',
       callback: () => {
         const applyStreamBriefCommand = new ApplyStreamBriefCommand(
@@ -65,11 +79,12 @@ export default class ObsidianExtension extends Plugin {
     });
 
     this.addCommand({
-      id: 'elo-apply-geocoder',
+      id: 'ApplyGeocoderCommand',
       name: 'Apply Geocoder',
       callback: () => {
         const applyGeocoderCommand = new ApplyGeocoderCommand(
           geocoder,
+          llm,
           this.app,
         );
         applyGeocoderCommand.execute();
@@ -77,8 +92,8 @@ export default class ObsidianExtension extends Plugin {
     });
 
     this.addCommand({
-      id: 'elo-enhance-note',
-      name: 'Enhance note',
+      id: 'EnhanceNoteCommand',
+      name: 'Enhance note (Template + AI)',
       callback: () => {
         const activeFile = this.app.workspace.getActiveFile();
         if (activeFile) {
@@ -88,11 +103,86 @@ export default class ObsidianExtension extends Plugin {
     });
 
     this.addCommand({
-      id: 'elo-enhance-by-prompt',
-      name: 'Enhance note by prompt',
+      id: 'EnhanceByAiCommand',
+      name: 'Enhance with AI',
       callback: () => {
         new EnhanceByAiCommand(this.app, this.settings, llm).execute();
       },
+    });
+
+    this.addCommand({
+      id: 'ConnectSpotify',
+      name: 'Connect Spotify',
+      callback: async () => {
+        if (!this.settings.spotifyClientId) {
+          new Notice('Please set your Spotify Client ID in settings first.');
+          return;
+        }
+        const redirectUri = this.settings.spotifyRedirectUri || 'http://localhost:8080';
+
+        const verifier = this.spotifyAdapter.generatePkceVerifier();
+        this.settings.spotifyPkceVerifier = verifier;
+        await this.saveSettings();
+
+        const challenge = await this.spotifyAdapter.generatePkceChallenge(verifier);
+        const authUrl = this.spotifyAdapter.getAuthUrl(redirectUri, challenge);
+
+        window.open(authUrl);
+        new Notice('Opened Spotify Auth page. Copy the code from the URL and run "Enter Spotify Code".');
+      }
+    });
+
+    this.addCommand({
+      id: 'EnterSpotifyCode',
+      name: 'Enter Spotify Code',
+      callback: () => {
+        new InputModal(this.app, async (code) => {
+          if (!code) {
+            new Notice('No code entered.');
+            return;
+          }
+
+          try {
+            const redirectUri = this.settings.spotifyRedirectUri || 'http://localhost:8080';
+            const verifier = this.settings.spotifyPkceVerifier;
+
+            if (!verifier) {
+              new Notice('PKCE Verifier missing. Please run "Connect Spotify" first.');
+              return;
+            }
+
+            const token = await this.spotifyAdapter.exchangeCode(code, redirectUri, verifier);
+            this.settings.spotifyAccessToken = token;
+            // Clear verifier after successful exchange
+            this.settings.spotifyPkceVerifier = '';
+            await this.saveSettings();
+
+            new Notice('Spotify Connected Successfully!');
+          } catch (error) {
+            new Notice('Failed to exchange code for token. Check console.');
+            console.error(error);
+          }
+        }).open();
+      }
+    });
+
+    this.addCommand({
+      id: 'SearchSpotifyTrack',
+      name: 'Search Spotify Track',
+      callback: () => {
+        // Ensure adapter has latest credentials
+        this.spotifyAdapter.updateCredentials(this.settings.spotifyClientId, this.settings.spotifyAccessToken);
+        new SpotifyModal(this.app, this.spotifyAdapter).open();
+      }
+    });
+
+    this.addCommand({
+      id: 'ImportPlaylistTracks',
+      name: 'Import Playlist Tracks',
+      callback: async () => {
+        this.spotifyAdapter.updateCredentials(this.settings.spotifyClientId, this.settings.spotifyAccessToken);
+        new SpotifyPlaylistModal(this.app, this.spotifyAdapter).open();
+      }
     });
 
 
@@ -104,6 +194,8 @@ export default class ObsidianExtension extends Plugin {
     );
 
     this.addSettingTab(new SettingsView(this.app, this));
+    registerSpotifyRenderer(this);
+    registerGoogleMapsRenderer(this);
   }
 
   onunload() {

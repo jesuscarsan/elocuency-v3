@@ -5,7 +5,6 @@ import type {
   LlmResponse,
   LlmPort,
   LlmParams,
-  StreamBriefParams,
 } from 'src/Domain/Ports/LlmPort';
 
 const GEMINI_MODEL_NAME = 'gemini-2.5-flash';
@@ -28,7 +27,7 @@ export class GoogleGeminiAdapter implements LlmPort {
 
   async requestEnrichment(params: LlmParams): Promise<LlmResponse | null> {
     const { prompt } = params;
-
+    console.log('Prompt:', prompt);
     if (!this.apiKey) {
       showMessage(
         'Configura tu clave de la API de Gemini en los ajustes para completar la plantilla automáticamente.',
@@ -78,9 +77,9 @@ export class GoogleGeminiAdapter implements LlmPort {
       }
 
       const parsedRecord = parsed as Record<string, unknown>;
-      const description =
-        typeof parsedRecord.description === 'string'
-          ? parsedRecord.description.trim()
+      const body =
+        typeof parsedRecord.body === 'string'
+          ? parsedRecord.body.trim()
           : undefined;
       const frontmatterValue = parsedRecord.frontmatter;
       const frontmatter =
@@ -91,7 +90,7 @@ export class GoogleGeminiAdapter implements LlmPort {
           : undefined;
 
       return {
-        description,
+        body,
         frontmatter,
       };
     } catch (error) {
@@ -103,8 +102,94 @@ export class GoogleGeminiAdapter implements LlmPort {
     }
   }
 
+  async request(params: LlmParams): Promise<string | null> {
+    const { prompt } = params;
+    if (!this.apiKey) {
+      showMessage('Configura tu clave de la API de Gemini en los ajustes.');
+      return null;
+    }
+
+    try {
+      const client = this.getGeminiClient();
+      const response = await client.models.generateContent({
+        model: GEMINI_MODEL_NAME,
+        contents: [
+          {
+            role: 'user',
+            parts: [
+              {
+                text: prompt,
+              },
+            ],
+          },
+        ],
+        config: GEMINI_SUMMARY_GENERATION_CONFIG,
+      });
+
+      const rawText = this.extractText(response).trim();
+      return rawText || null;
+    } catch (error) {
+      console.error('Failed to request Gemini', error);
+      showMessage(
+        'Gemini no respondió. Consulta la consola para más detalles.',
+      );
+      return null;
+    }
+  }
+
+  async requestJson(params: LlmParams): Promise<any | null> {
+    const { prompt } = params;
+    if (!this.apiKey) {
+      showMessage('Configura tu clave de la API de Gemini en los ajustes.');
+      return null;
+    }
+
+    try {
+      const client = this.getGeminiClient();
+      const response = await client.models.generateContent({
+        model: GEMINI_MODEL_NAME,
+        contents: [
+          {
+            role: 'user',
+            parts: [
+              {
+                text: prompt,
+              },
+            ],
+          },
+        ],
+        config: GEMINI_JSON_GENERATION_CONFIG,
+      });
+
+      const rawText = this.extractText(response);
+
+      if (!rawText) {
+        return null;
+      }
+
+      const cleanText = this.stripCodeFence(rawText);
+
+      try {
+        return JSON.parse(cleanText);
+      } catch (parseError) {
+        console.error(
+          'Gemini response could not be parsed as JSON',
+          cleanText,
+          parseError,
+        );
+        return null;
+      }
+    } catch (error) {
+      console.error('Failed to request Gemini JSON', error);
+      showMessage(
+        'Gemini no respondió. Consulta la consola para más detalles.',
+      );
+      return null;
+    }
+  }
+
   async requestStreamBrief(
-    params: StreamBriefParams,
+    params: LlmParams,
   ): Promise<string | null> {
     if (!this.apiKey) {
       showMessage(

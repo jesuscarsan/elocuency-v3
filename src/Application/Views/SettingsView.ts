@@ -104,6 +104,46 @@ export class SettingsView extends PluginSettingTab {
         text.inputEl.type = 'password';
       });
 
+    new Setting(containerEl)
+      .setName('Spotify Client ID')
+      .setDesc('Required for Spotify integration.')
+      .addText((text: TextComponent) => {
+        text
+          .setPlaceholder('Client ID')
+          .setValue(this.plugin.settings.spotifyClientId)
+          .onChange(async (value: string) => {
+            this.plugin.settings.spotifyClientId = value.trim();
+            await this.plugin.saveSettings();
+          });
+      });
+
+    new Setting(containerEl)
+      .setName('Spotify Access Token')
+      .setDesc('Access token for Spotify API.')
+      .addText((text: TextComponent) => {
+        text
+          .setPlaceholder('Access Token')
+          .setValue(this.plugin.settings.spotifyAccessToken)
+          .onChange(async (value: string) => {
+            this.plugin.settings.spotifyAccessToken = value.trim();
+            await this.plugin.saveSettings();
+          });
+        text.inputEl.type = 'password';
+      });
+
+    new Setting(containerEl)
+      .setName('Spotify Redirect URI')
+      .setDesc('Must match exactly what is in Spotify Dashboard.')
+      .addText((text: TextComponent) => {
+        text
+          .setPlaceholder('http://localhost:8080')
+          .setValue(this.plugin.settings.spotifyRedirectUri)
+          .onChange(async (value: string) => {
+            this.plugin.settings.spotifyRedirectUri = value.trim();
+            await this.plugin.saveSettings();
+          });
+      });
+
     containerEl.createEl('h3', { text: 'Template presets' });
     containerEl.createEl('p', {
       text: 'Configure the options shown when running the "Apply note template" command.',

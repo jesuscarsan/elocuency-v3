@@ -12,26 +12,45 @@ export function isFolderMatch(folderPath: string, targetFolder: string): boolean
   const normalizedFolder = normalizePath(folderPath);
   const normalizedTarget = normalizePath(targetFolder);
 
-  // Check for wildcard match
-  if (normalizedTarget.endsWith('/**')) {
-    const prefix = normalizedTarget.slice(0, -3); // Remove '/**'
-    // It matches if it starts with the prefix and the next char is a separator or end of string
-    // But since we are matching folders, we want to ensure we match directory boundaries.
-    // Example: target "Lugares/**" (prefix "Lugares") should match "Lugares/A" but not "LugaresExtra/A"
+  const folderParts = normalizedFolder.split('/');
+  const targetParts = normalizedTarget.split('/');
 
-    if (normalizedFolder === prefix) {
+  // If target is just empty or root, handle accordingly (though usually not the case)
+  if (targetParts.length === 0) return false;
+
+  for (let i = 0; i < targetParts.length; i++) {
+    const targetPart = targetParts[i];
+
+    // Handle ** wildcard (matches everything remaining)
+    if (targetPart === '**') {
       return true;
     }
 
-    if (normalizedFolder.startsWith(prefix + '/')) {
-      return true;
+    // If folder is shorter than target (and not matched by **), it's a mismatch
+    if (i >= folderParts.length) {
+      return false;
     }
 
+    const folderPart = folderParts[i];
+
+    // Handle * wildcard (matches any single folder component)
+    if (targetPart === '*') {
+      continue;
+    }
+
+    // Exact match for the component
+    if (targetPart !== folderPart) {
+      return false;
+    }
+  }
+
+  // If we processed all target parts, ensure folder doesn't have extra parts
+  // (unless the last part was **, which is handled inside the loop)
+  if (folderParts.length > targetParts.length) {
     return false;
   }
 
-  // Exact match
-  return normalizedFolder === normalizedTarget;
+  return true;
 }
 
 export async function ensureFolderExists(app: App, filePath: string) {
@@ -98,3 +117,4 @@ async function createFolderRecursively(app: App, folderPath: string) {
     }
   }
 }
+

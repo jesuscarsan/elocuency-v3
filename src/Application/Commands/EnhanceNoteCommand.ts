@@ -7,7 +7,7 @@ import { UnresolvedLinkGeneratorSettings } from '../../settings';
 import { getTemplatesFolder, isFolderMatch } from '../Utils/Vault';
 import { EnhanceByAiCommand } from './EnhanceByAiCommand';
 import { LlmPort } from 'src/Domain/Ports/LlmPort';
-import { extractConfigFromTemplate } from '../Utils/TemplateConfig';
+import { getTemplateConfigForFolder } from '../Utils/TemplateConfig';
 import { normalizePath } from 'obsidian';
 
 interface EloPlugin extends ObsidianPlugin {
@@ -28,32 +28,13 @@ export class EnhanceNoteCommand {
             return;
         }
 
-        const matchingTemplate = this.obsidianPlugin.settings.templateOptions.find(
-            (option) => isFolderMatch(parentPath, option.targetFolder),
-        );
+        const templateResult = await getTemplateConfigForFolder(this.obsidianPlugin.app, this.obsidianPlugin.settings, parentPath);
 
-        if (!matchingTemplate) {
+        if (!templateResult) {
             return;
         }
 
-        const templatesFolder = getTemplatesFolder(this.obsidianPlugin.app);
-        if (!templatesFolder) {
-            return;
-        }
-
-        const normalizedTemplatePath = normalizePath(
-            `${templatesFolder}/${matchingTemplate.templateFilename}`,
-        );
-        const templateFile = this.obsidianPlugin.app.vault.getAbstractFileByPath(
-            normalizedTemplatePath,
-        );
-
-        if (!(templateFile instanceof TFile)) {
-            return;
-        }
-
-        const templateContent = await this.obsidianPlugin.app.vault.read(templateFile);
-        const { config } = extractConfigFromTemplate(templateContent);
+        const { config } = templateResult;
 
         if (
             config.commands &&

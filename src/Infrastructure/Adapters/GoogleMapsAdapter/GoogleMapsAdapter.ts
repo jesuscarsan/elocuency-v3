@@ -1,4 +1,4 @@
-import { requestUrl } from 'obsidian';
+import { requestUrl, App, FuzzySuggestModal } from 'obsidian';
 import { showMessage } from 'src/Application/Utils/Messages';
 import type {
   GeocodingResponse,
@@ -42,9 +42,11 @@ type GoogleGeocodeResponse = {
 
 export class GoogleMapsAdapter implements GeocodingPort {
   private readonly apiKey: string;
+  private readonly app: App;
 
-  constructor(apiKey: string) {
+  constructor(apiKey: string, app: App) {
     this.apiKey = apiKey.trim();
+    this.app = app;
   }
 
   async requestPlaceDetails(
@@ -89,7 +91,7 @@ export class GoogleMapsAdapter implements GeocodingPort {
         );
         return null;
       }
-
+      console.log({ google_maps: data });
       const status = typeof data.status === 'string' ? data.status : '';
 
       if (status !== 'OK') {
@@ -125,27 +127,31 @@ export class GoogleMapsAdapter implements GeocodingPort {
         return { ...EMPTY_PLACE_DETAILS };
       }
 
-      const candidatePlaces = results.map((result, index) =>
-        this.extractPlaceDetails(result, index),
-      );
-      const mergedPlace = this.mergeBestPlace(candidatePlaces);
+      let selectedResult: GoogleGeocodeResult;
 
-      const missingFields: string[] = [];
-      if (!mergedPlace.municipio) missingFields.push('municipio');
-      if (!mergedPlace.provincia) missingFields.push('provincia');
-      if (!mergedPlace.region) missingFields.push('región');
-      if (!mergedPlace.pais) missingFields.push('país');
+      if (results.length > 1) {
+        const userSelection = await this.askUserToSelect(results);
+        if (!userSelection) {
+          showMessage('Selección cancelada por el usuario.');
+          return null;
+        }
+        selectedResult = userSelection;
+      } else {
+        selectedResult = results[0];
+      }
 
-      if (missingFields.length > 0) {
+      const placeDetails = this.extractPlaceDetails(selectedResult, 0);
+
+      if (!placeDetails.municipio && placeDetails.provincia && placeDetails.pais) {
         console.warn(
-          `${LOG_PREFIX} Google Maps no devolvió ${missingFields.join(', ')} para "${trimmedName}". Se usó el mejor resultado disponible.`,
+          `${LOG_PREFIX} Google Maps no devolvió municipio, pero sí provincia y país para "${trimmedName}". Intentando recuperar el municipio...`,
         );
 
         // Intento de recuperación mediante geocodificación inversa
-        const bestLocation = results[0]?.geometry?.location;
+        const bestLocation = selectedResult.geometry?.location;
         if (bestLocation) {
           console.info(
-            `${LOG_PREFIX} Intentando recuperar datos faltantes mediante geocodificación inversa en (${bestLocation.lat}, ${bestLocation.lng})...`,
+            `${LOG_PREFIX} en (${bestLocation.lat}, ${bestLocation.lng})...`,
           );
           try {
             const reverseQuery = new URLSearchParams({
@@ -165,25 +171,27 @@ export class GoogleMapsAdapter implements GeocodingPort {
             if (
               reverseData &&
               reverseData.status === 'OK' &&
-              Array.isArray(reverseData.results)
+              Array.isArray(reverseData.results) &&
+              reverseData.results.length > 0
             ) {
-              const reverseCandidates = reverseData.results.map(
-                (result, index) => this.extractPlaceDetails(result, index),
-              );
-              const reverseBest = this.mergeBestPlace(reverseCandidates);
+              // For reverse geocoding, we usually trust the first result or merge logic.
+              // Since we already have a specific location, we can just take the first result of reverse geocoding
+              // which is usually the most specific address.
+              const reverseBest = this.extractPlaceDetails(reverseData.results[0], 0);
 
-              if (!mergedPlace.municipio && reverseBest.municipio)
-                mergedPlace.municipio = reverseBest.municipio;
-              if (!mergedPlace.provincia && reverseBest.provincia)
-                mergedPlace.provincia = reverseBest.provincia;
-              if (!mergedPlace.region && reverseBest.region)
-                mergedPlace.region = reverseBest.region;
-              if (!mergedPlace.pais && reverseBest.pais)
-                mergedPlace.pais = reverseBest.pais;
+              console.log({ reverseBest, placeDetails });
+              if (!placeDetails.municipio && reverseBest.municipio)
+                placeDetails.municipio = reverseBest.municipio;
+              if (!placeDetails.provincia && reverseBest.provincia)
+                placeDetails.provincia = reverseBest.provincia;
+              if (!placeDetails.region && reverseBest.region)
+                placeDetails.region = reverseBest.region;
+              if (!placeDetails.pais && reverseBest.pais)
+                placeDetails.pais = reverseBest.pais;
 
               console.info(
                 `${LOG_PREFIX} Datos actualizados tras geocodificación inversa:`,
-                mergedPlace,
+                placeDetails,
               );
             }
           } catch (reverseError) {
@@ -199,9 +207,9 @@ export class GoogleMapsAdapter implements GeocodingPort {
         );
       }
 
-      this.normalizeSpanishRegion(mergedPlace);
-
-      return mergedPlace;
+      this.normalizeSpanishRegion(placeDetails);
+      console.log({ placeDetails });
+      return placeDetails;
     } catch (error) {
       console.error(
         `${LOG_PREFIX} Error al consultar Google Maps para "${trimmedName}".`,
@@ -212,6 +220,15 @@ export class GoogleMapsAdapter implements GeocodingPort {
       );
       return null;
     }
+  }
+
+  private async askUserToSelect(results: GoogleGeocodeResult[]): Promise<GoogleGeocodeResult | null> {
+    return new Promise((resolve) => {
+      const modal = new GoogleMapsSuggestModal(this.app, results, (selected) => {
+        resolve(selected);
+      });
+      modal.open();
+    });
   }
 
   private extractPlaceDetails(
@@ -240,31 +257,31 @@ export class GoogleMapsAdapter implements GeocodingPort {
       return '';
     };
 
-    const municipio = lookup([
+    const lugar = lookup([
       'locality',
+    ]);
+    const barrio = lookup([
       'postal_town',
       'sublocality',
+    ]);
+    const municipio = lookup([
+      'administrative_area_level_4',
       'administrative_area_level_3',
-      'administrative_area_level_2',
     ]);
     const provincia = lookup([
       'administrative_area_level_2',
-      'administrative_area_level_1',
     ]);
-    const region =
-      lookup(['administrative_area_level_1']) ||
-      lookup(['administrative_area_level_2']);
+    const region = lookup(['administrative_area_level_1'])
     const pais = lookup(['country']);
-
-    const coverage =
-      (municipio ? 1 : 0) +
-      (provincia ? 1 : 0) +
-      (region ? 1 : 0) +
-      (pais ? 1 : 0);
+    const googlePlaceId = result.place_id;
+    const lat = result.geometry?.location.lat;
+    const lng = result.geometry?.location.lng;
 
     console.info(
-      `${LOG_PREFIX} Evaluando resultado #${index + 1} (${coverage}/4) para geocodificación.`,
+      `${LOG_PREFIX} Evaluando resultado #${index + 1} para geocodificación.`,
       {
+        lugar,
+        barrio,
         municipio,
         provincia,
         region,
@@ -274,55 +291,7 @@ export class GoogleMapsAdapter implements GeocodingPort {
       },
     );
 
-    return { municipio, provincia, region, pais };
-  }
-
-  private mergeBestPlace(
-    candidates: GeocodingResponse[],
-  ): GeocodingResponse {
-    if (candidates.length === 0) {
-      return { ...EMPTY_PLACE_DETAILS };
-    }
-
-    const scored = candidates
-      .map((candidate, index) => ({
-        candidate,
-        index,
-        score:
-          (candidate.municipio ? 1 : 0) +
-          (candidate.provincia ? 1 : 0) +
-          (candidate.region ? 1 : 0) +
-          (candidate.pais ? 1 : 0),
-      }))
-      .sort((a, b) => b.score - a.score || a.index - b.index);
-
-    const best = scored[0]?.candidate ?? { ...EMPTY_PLACE_DETAILS };
-    const merged: GeocodingResponse = { ...best };
-
-    for (const { candidate } of scored) {
-      if (!merged.municipio && candidate.municipio) {
-        merged.municipio = candidate.municipio;
-      }
-      if (!merged.provincia && candidate.provincia) {
-        merged.provincia = candidate.provincia;
-      }
-      if (!merged.region && candidate.region) {
-        merged.region = candidate.region;
-      }
-      if (!merged.pais && candidate.pais) {
-        merged.pais = candidate.pais;
-      }
-      if (
-        merged.municipio &&
-        merged.provincia &&
-        merged.region &&
-        merged.pais
-      ) {
-        break;
-      }
-    }
-
-    return merged;
+    return { lugar, barrio, municipio, provincia, region, pais, googlePlaceId, lat, lng };
   }
 
   private normalizeSpanishRegion(place: GeocodingResponse): void {
@@ -346,6 +315,39 @@ export class GoogleMapsAdapter implements GeocodingPort {
         `${LOG_PREFIX} Normalizando región para España: "${normalizedProvincia}" -> "${region}"`,
       );
       place.region = region;
+    }
+  }
+}
+
+class GoogleMapsSuggestModal extends FuzzySuggestModal<GoogleGeocodeResult> {
+  private resolve: (value: GoogleGeocodeResult | null) => void;
+  private isSelected = false;
+
+  constructor(
+    app: App,
+    private results: GoogleGeocodeResult[],
+    resolve: (value: GoogleGeocodeResult | null) => void,
+  ) {
+    super(app);
+    this.resolve = resolve;
+  }
+
+  getItems(): GoogleGeocodeResult[] {
+    return this.results;
+  }
+
+  getItemText(item: GoogleGeocodeResult): string {
+    return item.formatted_address || 'Ubicación desconocida';
+  }
+
+  onChooseItem(item: GoogleGeocodeResult, evt: MouseEvent | KeyboardEvent): void {
+    this.isSelected = true;
+    this.resolve(item);
+  }
+
+  onClose(): void {
+    if (!this.isSelected) {
+      this.resolve(null);
     }
   }
 }

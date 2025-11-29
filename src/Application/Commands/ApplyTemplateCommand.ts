@@ -7,24 +7,16 @@ import {
 import { showMessage } from 'src/Application/Utils/Messages';
 import {
   UnresolvedLinkGeneratorSettings,
-  DEFAULT_TEMPLATE_OPTIONS,
 } from 'src/settings';
-import type { TemplateOptionSetting } from 'src/settings';
-import {
-  getTemplatesFolder,
-} from 'src/Application/Utils/Vault';
 import {
   formatFrontmatterBlock,
   mergeFrontmatterSuggestions,
   parseFrontmatter,
   splitFrontmatter,
 } from 'src/Application/Utils/Frontmatter';
-import { isFolderMatch } from 'src/Application/Utils/Vault';
 import type { LlmPort } from 'src/Domain/Ports/LlmPort';
-import { extractConfigFromTemplate } from 'src/Application/Utils/TemplateConfig';
+import { getTemplateConfigForFolder } from 'src/Application/Utils/TemplateConfig';
 import { mergeNotes } from 'src/Application/Utils/Notes';
-
-type TemplateOption = TemplateOptionSetting;
 
 export class ApplyTemplateCommand {
   constructor(
@@ -43,44 +35,16 @@ export class ApplyTemplateCommand {
     const file = view.file;
     const parentPath = file.parent ? file.parent.path : '/';
 
-    const templatePicked = this.findTemplateForFolder(parentPath);
+    const templateResult = await getTemplateConfigForFolder(this.obsidian, this.settings, parentPath);
 
-    if (!templatePicked) {
-      showMessage(`No template configured for folder: ${parentPath}`);
+    if (!templateResult) {
+      showMessage(`No template configured for folder: ${parentPath} or template file not found.`);
       return;
     }
 
-    if (!templatePicked.templateFilename) {
-      showMessage(
-        `Configure a template file for folder ${templatePicked.targetFolder} in the plugin settings before applying it.`,
-      );
-      return;
-    }
+    const { config, cleanedContent, templateFile } = templateResult;
 
-    const templatesFolder = getTemplatesFolder(this.obsidian);
-    if (!templatesFolder) {
-      showMessage(
-        `Enable the Templates core plugin and set a templates folder before applying the template.`,
-      );
-      return;
-    }
-
-    const normalizedTemplatePath = normalizePath(
-      `${templatesFolder}/${templatePicked.templateFilename}`,
-    );
-    const templateFile = this.obsidian.vault.getAbstractFileByPath(
-      normalizedTemplatePath,
-    );
-
-    if (!(templateFile instanceof TFile)) {
-      showMessage(`Template not found at ${normalizedTemplatePath}.`);
-      return;
-    }
-
-    showMessage(`Applying template for ${templatePicked.targetFolder}...`);
-
-    const templateContent = await this.obsidian.vault.read(templateFile);
-    const { config, cleanedContent } = extractConfigFromTemplate(templateContent);
+    showMessage(`Applying template for ${parentPath}...`);
 
     const editor = view.editor;
     const mergedContent = mergeNotes(cleanedContent, editor.getValue(), false);
@@ -100,7 +64,7 @@ export class ApplyTemplateCommand {
 
     let finalContent = recomposedSegments.join('\n\n');
 
-    if (bodyIsEmpty && config.prompt) {
+    if (config.prompt) {
       const prompt = this.buildPrompt(file.basename, mergedFrontmatter, config.prompt);
 
       const enrichment = await this.llm.requestEnrichment({
@@ -116,8 +80,8 @@ export class ApplyTemplateCommand {
         const frontmatterBlock = updatedFrontmatter
           ? formatFrontmatterBlock(updatedFrontmatter)
           : '';
-        const bodyFromGemini = enrichment.description
-          ? enrichment.description.trim()
+        const bodyFromGemini = enrichment.body
+          ? enrichment.body.trim()
           : '';
         const segments: string[] = [];
 
@@ -142,25 +106,9 @@ export class ApplyTemplateCommand {
     currentFrontmatter: Record<string, unknown> | null,
     promptTemplate: string,
   ): string {
-    const frontmatterJson = JSON.stringify(currentFrontmatter || {}, null, 2);
-    return promptTemplate
-      .replace('{{title}}', title)
-      .replace('{{frontmatter}}', frontmatterJson);
-  }
-
-
-  private findTemplateForFolder(folderPath: string): TemplateOption | null {
-    const source =
-      this.settings.templateOptions && this.settings.templateOptions.length > 0
-        ? this.settings.templateOptions
-        : DEFAULT_TEMPLATE_OPTIONS;
-
-    const normalizedFolder = normalizePath(folderPath);
-
-    return (
-      source.find((option) => {
-        return isFolderMatch(normalizedFolder, option.targetFolder);
-      }) || null
-    );
+    const frontmatterCopy = currentFrontmatter ? { ...currentFrontmatter } : {};
+    delete frontmatterCopy.tags;
+    const frontmatterJson = JSON.stringify(frontmatterCopy, null, 2);
+    return `Nota de obsidian:'${title}'\n\nFrontmatter:'${frontmatterJson}'\n\n${promptTemplate}\n\n`;
   }
 }

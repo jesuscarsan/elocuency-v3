@@ -7,11 +7,9 @@ export type LlmResponse = {
   frontmatter?: Record<string, unknown>;
 };
 
-export type StreamBriefParams = {
-  prompt: string;
-};
-
 export interface LlmPort {
   requestEnrichment(params: LlmParams): Promise<LlmResponse | null>;
-  requestStreamBrief(params: StreamBriefParams): Promise<string | null>;
+  requestStreamBrief(params: LlmParams): Promise<string | null>;
+  request(params: LlmParams): Promise<string | null>;
+  requestJson(params: LlmParams): Promise<any | null>;
 }

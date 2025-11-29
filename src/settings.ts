@@ -12,6 +12,10 @@ export interface UnresolvedLinkGeneratorSettings {
   templateOptions: TemplateOptionSetting[];
   geminiApiKey: string;
   googleMapsApiKey: string;
+  spotifyClientId: string;
+  spotifyAccessToken: string;
+  spotifyRedirectUri: string;
+  spotifyPkceVerifier: string;
 }
 
 export const DEFAULT_TEMPLATE_OPTIONS: TemplateOptionSetting[] = [
@@ -27,6 +31,10 @@ export const DEFAULT_SETTINGS: UnresolvedLinkGeneratorSettings = {
   missingNotesTemplatePath: '# {{title}}\n',
   geminiApiKey: '',
   googleMapsApiKey: '',
+  spotifyClientId: '',
+  spotifyAccessToken: '',
+  spotifyRedirectUri: 'http://localhost:8080',
+  spotifyPkceVerifier: '',
   templateOptions: DEFAULT_TEMPLATE_OPTIONS.map((option) => ({ ...option })),
 };
 
@@ -48,7 +56,7 @@ export function normalizeTemplateOptions(
 
     const templateFilename =
       typeof record.templateFilename === 'string'
-        ? extractTemplateFilename(record.templateFilename)
+        ? record.templateFilename
         : '';
     const targetFolder =
       typeof record.targetFolder === 'string' ? record.targetFolder.trim() : '';
@@ -64,26 +72,7 @@ export function normalizeTemplateOptions(
     });
   }
 
-  if (normalized.length === 0) {
-    return DEFAULT_TEMPLATE_OPTIONS.map((option) => ({ ...option }));
-  }
+
 
   return normalized;
-}
-
-function extractTemplateFilename(value: string): string {
-  const trimmed = value.trim();
-  if (!trimmed) {
-    return '';
-  }
-
-  const segments = trimmed.split('/');
-  for (let index = segments.length - 1; index >= 0; index -= 1) {
-    const candidate = segments[index].trim();
-    if (candidate) {
-      return candidate;
-    }
-  }
-
-  return '';
 }

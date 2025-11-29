@@ -1,7 +1,7 @@
-import { App, MarkdownView } from 'obsidian';
+import { App, MarkdownView, normalizePath, TFile } from 'obsidian';
 import { LlmPort } from '../../Domain/Ports/LlmPort';
 import { UnresolvedLinkGeneratorSettings } from '../../settings';
-import { isFolderMatch } from '../Utils/Vault';
+import { getTemplatesFolder, isFolderMatch } from '../Utils/Vault';
 import { showMessage } from '../Utils/Messages';
 import {
     formatFrontmatterBlock,
@@ -9,6 +9,7 @@ import {
     parseFrontmatter,
     splitFrontmatter
 } from '../Utils/Frontmatter';
+import { getTemplateConfigForFolder } from '../Utils/TemplateConfig';
 
 export class EnhanceByAiCommand {
     constructor(
@@ -27,12 +28,17 @@ export class EnhanceByAiCommand {
         const file = view.file;
         const parentPath = file.parent ? file.parent.path : '/';
 
-        const matchingTemplate = this.settings.templateOptions.find(
-            (option) => isFolderMatch(parentPath, option.targetFolder)
-        );
+        const templateResult = await getTemplateConfigForFolder(this.app, this.settings, parentPath);
 
-        if (!matchingTemplate || !matchingTemplate.prompt) {
-            showMessage('No prompt configured for this folder.');
+        if (!templateResult) {
+            showMessage('No template configured for this folder or template file not found.');
+            return;
+        }
+
+        const { config } = templateResult;
+
+        if (!config.prompt) {
+            showMessage('No prompt configured in the template file.');
             return;
         }
 
@@ -43,7 +49,7 @@ export class EnhanceByAiCommand {
         const split = splitFrontmatter(content);
         const frontmatter = parseFrontmatter(split.frontmatterText);
 
-        const prompt = this.buildPrompt(file.basename, matchingTemplate.prompt, frontmatter, split.body);
+        const prompt = this.buildPrompt(file.basename, config.prompt, frontmatter, split.body);
 
         const response = await this.llm.requestEnrichment({ prompt });
 
@@ -57,13 +63,7 @@ export class EnhanceByAiCommand {
                 ? formatFrontmatterBlock(updatedFrontmatter)
                 : '';
 
-            let newBody = split.body;
-            // Only fill body if it's empty or user explicitly asked (but here we follow "rellenar los campos vacios")
-            if (!newBody.trim() && response.body) {
-                newBody = response.body;
-            }
-
-            const newContent = [frontmatterBlock, newBody].filter(Boolean).join('\n\n');
+            const newContent = [frontmatterBlock, split.body, response.body].filter(Boolean).join('\n\n');
 
             editor.setValue(newContent);
             showMessage('Note enhanced!');
