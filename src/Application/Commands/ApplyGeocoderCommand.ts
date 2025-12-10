@@ -10,6 +10,7 @@ import type { LlmPort } from 'src/Domain/Ports/LlmPort';
 import { LocationPathBuilder, PlaceMetadata } from 'src/Application/Utils/LocationPathBuilder';
 import { ensureFolderExists } from 'src/Application/Utils/Vault';
 import { capitalize } from '../Utils/Strings';
+import { FrontmatterKeys } from 'src/Domain/Constants/FrontmatterRegistry';
 
 export class ApplyGeocoderCommand {
     private readonly pathBuilder: LocationPathBuilder;
@@ -93,9 +94,16 @@ export class ApplyGeocoderCommand {
         const base = current ? { ...current } : {};
 
         // Handle standard fields
-        const standardFields = ['municipio', 'provincia', 'region', 'pais'];
-        for (const key of standardFields) {
-            const value = (details as any)[key];
+        // Handle standard fields - map from geocoder response (lowercase) to FrontmatterKeys (Capitalized)
+        const mapping: Record<string, string> = {
+            'municipio': FrontmatterKeys.Municipio,
+            'provincia': FrontmatterKeys.Provincia,
+            'region': FrontmatterKeys.Region,
+            'pais': FrontmatterKeys.Pais
+        };
+
+        for (const [prop, key] of Object.entries(mapping)) {
+            const value = (details as any)[prop];
 
             // Capitalize existing value
             if (typeof base[key] === 'string') {
@@ -116,13 +124,13 @@ export class ApplyGeocoderCommand {
 
         // Handle Google Maps specific fields
         if (details.googlePlaceId) {
-            base['Place id'] = "google-place-id:" + details.googlePlaceId;
+            base[FrontmatterKeys.LugarId] = "google-maps-id:" + details.googlePlaceId;
         }
         if (details.lat) {
-            base['Latitud'] = details.lat;
+            base[FrontmatterKeys.Latitud] = details.lat;
         }
         if (details.lng) {
-            base['Longitud'] = details.lng;
+            base[FrontmatterKeys.Longitud] = details.lng;
         }
 
         return base;
@@ -137,9 +145,11 @@ export class ApplyGeocoderCommand {
         
         Rules for refinement:
         1. Correct any misclassifications. For example, "Inglaterra" might be returned as a province, but it should be a Region, and Country should be "Reino Unido".
-        2. If the place is a Country or Region, ensure 'municipio' (City) is EMPTY string.
-        3. Remove duplicates. If 'provincia' is same as 'region', keep 'region' and make 'provincia' empty (unless it's meaningful).
-        4. 'pais' must be the sovereign country (e.g. "Reino Unido" for England).
+        2. HIERARCHY RULE: If the place being geocoded IS ITSELF a higher level entity, clear all lower level fields.
+           - If it is a Country -> region="", provincia="", municipio=""
+           - If it is a Region -> provincia="", municipio=""
+           - If it is a Province -> municipio=""
+        3. 'pais' must be the sovereign country (e.g. "Reino Unido" for England).
         
         Rules for metadata:
         1. Continent (in Spanish).

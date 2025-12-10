@@ -1,4 +1,5 @@
 import { Plugin, MarkdownPostProcessorContext, TFile } from 'obsidian';
+import { FrontmatterKeys } from 'src/Domain/Constants/FrontmatterRegistry';
 
 export function registerGoogleMapsRenderer(plugin: Plugin) {
     console.log("[GoogleMapsRenderer] Registering markdown post processor")
@@ -17,11 +18,17 @@ export function registerGoogleMapsRenderer(plugin: Plugin) {
         }
 
         // Check for Google Place ID
-        const placeId = frontmatter['Place id'].split(":")[1];
+        let placeId = frontmatter[FrontmatterKeys.LugarId];
+        if (placeId && typeof placeId === 'string' && placeId.startsWith('google-maps-id:')) {
+            placeId = placeId.replace('google-maps-id:', '');
+        } else {
+            placeId = null;
+        }
 
         // Check for Coordinates (Latitud/Longitud)
-        const lat = frontmatter['Latitud'];
-        const lng = frontmatter['Longitud'];
+        // Check for Coordinates (Latitud/Longitud)
+        const lat = frontmatter[FrontmatterKeys.Latitud];
+        const lng = frontmatter[FrontmatterKeys.Longitud];
 
         if (!placeId && (!lat || !lng)) {
             return;

@@ -1,5 +1,6 @@
 import type { YouTubeTranscriptPort } from 'src/Domain/Ports/YouTubeTranscriptPort';
 import { YouTubeTranscriptAdapter } from 'src/Infrastructure/Adapters/YouTubeTranscriptAdapter/YouTubeTranscriptAdapter';
+import { YouTubeTranscriptLibAdapter } from 'src/Infrastructure/Adapters/YouTubeTranscriptAdapter/YoutubeTranscriptLibAdapter';
 
 const LOG_PREFIX = '[elo-obsidian-ext]';
 
@@ -24,6 +25,7 @@ export async function getStreamTranscript(url: string): Promise<string | null> {
   switch (provider) {
     case 'youtube': {
       const videoId = extractYouTubeVideoId(parsedUrl);
+      console.log({ videoId });
       if (!videoId) {
         console.warn(
           `${LOG_PREFIX} No se pudo determinar el identificador del vídeo de YouTube para ${normalized}.`,
@@ -31,7 +33,7 @@ export async function getStreamTranscript(url: string): Promise<string | null> {
         return null;
       }
 
-      return new YouTubeTranscriptAdapter().fetchTranscript({ videoId });
+      return new YouTubeTranscriptLibAdapter().fetchTranscript({ videoId });
     }
     default:
       return null;
