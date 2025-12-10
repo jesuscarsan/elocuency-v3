@@ -7,6 +7,7 @@ import {
 } from 'src/Application/Utils/Frontmatter';
 import { getStreamTranscript } from 'src/Application/Utils/Streams';
 import type { LlmPort } from 'src/Domain/Ports/LlmPort';
+import { FrontmatterKeys } from 'src/Domain/Constants/FrontmatterRegistry';
 
 export class ApplyStreamBriefCommand {
   constructor(
@@ -93,7 +94,7 @@ export class ApplyStreamBriefCommand {
   }
 
   private extractStreamUrl(frontmatter: Record<string, unknown>): string {
-    const candidates = ['stream-url', 'stream_url', 'url'];
+    const candidates = [FrontmatterKeys.StreamUrl, 'stream-url', 'stream_url', 'url'];
     for (const key of candidates) {
       const value = frontmatter[key];
       if (typeof value === 'string') {

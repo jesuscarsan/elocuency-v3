@@ -118,7 +118,12 @@ export class ApplyGeocoderCommand {
 
             if (!hasMeaningfulValue) {
                 const cleanValue = typeof value === 'string' ? value.trim() : value;
-                base[key] = typeof cleanValue === 'string' ? capitalize(cleanValue) : cleanValue;
+
+                if (cleanValue === '' || cleanValue === null || cleanValue === undefined) {
+                    delete base[key];
+                } else {
+                    base[key] = typeof cleanValue === 'string' ? capitalize(cleanValue) : cleanValue;
+                }
             }
         }
 

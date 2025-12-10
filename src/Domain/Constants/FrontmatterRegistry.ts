@@ -6,6 +6,7 @@ export const FrontmatterKeys = {
     LugarId: "Lugar Id",
     Latitud: "Latitud",
     Longitud: "Longitud",
+    StreamUrl: "Stream Url",
 } as const;
 
 export type FrontmatterKey = (typeof FrontmatterKeys)[keyof typeof FrontmatterKeys];
@@ -51,5 +52,10 @@ export const FrontmatterRegistry: Record<string, FrontmatterFieldConfig> = {
         key: FrontmatterKeys.Longitud,
         description: "Coordenada de longitud geográfica",
         type: 'number'
+    },
+    [FrontmatterKeys.StreamUrl]: {
+        key: FrontmatterKeys.StreamUrl,
+        description: "URL del video o streaming original",
+        type: 'string'
     }
 };
