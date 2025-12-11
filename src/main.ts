@@ -13,6 +13,7 @@ import { GenerateMissingNotesCommand } from './Application/Commands/GenerateMiss
 import { SettingsView } from './Application/Views/SettingsView';
 import { EnhanceNoteCommand } from './Application/Commands/EnhanceNoteCommand';
 import { EnhanceByAiCommand } from './Application/Commands/EnhanceByAiCommand';
+import { ApplyPlaceTypeCommand } from './Application/Commands/ApplyPlaceTypeCommand';
 import { registerSpotifyRenderer } from './Application/Views/SpotifyPlayer';
 import { SpotifyAdapter } from './Infrastructure/Adapters/SpotifyAdapter/SpotifyAdapter';
 import { SpotifyModal } from './Application/Views/SpotifyModal';
@@ -32,7 +33,7 @@ export default class ObsidianExtension extends Plugin {
 
     const llm = new GoogleGeminiAdapter(this.settings.geminiApiKey ?? '');
     const geocoder = new GoogleMapsAdapter(
-      this.settings.googleMapsApiKey ?? '',
+      this.settings.googleGeocodingAPIKey ?? '',
       this.app
     );
 
@@ -107,6 +108,14 @@ export default class ObsidianExtension extends Plugin {
       name: 'Enhance with AI',
       callback: () => {
         new EnhanceByAiCommand(this.app, this.settings, llm).execute();
+      },
+    });
+
+    this.addCommand({
+      id: 'ApplyPlaceTypeCommand',
+      name: 'Indicate Place Type',
+      callback: () => {
+        new ApplyPlaceTypeCommand(geocoder, llm, this.app).execute();
       },
     });
 

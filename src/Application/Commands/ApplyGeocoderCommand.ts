@@ -10,15 +10,15 @@ import type { LlmPort } from 'src/Domain/Ports/LlmPort';
 import { LocationPathBuilder, PlaceMetadata } from 'src/Application/Utils/LocationPathBuilder';
 import { ensureFolderExists } from 'src/Application/Utils/Vault';
 import { capitalize } from '../Utils/Strings';
-import { FrontmatterKeys } from 'src/Domain/Constants/FrontmatterRegistry';
+import { FrontmatterKeys, FrontmatterRegistry } from 'src/Domain/Constants/FrontmatterRegistry';
 
 export class ApplyGeocoderCommand {
-    private readonly pathBuilder: LocationPathBuilder;
+    protected readonly pathBuilder: LocationPathBuilder;
 
     constructor(
-        private readonly geocoder: GeocodingPort,
-        private readonly llm: LlmPort,
-        private readonly obsidian: ObsidianApp,
+        protected readonly geocoder: GeocodingPort,
+        protected readonly llm: LlmPort,
+        protected readonly obsidian: ObsidianApp,
     ) {
         this.pathBuilder = new LocationPathBuilder(obsidian);
     }
@@ -31,8 +31,7 @@ export class ApplyGeocoderCommand {
         }
 
         const file = view.file;
-        const editor = view.editor;
-        const content = editor.getValue();
+        const content = await this.obsidian.vault.read(file);
         const split = splitFrontmatter(content);
         const currentFrontmatter = parseFrontmatter(split.frontmatterText);
 
@@ -54,10 +53,10 @@ export class ApplyGeocoderCommand {
 
         if (!enriched) {
             showMessage('Could not refine location data.');
-            return null
+            return;
         }
 
-        const { refinedDetails, metadata } = enriched;
+        const { refinedDetails, metadata, summary } = enriched;
 
         // 1. Update Frontmatter
         const updatedFrontmatter = this.mergeFrontmatter(currentFrontmatter, refinedDetails);
@@ -66,11 +65,21 @@ export class ApplyGeocoderCommand {
         const normalizedBody = split.body.replace(/^[\n\r]+/, '');
         const segments: string[] = [];
         if (frontmatterBlock) segments.push(frontmatterBlock);
+
+        // Add summary if present and not already in body (simple check)
+        // We append it to the top of the body or replace if we find a previous summary?
+        // User asked "que añada un parrafo", so just adding it.
+        // Let's prepend it to the body or append? "añada" usually implies adding to existing.
+        // But usually summary goes to top. Let's prepend to body.
+        if (summary) {
+            segments.push(summary);
+        }
+
         if (normalizedBody) segments.push(normalizedBody);
 
         const finalContent = segments.join('\n\n');
         if (finalContent !== content) {
-            editor.setValue(finalContent);
+            await this.obsidian.vault.modify(file, finalContent);
         }
 
         // 2. Move File
@@ -99,7 +108,8 @@ export class ApplyGeocoderCommand {
             'municipio': FrontmatterKeys.Municipio,
             'provincia': FrontmatterKeys.Provincia,
             'region': FrontmatterKeys.Region,
-            'pais': FrontmatterKeys.Pais
+            'pais': FrontmatterKeys.Pais,
+            'capital': FrontmatterKeys.Capital,
         };
 
         for (const [prop, key] of Object.entries(mapping)) {
@@ -122,7 +132,17 @@ export class ApplyGeocoderCommand {
                 if (cleanValue === '' || cleanValue === null || cleanValue === undefined) {
                     delete base[key];
                 } else {
-                    base[key] = typeof cleanValue === 'string' ? capitalize(cleanValue) : cleanValue;
+                    let finalValue = typeof cleanValue === 'string' ? capitalize(cleanValue) : cleanValue;
+
+                    base[key] = finalValue;
+                }
+            }
+
+            // Ensure link format if configured
+            const finalVal = base[key];
+            if (typeof finalVal === 'string' && FrontmatterRegistry[key]?.asLink) {
+                if (!finalVal.startsWith('[[') || !finalVal.endsWith(']]')) {
+                    base[key] = `[[${finalVal}]]`;
                 }
             }
         }
@@ -141,7 +161,7 @@ export class ApplyGeocoderCommand {
         return base;
     }
 
-    private async getEnrichedData(placeName: string, rawDetails: GeocodingResponse): Promise<{ refinedDetails: GeocodingResponse, metadata: PlaceMetadata } | null> {
+    private async getEnrichedData(placeName: string, rawDetails: GeocodingResponse): Promise<{ refinedDetails: GeocodingResponse, metadata: PlaceMetadata, summary: string } | null> {
         const prompt = `
         I have a place named "${placeName}".
         Raw Geocoding Data: ${JSON.stringify(rawDetails)}.
@@ -155,10 +175,15 @@ export class ApplyGeocoderCommand {
            - If it is a Region -> provincia="", municipio=""
            - If it is a Province -> municipio=""
         3. 'pais' must be the sovereign country (e.g. "Reino Unido" for England).
+        4. If the place is a Country, provide its Capital City in the 'capital' field of refinedDetails.
         
         Rules for metadata:
         1. Continent (in Spanish).
         2. isRegionFamous (boolean).
+
+        Rules for summary:
+        1. Write a SINGLE paragraph (approx 50-80 words) summarizing the most relevant aspects of this place (history, significance, tourism).
+        2. In Spanish.
 
         Return ONLY a JSON object:
         {
@@ -167,6 +192,7 @@ export class ApplyGeocoderCommand {
                 "provincia": "...",
                 "region": "...",
                 "pais": "...",
+                "capital": "...", // Only if it is a country
                 "googlePlaceId": "...",
                 "lat": 0.0,
                 "lng": 0.0
@@ -174,7 +200,8 @@ export class ApplyGeocoderCommand {
             "metadata": {
                 "continent": "Name",
                 "isRegionFamous": true/false
-            }
+            },
+            "summary": "..."
         }
         `;
 
@@ -182,7 +209,7 @@ export class ApplyGeocoderCommand {
         if (!response) return null;
         console.log({ response });
         try {
-            return response as { refinedDetails: GeocodingResponse, metadata: PlaceMetadata };
+            return response as { refinedDetails: GeocodingResponse, metadata: PlaceMetadata, summary: string };
         } catch (e) {
             console.error('Failed to parse LLM response for enriched data', e);
             return null;

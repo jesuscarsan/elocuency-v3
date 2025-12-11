@@ -89,16 +89,32 @@ export class SettingsView extends PluginSettingTab {
       });
 
     new Setting(containerEl)
-      .setName('Google Maps API key')
+      .setName('Google Geocoding API key')
       .setDesc(
-        'Used to rellenar datos geográficos cuando aplicas la plantilla "Lugar".',
+        'Used for Geocoding (backend queries). Restricted by IP if possible.',
       )
       .addText((text: TextComponent) => {
         text
           .setPlaceholder('AIza...')
-          .setValue(this.plugin.settings.googleMapsApiKey)
+          .setValue(this.plugin.settings.googleGeocodingAPIKey)
           .onChange(async (value: string) => {
-            this.plugin.settings.googleMapsApiKey = value.trim();
+            this.plugin.settings.googleGeocodingAPIKey = value.trim();
+            await this.plugin.saveSettings();
+          });
+        text.inputEl.type = 'password';
+      });
+
+    new Setting(containerEl)
+      .setName('Google Maps Embed API key')
+      .setDesc(
+        'Used for rendering the map (frontend). Restricted by HTTP Referrer.',
+      )
+      .addText((text: TextComponent) => {
+        text
+          .setPlaceholder('AIza...')
+          .setValue(this.plugin.settings.googleMapsEmbedAPIKey)
+          .onChange(async (value: string) => {
+            this.plugin.settings.googleMapsEmbedAPIKey = value.trim();
             await this.plugin.saveSettings();
           });
         text.inputEl.type = 'password';

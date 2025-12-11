@@ -17,18 +17,29 @@ export function registerGoogleMapsRenderer(plugin: Plugin) {
             return;
         }
 
+        // Helper to get frontmatter value case-insensitively
+        const getFrontmatterValue = (key: string) => {
+            const entry = Object.entries(frontmatter).find(([k]) => k.toLowerCase() === key.toLowerCase());
+            return entry ? entry[1] : undefined;
+        };
+
         // Check for Google Place ID
-        let placeId = frontmatter[FrontmatterKeys.LugarId];
-        if (placeId && typeof placeId === 'string' && placeId.startsWith('google-maps-id:')) {
-            placeId = placeId.replace('google-maps-id:', '');
+        let placeId = getFrontmatterValue(FrontmatterKeys.LugarId);
+
+        if (placeId && typeof placeId === 'string') {
+            const normalizedId = placeId.trim();
+            if (normalizedId.startsWith('google-maps-id:')) {
+                placeId = normalizedId.replace('google-maps-id:', '').trim();
+            } else {
+                placeId = null;
+            }
         } else {
             placeId = null;
         }
 
         // Check for Coordinates (Latitud/Longitud)
-        // Check for Coordinates (Latitud/Longitud)
-        const lat = frontmatter[FrontmatterKeys.Latitud];
-        const lng = frontmatter[FrontmatterKeys.Longitud];
+        const lat = getFrontmatterValue(FrontmatterKeys.Latitud);
+        const lng = getFrontmatterValue(FrontmatterKeys.Longitud);
 
         if (!placeId && (!lat || !lng)) {
             return;
@@ -94,9 +105,9 @@ export function registerGoogleMapsRenderer(plugin: Plugin) {
         container.style.marginBottom = '10px';
         container.style.width = '100%';
 
-        const apiKey = (plugin as any).settings.googleMapsApiKey;
+        const apiKey = (plugin as any).settings.googleMapsEmbedAPIKey;
         if (!apiKey) {
-            container.createEl('div', { text: 'Google Maps API Key missing in settings.' });
+            container.createEl('div', { text: 'Google Maps Map API Key missing in settings. Please verify "Google Maps Map API Key" is set.' });
             return;
         }
 

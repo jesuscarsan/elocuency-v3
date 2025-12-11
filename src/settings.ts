@@ -11,7 +11,8 @@ export interface UnresolvedLinkGeneratorSettings {
   missingNotesTemplatePath: string;
   templateOptions: TemplateOptionSetting[];
   geminiApiKey: string;
-  googleMapsApiKey: string;
+  googleGeocodingAPIKey: string;
+  googleMapsEmbedAPIKey: string;
   spotifyClientId: string;
   spotifyAccessToken: string;
   spotifyRedirectUri: string;
@@ -30,7 +31,8 @@ export const DEFAULT_SETTINGS: UnresolvedLinkGeneratorSettings = {
   targetFolder: '',
   missingNotesTemplatePath: '# {{title}}\n',
   geminiApiKey: '',
-  googleMapsApiKey: '',
+  googleGeocodingAPIKey: '',
+  googleMapsEmbedAPIKey: '',
   spotifyClientId: '',
   spotifyAccessToken: '',
   spotifyRedirectUri: 'http://localhost:8080',

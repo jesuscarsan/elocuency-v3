@@ -12,6 +12,7 @@ export type GeocodingResponse = {
   googlePlaceId?: string;
   lat?: number;
   lng?: number;
+  capital?: string;
 };
 export interface GeocodingPort {
   requestPlaceDetails(

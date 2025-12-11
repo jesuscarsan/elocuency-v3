@@ -7,6 +7,7 @@ export const FrontmatterKeys = {
     Latitud: "Latitud",
     Longitud: "Longitud",
     StreamUrl: "Stream Url",
+    Capital: "Capital",
 } as const;
 
 export type FrontmatterKey = (typeof FrontmatterKeys)[keyof typeof FrontmatterKeys];
@@ -15,28 +16,33 @@ export interface FrontmatterFieldConfig {
     key: FrontmatterKey;
     description: string;
     type: 'string' | 'number' | 'boolean' | 'date' | 'array';
+    asLink?: boolean;
 }
 
 export const FrontmatterRegistry: Record<string, FrontmatterFieldConfig> = {
     [FrontmatterKeys.Municipio]: {
         key: FrontmatterKeys.Municipio,
         description: "Nombre del municipio, ciudad o pueblo",
-        type: 'string'
+        type: 'string',
+        asLink: true
     },
     [FrontmatterKeys.Provincia]: {
         key: FrontmatterKeys.Provincia,
         description: "Nombre de la provincia administrativa",
-        type: 'string'
+        type: 'string',
+        asLink: true
     },
     [FrontmatterKeys.Region]: {
         key: FrontmatterKeys.Region,
         description: "Comunidad autónoma o región",
-        type: 'string'
+        type: 'string',
+        asLink: true
     },
     [FrontmatterKeys.Pais]: {
         key: FrontmatterKeys.Pais,
         description: "País soberano",
-        type: 'string'
+        type: 'string',
+        asLink: true
     },
     [FrontmatterKeys.LugarId]: {
         key: FrontmatterKeys.LugarId,
@@ -57,5 +63,11 @@ export const FrontmatterRegistry: Record<string, FrontmatterFieldConfig> = {
         key: FrontmatterKeys.StreamUrl,
         description: "URL del video o streaming original",
         type: 'string'
+    },
+    [FrontmatterKeys.Capital]: {
+        key: FrontmatterKeys.Capital,
+        description: "Capital del país (si aplica)",
+        type: 'string',
+        asLink: true
     }
 };
