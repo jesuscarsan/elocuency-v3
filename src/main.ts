@@ -23,6 +23,8 @@ import { SpotifyPlaylistModal } from './Application/Views/SpotifyPlaylistModal';
 import { InputModal } from './Application/Views/InputModal';
 import { Notice } from 'obsidian';
 import { registerGoogleMapsRenderer } from './Application/Views/GoogleMapsRenderer';
+import { registerImageGalleryRenderer } from './Application/Views/ImageGalleryRenderer';
+import { AddImagesCommand } from './Application/Commands/AddImagesCommand';
 
 export default class ObsidianExtension extends Plugin {
   settings: UnresolvedLinkGeneratorSettings = DEFAULT_SETTINGS;
@@ -140,6 +142,14 @@ export default class ObsidianExtension extends Plugin {
     });
 
     this.addCommand({
+      id: 'AddImagesCommand',
+      name: 'Add Images',
+      callback: () => {
+        new AddImagesCommand(this.app, imageSearch).execute();
+      },
+    });
+
+    this.addCommand({
       id: 'ConnectSpotify',
       name: 'Connect Spotify',
       callback: async () => {
@@ -225,6 +235,7 @@ export default class ObsidianExtension extends Plugin {
     this.addSettingTab(new SettingsView(this.app, this));
     registerSpotifyRenderer(this);
     registerGoogleMapsRenderer(this);
+    registerImageGalleryRenderer(this);
   }
 
   onunload() {
