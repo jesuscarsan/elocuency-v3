@@ -48,35 +48,53 @@ function extractConfigFromTemplate(content: string): {
     return { config, cleanedContent };
 }
 
-export async function getTemplateConfigForFolder(
+export interface TemplateMatch {
+    config: TemplateConfig;
+    cleanedContent: string;
+    templateFile: TFile;
+}
+
+export async function getTemplateConfigsForFolder(
     app: App,
     settings: UnresolvedLinkGeneratorSettings,
     folderPath: string
-): Promise<{ config: TemplateConfig; cleanedContent: string; templateFile: TFile } | null> {
-    const matchingTemplate = settings.templateOptions.find((option) =>
+): Promise<TemplateMatch[]> {
+    const matchingTemplates = settings.templateOptions.filter((option) =>
         isFolderMatch(folderPath, option.targetFolder)
     );
 
-    if (!matchingTemplate) {
-        return null;
+    if (matchingTemplates.length === 0) {
+        return [];
     }
 
     const templatesFolder = getTemplatesFolder(app);
     if (!templatesFolder) {
-        return null;
+        return [];
     }
 
-    const templatePath = normalizePath(
-        `${templatesFolder}/${matchingTemplate.templateFilename}`
-    );
-    const templateFile = app.vault.getAbstractFileByPath(templatePath);
+    const matches: TemplateMatch[] = [];
 
-    if (!(templateFile instanceof TFile)) {
-        return null;
+    for (const matchingTemplate of matchingTemplates) {
+        const templatePath = normalizePath(
+            `${templatesFolder}/${matchingTemplate.templateFilename}`
+        );
+        const templateFile = app.vault.getAbstractFileByPath(templatePath);
+
+        if (templateFile instanceof TFile) {
+            const templateContent = await app.vault.read(templateFile);
+            const { config, cleanedContent } = extractConfigFromTemplate(templateContent);
+            matches.push({ config, cleanedContent, templateFile });
+        }
     }
 
-    const templateContent = await app.vault.read(templateFile);
-    const { config, cleanedContent } = extractConfigFromTemplate(templateContent);
+    return matches;
+}
 
-    return { config, cleanedContent, templateFile };
+export async function getTemplateConfigForFolder(
+    app: App,
+    settings: UnresolvedLinkGeneratorSettings,
+    folderPath: string
+): Promise<TemplateMatch | null> {
+    const matches = await getTemplateConfigsForFolder(app, settings, folderPath);
+    return matches.length > 0 ? matches[0] : null;
 }

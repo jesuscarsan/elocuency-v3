@@ -17,8 +17,10 @@ import {
 import type { LlmPort } from 'src/Domain/Ports/LlmPort';
 import type { ImageSearchPort } from 'src/Domain/Ports/ImageSearchPort';
 import { FrontmatterKeys } from 'src/Domain/Constants/FrontmatterRegistry';
-import { getTemplateConfigForFolder } from 'src/Application/Utils/TemplateConfig';
+import { getTemplateConfigsForFolder, TemplateMatch } from 'src/Application/Utils/TemplateConfig';
 import { mergeNotes } from 'src/Application/Utils/Notes';
+import { PersonasNoteOrganizer } from 'src/Application/Services/PersonasNoteOrganizer';
+import { pickTemplate } from 'src/Application/Views/TemplateSelectionModal';
 
 export class ApplyTemplateCommand {
   constructor(
@@ -38,10 +40,22 @@ export class ApplyTemplateCommand {
     const file = view.file;
     const parentPath = file.parent ? file.parent.path : '/';
 
-    const templateResult = await getTemplateConfigForFolder(this.obsidian, this.settings, parentPath);
+    const matches = await getTemplateConfigsForFolder(this.obsidian, this.settings, parentPath);
+
+    if (matches.length === 0) {
+      showMessage(`No template configured for folder: ${parentPath} or template file not found.`);
+      return;
+    }
+
+    let templateResult: TemplateMatch | null = null;
+    if (matches.length === 1) {
+      templateResult = matches[0];
+    } else {
+      templateResult = await pickTemplate(this.obsidian, matches);
+    }
 
     if (!templateResult) {
-      showMessage(`No template configured for folder: ${parentPath} or template file not found.`);
+      // User cancelled selection
       return;
     }
 
@@ -56,6 +70,8 @@ export class ApplyTemplateCommand {
     const bodyIsEmpty = mergedSplit.body.trim().length === 0;
 
     const recomposedSegments: string[] = [];
+    let finalFrontmatter = mergedFrontmatter;
+
     if (mergedFrontmatter) {
       recomposedSegments.push(formatFrontmatterBlock(mergedFrontmatter));
     }
@@ -95,6 +111,12 @@ export class ApplyTemplateCommand {
           }
         }
 
+
+
+        if (updatedFrontmatter) {
+          finalFrontmatter = updatedFrontmatter;
+        }
+
         const frontmatterBlock = updatedFrontmatter
           ? formatFrontmatterBlock(updatedFrontmatter)
           : '';
@@ -116,6 +138,13 @@ export class ApplyTemplateCommand {
     }
 
     editor.setValue(finalContent);
+
+    if (finalFrontmatter) {
+      const organizer = new PersonasNoteOrganizer(this.obsidian);
+      // Give a small delay to allow editor update to propagate or just fire and forget? 
+      // safer to await.
+      await organizer.organize(file, finalFrontmatter);
+    }
 
   }
 
