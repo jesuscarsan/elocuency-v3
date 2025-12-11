@@ -233,9 +233,9 @@ export default class ObsidianExtension extends Plugin {
     );
 
     this.addSettingTab(new SettingsView(this.app, this));
+    registerImageGalleryRenderer(this);
     registerSpotifyRenderer(this);
     registerGoogleMapsRenderer(this);
-    registerImageGalleryRenderer(this);
   }
 
   onunload() {

@@ -11,15 +11,13 @@ export class AddImagesCommand {
     ) { }
 
     async execute() {
-        const view = this.app.workspace.getActiveViewOfType(MarkdownView);
-        if (!view?.file) {
+        const file = this.app.workspace.getActiveFile();
+        if (!file) {
             showMessage('Open a markdown note to add images.');
             return;
         }
 
-        const file = view.file;
-        const editor = view.editor;
-        const currentContent = editor.getValue();
+        const currentContent = await this.app.vault.read(file);
         const split = splitFrontmatter(currentContent);
         const frontmatter = parseFrontmatter(split.frontmatterText) || {};
 
@@ -46,9 +44,9 @@ export class AddImagesCommand {
             };
 
             const newFrontmatterBlock = formatFrontmatterBlock(updatedFrontmatter);
-            const newContent = newFrontmatterBlock + '\n\n' + split.body;
+            const newContent = newFrontmatterBlock + '\n' + split.body;
 
-            editor.setValue(newContent);
+            await this.app.vault.modify(file, newContent);
             showMessage(`Se añadieron ${images.length} imágenes.`);
 
         } catch (error) {

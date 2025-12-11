@@ -57,7 +57,7 @@ export function registerImageGalleryRenderer(plugin: Plugin) {
             imgContainer.style.overflow = 'hidden';
             imgContainer.style.borderRadius = '8px';
             imgContainer.style.boxShadow = '0 2px 4px rgba(0,0,0,0.1)';
-            imgContainer.style.aspectRatio = '16/9';
+            imgContainer.style.aspectRatio = '9/16';
 
             const img = imgContainer.createEl('img');
             img.src = url;
