@@ -2,12 +2,14 @@ export const FrontmatterKeys = {
     Municipio: "Municipio",
     Provincia: "Provincia",
     Region: "Region",
-    Pais: "Pais",
+    Pais: "País",
     LugarId: "Lugar Id",
     Latitud: "Latitud",
     Longitud: "Longitud",
     StreamUrl: "Stream Url",
     Capital: "Capital",
+    Tags: "tags",
+    ImagenesUrls: "Imagenes urls",
 } as const;
 
 export type FrontmatterKey = (typeof FrontmatterKeys)[keyof typeof FrontmatterKeys];
@@ -69,5 +71,15 @@ export const FrontmatterRegistry: Record<string, FrontmatterFieldConfig> = {
         description: "Capital del país (si aplica)",
         type: 'string',
         asLink: true
+    },
+    [FrontmatterKeys.Tags]: {
+        key: FrontmatterKeys.Tags,
+        description: "Etiquetas",
+        type: 'array'
+    },
+    [FrontmatterKeys.ImagenesUrls]: {
+        key: FrontmatterKeys.ImagenesUrls,
+        description: "Lista de URLs de imágenes del lugar",
+        type: 'array'
     }
 };

@@ -15,12 +15,15 @@ import {
   splitFrontmatter,
 } from 'src/Application/Utils/Frontmatter';
 import type { LlmPort } from 'src/Domain/Ports/LlmPort';
+import type { ImageSearchPort } from 'src/Domain/Ports/ImageSearchPort';
+import { FrontmatterKeys } from 'src/Domain/Constants/FrontmatterRegistry';
 import { getTemplateConfigForFolder } from 'src/Application/Utils/TemplateConfig';
 import { mergeNotes } from 'src/Application/Utils/Notes';
 
 export class ApplyTemplateCommand {
   constructor(
     private readonly llm: LlmPort,
+    private readonly imageSearch: ImageSearchPort,
     private readonly obsidian: ObsidianApp,
     private readonly settings: UnresolvedLinkGeneratorSettings,
   ) { }
@@ -72,10 +75,25 @@ export class ApplyTemplateCommand {
       });
 
       if (enrichment) {
-        const updatedFrontmatter = mergeFrontmatterSuggestions(
+        let updatedFrontmatter = mergeFrontmatterSuggestions(
           mergedFrontmatter,
           enrichment.frontmatter,
         );
+
+        // Check for empty image URLs
+        if (updatedFrontmatter && Array.isArray(updatedFrontmatter[FrontmatterKeys.ImagenesUrls]) && (updatedFrontmatter[FrontmatterKeys.ImagenesUrls] as any[]).length === 0) {
+          showMessage('Buscando imágenes...');
+          const images = await this.imageSearch.searchImages(file.basename, 3);
+          if (images.length > 0) {
+            updatedFrontmatter = {
+              ...updatedFrontmatter,
+              [FrontmatterKeys.ImagenesUrls]: images,
+            };
+            showMessage(`Se encontraron ${images.length} imágenes.`);
+          } else {
+            showMessage('No se encontraron imágenes.');
+          }
+        }
 
         const frontmatterBlock = updatedFrontmatter
           ? formatFrontmatterBlock(updatedFrontmatter)

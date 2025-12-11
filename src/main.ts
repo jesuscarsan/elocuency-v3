@@ -6,9 +6,11 @@ import {
 } from './settings';
 import { ApplyTemplateCommand } from './Application/Commands/ApplyTemplateCommand';
 import { ApplyGeocoderCommand } from './Application/Commands/ApplyGeocoderCommand';
+import { UpdatePlaceIdCommand } from './Application/Commands/UpdatePlaceIdCommand';
 import { ApplyStreamBriefCommand } from './Application/Commands/ApplyStreamBriefCommand';
 import { GoogleGeminiAdapter } from './Infrastructure/Adapters/GoogleGeminiAdapter/GoogleGeminiAdapter';
 import { GoogleMapsAdapter } from './Infrastructure/Adapters/GoogleMapsAdapter/GoogleMapsAdapter';
+import { GoogleImageSearchAdapter } from './Infrastructure/Adapters/GoogleImageSearchAdapter/GoogleImageSearchAdapter';
 import { GenerateMissingNotesCommand } from './Application/Commands/GenerateMissingNotesCommand';
 import { SettingsView } from './Application/Views/SettingsView';
 import { EnhanceNoteCommand } from './Application/Commands/EnhanceNoteCommand';
@@ -37,6 +39,11 @@ export default class ObsidianExtension extends Plugin {
       this.app
     );
 
+    const imageSearch = new GoogleImageSearchAdapter(
+      this.settings.googleCustomSearchApiKey ?? '',
+      this.settings.googleCustomSearchEngineId ?? ''
+    );
+
     this.spotifyAdapter = new SpotifyAdapter(
       this.settings.spotifyClientId,
       this.settings.spotifyAccessToken
@@ -60,6 +67,7 @@ export default class ObsidianExtension extends Plugin {
       callback: () => {
         const applyTemplateCommand = new ApplyTemplateCommand(
           llm,
+          imageSearch,
           this.app,
           this.settings,
         );
@@ -89,6 +97,18 @@ export default class ObsidianExtension extends Plugin {
           this.app,
         );
         applyGeocoderCommand.execute();
+      },
+    });
+
+    this.addCommand({
+      id: 'UpdatePlaceIdCommand',
+      name: 'Update Place ID',
+      callback: () => {
+        const updatePlaceIdCommand = new UpdatePlaceIdCommand(
+          geocoder,
+          this.app,
+        );
+        updatePlaceIdCommand.execute();
       },
     });
 

@@ -15,8 +15,11 @@ export interface UnresolvedLinkGeneratorSettings {
   googleMapsEmbedAPIKey: string;
   spotifyClientId: string;
   spotifyAccessToken: string;
+
   spotifyRedirectUri: string;
   spotifyPkceVerifier: string;
+  googleCustomSearchApiKey: string;
+  googleCustomSearchEngineId: string;
 }
 
 export const DEFAULT_TEMPLATE_OPTIONS: TemplateOptionSetting[] = [
@@ -37,6 +40,8 @@ export const DEFAULT_SETTINGS: UnresolvedLinkGeneratorSettings = {
   spotifyAccessToken: '',
   spotifyRedirectUri: 'http://localhost:8080',
   spotifyPkceVerifier: '',
+  googleCustomSearchApiKey: '',
+  googleCustomSearchEngineId: '',
   templateOptions: DEFAULT_TEMPLATE_OPTIONS.map((option) => ({ ...option })),
 };
 

@@ -11,6 +11,7 @@ import { LocationPathBuilder, PlaceMetadata } from 'src/Application/Utils/Locati
 import { ensureFolderExists } from 'src/Application/Utils/Vault';
 import { capitalize } from '../Utils/Strings';
 import { FrontmatterKeys, FrontmatterRegistry } from 'src/Domain/Constants/FrontmatterRegistry';
+import { PlaceTypes } from 'src/Domain/Constants/PlaceTypes';
 
 export class ApplyGeocoderCommand {
     protected readonly pathBuilder: LocationPathBuilder;
@@ -56,10 +57,10 @@ export class ApplyGeocoderCommand {
             return;
         }
 
-        const { refinedDetails, metadata, summary } = enriched;
+        const { refinedDetails, metadata, summary, tags } = enriched;
 
         // 1. Update Frontmatter
-        const updatedFrontmatter = this.mergeFrontmatter(currentFrontmatter, refinedDetails);
+        const updatedFrontmatter = this.mergeFrontmatter(currentFrontmatter, refinedDetails, tags);
 
         const frontmatterBlock = formatFrontmatterBlock(updatedFrontmatter);
         const normalizedBody = split.body.replace(/^[\n\r]+/, '');
@@ -98,7 +99,8 @@ export class ApplyGeocoderCommand {
 
     private mergeFrontmatter(
         current: Record<string, any> | null,
-        details: GeocodingResponse
+        details: GeocodingResponse,
+        tags?: string[]
     ): Record<string, any> {
         const base = current ? { ...current } : {};
 
@@ -158,10 +160,18 @@ export class ApplyGeocoderCommand {
             base[FrontmatterKeys.Longitud] = details.lng;
         }
 
+        // Handle Tags
+        if (tags && tags.length > 0) {
+            const currentTags = base[FrontmatterKeys.Tags] || [];
+            const normalizedCurrentTags = Array.isArray(currentTags) ? currentTags : [currentTags];
+            const newTags = new Set([...normalizedCurrentTags, ...tags]);
+            base[FrontmatterKeys.Tags] = Array.from(newTags);
+        }
+
         return base;
     }
 
-    private async getEnrichedData(placeName: string, rawDetails: GeocodingResponse): Promise<{ refinedDetails: GeocodingResponse, metadata: PlaceMetadata, summary: string } | null> {
+    private async getEnrichedData(placeName: string, rawDetails: GeocodingResponse): Promise<{ refinedDetails: GeocodingResponse, metadata: PlaceMetadata, summary: string, tags: string[] } | null> {
         const prompt = `
         I have a place named "${placeName}".
         Raw Geocoding Data: ${JSON.stringify(rawDetails)}.
@@ -185,6 +195,10 @@ export class ApplyGeocoderCommand {
         1. Write a SINGLE paragraph (approx 50-80 words) summarizing the most relevant aspects of this place (history, significance, tourism).
         2. In Spanish.
 
+        Rules for tags:
+        1. Choose 0 or more tags that is this place from the following list: ${JSON.stringify(PlaceTypes)}.
+        2. ONLY use tags from this list.
+
         Return ONLY a JSON object:
         {
             "refinedDetails": {
@@ -201,7 +215,8 @@ export class ApplyGeocoderCommand {
                 "continent": "Name",
                 "isRegionFamous": true/false
             },
-            "summary": "..."
+            "summary": "...",
+            "tags": ["Lugares/..."]
         }
         `;
 
@@ -209,7 +224,7 @@ export class ApplyGeocoderCommand {
         if (!response) return null;
         console.log({ response });
         try {
-            return response as { refinedDetails: GeocodingResponse, metadata: PlaceMetadata, summary: string };
+            return response as { refinedDetails: GeocodingResponse, metadata: PlaceMetadata, summary: string, tags: string[] };
         } catch (e) {
             console.error('Failed to parse LLM response for enriched data', e);
             return null;

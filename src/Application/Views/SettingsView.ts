@@ -120,6 +120,35 @@ export class SettingsView extends PluginSettingTab {
         text.inputEl.type = 'password';
       });
 
+
+
+    new Setting(containerEl)
+      .setName('Google Custom Search API key')
+      .setDesc('Used for searching images.')
+      .addText((text: TextComponent) => {
+        text
+          .setPlaceholder('AIza...')
+          .setValue(this.plugin.settings.googleCustomSearchApiKey)
+          .onChange(async (value: string) => {
+            this.plugin.settings.googleCustomSearchApiKey = value.trim();
+            await this.plugin.saveSettings();
+          });
+        text.inputEl.type = 'password';
+      });
+
+    new Setting(containerEl)
+      .setName('Google Custom Search Engine ID')
+      .setDesc('CX ID for the custom search engine.')
+      .addText((text: TextComponent) => {
+        text
+          .setPlaceholder('0123456789...')
+          .setValue(this.plugin.settings.googleCustomSearchEngineId)
+          .onChange(async (value: string) => {
+            this.plugin.settings.googleCustomSearchEngineId = value.trim();
+            await this.plugin.saveSettings();
+          });
+      });
+
     new Setting(containerEl)
       .setName('Spotify Client ID')
       .setDesc('Required for Spotify integration.')

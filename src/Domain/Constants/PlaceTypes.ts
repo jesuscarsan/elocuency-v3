@@ -13,7 +13,14 @@ export const PlaceTypes = [
     "Lugares/Tiendas",
     "Lugares/Estadios",
     "Lugares/Auditorios",
-    "Lugares/Bibliotecas"
+    "Lugares/Bibliotecas",
+    "Lugares/Capitales",
+    "Lugares/Municipios",
+    "Lugares/Provincias",
+    "Lugares/Regiones",
+    "Lugares/Paises",
+    "Lugares/Ciudades",
+    "Lugares/Continentes",
 ] as const;
 
 export type PlaceType = (typeof PlaceTypes)[number];
