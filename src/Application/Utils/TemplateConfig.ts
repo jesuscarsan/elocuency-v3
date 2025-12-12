@@ -75,10 +75,15 @@ export async function getTemplateConfigsForFolder(
     const matches: TemplateMatch[] = [];
 
     for (const matchingTemplate of matchingTemplates) {
-        const templatePath = normalizePath(
+        let templatePath = normalizePath(
             `${templatesFolder}/${matchingTemplate.templateFilename}`
         );
-        const templateFile = app.vault.getAbstractFileByPath(templatePath);
+        let templateFile = app.vault.getAbstractFileByPath(templatePath);
+
+        if (!templateFile && !templatePath.endsWith('.md')) {
+            templatePath = templatePath + '.md';
+            templateFile = app.vault.getAbstractFileByPath(templatePath);
+        }
 
         if (templateFile instanceof TFile) {
             const templateContent = await app.vault.read(templateFile);

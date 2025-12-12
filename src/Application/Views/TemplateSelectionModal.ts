@@ -1,12 +1,15 @@
-import { App, FuzzySuggestModal, TFile } from 'obsidian';
+import { App, FuzzySuggestModal, TFile, FuzzyMatch } from 'obsidian';
 import { TemplateMatch } from '../Utils/TemplateConfig';
 
 export class TemplateSelectionModal extends FuzzySuggestModal<TemplateMatch> {
-    private resolve: (value: TemplateMatch | null) => void;
+    private isSelected = false;
 
-    constructor(app: App, private matches: TemplateMatch[], resolve: (value: TemplateMatch | null) => void) {
+    constructor(
+        app: App,
+        private matches: TemplateMatch[],
+        private resolve: (value: TemplateMatch | null) => void
+    ) {
         super(app);
-        this.resolve = resolve;
     }
 
     getItems(): TemplateMatch[] {
@@ -17,39 +20,28 @@ export class TemplateSelectionModal extends FuzzySuggestModal<TemplateMatch> {
         return item.templateFile.basename;
     }
 
+    selectSuggestion(value: FuzzyMatch<TemplateMatch>, evt: MouseEvent | KeyboardEvent): void {
+        console.log('TemplateSelectionModal: selectSuggestion called');
+        this.isSelected = true;
+        super.selectSuggestion(value, evt);
+    }
+
     onChooseItem(item: TemplateMatch, evt: MouseEvent | KeyboardEvent): void {
+        console.log('TemplateSelectionModal: onChooseItem', item);
         this.resolve(item);
     }
 
     onClose(): void {
-        // If no item was selected (modal closed via escape or clicking outside),
-        // we might want to handle that. However, onChooseItem is called on selection.
-        // If resolve hasn't been called, it means cancelled.
-        // But FuzzySuggestModal doesn't have a clean "onCancel" hook that distinguishes from selection easily 
-        // without state. 
-        // We can just rely on the fact that if they pick something, onChooseItem fires.
-        // If they close, we can resolve with null if we haven't resolved yet.
-        // But since this is async, we can't easily check "has resolved" without a flag.
-        // Let's add a flag.
+        console.log('TemplateSelectionModal: onClose. isSelected =', this.isSelected);
+        if (!this.isSelected) {
+            this.resolve(null);
+        }
     }
 }
 
 export function pickTemplate(app: App, matches: TemplateMatch[]): Promise<TemplateMatch | null> {
     return new Promise((resolve) => {
-        let selected = false;
-        const modal = new TemplateSelectionModal(app, matches, (match) => {
-            selected = true;
-            resolve(match);
-        });
-
-        const originalOnClose = modal.onClose;
-        modal.onClose = () => {
-            originalOnClose.call(modal);
-            if (!selected) {
-                resolve(null);
-            }
-        };
-
+        const modal = new TemplateSelectionModal(app, matches, resolve);
         modal.open();
     });
 }

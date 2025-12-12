@@ -23,6 +23,8 @@ export class PersonasNoteOrganizer {
         // Get the first value from the arrays or strings
         const pais = this.getFirstValue(paises);
         const region = this.getFirstValue(regiones);
+        const lugares = frontmatter['Lugares'];
+        const lugar = this.getFirstValue(lugares);
 
         if (!pais) {
             // Can't organize without Country
@@ -37,6 +39,9 @@ export class PersonasNoteOrganizer {
         let newPathParts = [basePath, pais];
         if (region) {
             newPathParts.push(region);
+        }
+        if (lugar) {
+            newPathParts.push(lugar);
         }
         newPathParts.push(file.name);
 
@@ -57,15 +62,21 @@ export class PersonasNoteOrganizer {
     }
 
     private getFirstValue(value: unknown): string | null {
+        let result: string | null = null;
+
         if (typeof value === 'string') {
-            return value.trim();
-        }
-        if (Array.isArray(value) && value.length > 0) {
+            result = value;
+        } else if (Array.isArray(value) && value.length > 0) {
             const first = value[0];
             if (typeof first === 'string') {
-                return first.trim();
+                result = first;
             }
         }
+
+        if (result) {
+            return result.replace(/\[\[/g, '').replace(/\]\]/g, '').trim();
+        }
+
         return null;
     }
 

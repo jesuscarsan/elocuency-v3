@@ -10,6 +10,7 @@ import {
     splitFrontmatter
 } from '../Utils/Frontmatter';
 import { getTemplateConfigForFolder } from '../Utils/TemplateConfig';
+import { FrontmatterKeys } from '../../Domain/Constants/FrontmatterRegistry';
 
 export class EnhanceByAiCommand {
     constructor(
@@ -26,30 +27,34 @@ export class EnhanceByAiCommand {
         }
 
         const file = view.file;
-        const parentPath = file.parent ? file.parent.path : '/';
+        const editor = view.editor;
+        const content = editor.getValue();
+        const split = splitFrontmatter(content);
+        const frontmatter = parseFrontmatter(split.frontmatterText) || {};
 
-        const templateResult = await getTemplateConfigForFolder(this.app, this.settings, parentPath);
+        const customPrompt = frontmatter[FrontmatterKeys.AiPrompt];
+        const customCommands = frontmatter[FrontmatterKeys.AiCommands];
 
-        if (!templateResult) {
-            showMessage('No template configured for this folder or template file not found.');
-            return;
+        let promptToUse = customPrompt;
+
+        // If no custom prompt, try to get from template
+        if (!promptToUse) {
+            const parentPath = file.parent ? file.parent.path : '/';
+            const templateResult = await getTemplateConfigForFolder(this.app, this.settings, parentPath);
+
+            if (templateResult && templateResult.config.prompt) {
+                promptToUse = templateResult.config.prompt;
+            }
         }
 
-        const { config } = templateResult;
-
-        if (!config.prompt) {
-            showMessage('No prompt configured in the template file.');
+        if (!promptToUse) {
+            showMessage('No prompt configured in the template file or frontmatter (!!prompt).');
             return;
         }
 
         showMessage('Enhancing note with AI...');
 
-        const editor = view.editor;
-        const content = editor.getValue();
-        const split = splitFrontmatter(content);
-        const frontmatter = parseFrontmatter(split.frontmatterText);
-
-        const prompt = this.buildPrompt(file.basename, config.prompt, frontmatter, split.body);
+        const prompt = this.buildPrompt(file.basename, promptToUse as string, frontmatter, split.body, customCommands as string | string[]);
 
         const response = await this.llm.requestEnrichment({ prompt });
 
@@ -72,16 +77,29 @@ export class EnhanceByAiCommand {
         }
     }
 
-    private buildPrompt(title: string, settingPrompt: string, frontmatter: any, body: string): string {
-        return [
+    private buildPrompt(title: string, settingPrompt: string, frontmatter: any, body: string, customCommands?: string | string[]): string {
+        const parts = [
             `Genera contenido para una nota de Obsidian: "${title}".`,
             `${settingPrompt}`,
+        ];
+
+        if (customCommands) {
+            if (Array.isArray(customCommands)) {
+                parts.push(...customCommands);
+            } else {
+                parts.push(customCommands);
+            }
+        }
+
+        parts.push(
             `Frontmatter actual (JSON): ${JSON.stringify(frontmatter)}`,
             `Cuerpo actual: "${body}"`,
             'Devuelve un JSON con los campos:',
             '"body": contenido para el cuerpo de la nota (no elimines información del cuerpo actual, si ves infromación incorrecta, comenta la incrrección explicitamente).',
             '"frontmatter": objeto con claves y valores sugeridos SOLO para los campos que falten o estén vacíos en el frontmatter actual.',
             'No añadas texto fuera del JSON y evita marcar código.'
-        ].join('\n');
+        );
+
+        return parts.join('\n');
     }
 }

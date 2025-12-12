@@ -10,6 +10,8 @@ export const FrontmatterKeys = {
     Capital: "Capital",
     Tags: "tags",
     ImagenesUrls: "Imagenes urls",
+    AiCommands: "!!commands",
+    AiPrompt: "!!prompt",
 } as const;
 
 export type FrontmatterKey = (typeof FrontmatterKeys)[keyof typeof FrontmatterKeys];
@@ -81,5 +83,15 @@ export const FrontmatterRegistry: Record<string, FrontmatterFieldConfig> = {
         key: FrontmatterKeys.ImagenesUrls,
         description: "Lista de URLs de imágenes del lugar",
         type: 'array'
+    },
+    [FrontmatterKeys.AiCommands]: {
+        key: FrontmatterKeys.AiCommands,
+        description: "Comandos adicionales para la IA",
+        type: 'array'
+    },
+    [FrontmatterKeys.AiPrompt]: {
+        key: FrontmatterKeys.AiPrompt,
+        description: "Prompt personalizado para la IA",
+        type: 'string'
     }
 };

@@ -38,6 +38,10 @@ export class ApplyTemplateCommand {
     }
 
     const file = view.file;
+
+    if (view.getMode() === 'preview') {
+      await view.setState({ ...view.getState(), mode: 'source' }, { history: false });
+    }
     const parentPath = file.parent ? file.parent.path : '/';
 
     const matches = await getTemplateConfigsForFolder(this.obsidian, this.settings, parentPath);
@@ -52,10 +56,11 @@ export class ApplyTemplateCommand {
       templateResult = matches[0];
     } else {
       templateResult = await pickTemplate(this.obsidian, matches);
+      console.log("templateResultºº", templateResult);
     }
 
     if (!templateResult) {
-      // User cancelled selection
+      showMessage('No template selected.');
       return;
     }
 
@@ -145,6 +150,8 @@ export class ApplyTemplateCommand {
       // safer to await.
       await organizer.organize(file, finalFrontmatter);
     }
+
+    await view.setState({ ...view.getState(), mode: 'preview' }, { history: false });
 
   }
 
