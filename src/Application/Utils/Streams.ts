@@ -1,6 +1,6 @@
 import type { YouTubeTranscriptPort } from 'src/Domain/Ports/YouTubeTranscriptPort';
 import { YouTubeTranscriptAdapter } from 'src/Infrastructure/Adapters/YouTubeTranscriptAdapter/YouTubeTranscriptAdapter';
-import { YouTubeTranscriptLibAdapter } from 'src/Infrastructure/Adapters/YouTubeTranscriptAdapter/YoutubeTranscriptLibAdapter';
+import { YouTubeTranscriptRobustAdapter } from 'src/Infrastructure/Adapters/YouTubeTranscriptAdapter/YouTubeTranscriptRobustAdapter';
 
 const LOG_PREFIX = '[elo-obsidian-ext]';
 
@@ -33,7 +33,7 @@ export async function getStreamTranscript(url: string): Promise<string | null> {
         return null;
       }
 
-      return new YouTubeTranscriptLibAdapter().fetchTranscript({ videoId });
+      return new YouTubeTranscriptRobustAdapter().fetchTranscript({ videoId });
     }
     default:
       return null;

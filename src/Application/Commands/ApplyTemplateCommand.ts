@@ -17,10 +17,16 @@ import {
 import type { LlmPort } from 'src/Domain/Ports/LlmPort';
 import type { ImageSearchPort } from 'src/Domain/Ports/ImageSearchPort';
 import { FrontmatterKeys } from 'src/Domain/Constants/FrontmatterRegistry';
-import { getTemplateConfigsForFolder, TemplateMatch } from 'src/Application/Utils/TemplateConfig';
+import {
+  getTemplateConfigsForFolder,
+  getAllTemplateConfigs,
+  TemplateMatch
+} from 'src/Application/Utils/TemplateConfig';
+import { ensureFolderExists } from 'src/Application/Utils/Vault';
 import { mergeNotes } from 'src/Application/Utils/Notes';
 import { PersonasNoteOrganizer } from 'src/Application/Services/PersonasNoteOrganizer';
-import { pickTemplate } from 'src/Application/Views/TemplateSelectionModal';
+import { GenericFuzzySuggestModal } from 'src/Application/Views/GenericFuzzySuggestModal';
+import { executeInEditMode } from '../Utils/ViewMode';
 
 export class ApplyTemplateCommand {
   constructor(
@@ -39,119 +45,171 @@ export class ApplyTemplateCommand {
 
     const file = view.file;
 
-    if (view.getMode() === 'preview') {
-      await view.setState({ ...view.getState(), mode: 'source' }, { history: false });
-    }
-    const parentPath = file.parent ? file.parent.path : '/';
+    await executeInEditMode(view, async () => {
+      const parentPath = file.parent ? file.parent.path : '/';
 
-    const matches = await getTemplateConfigsForFolder(this.obsidian, this.settings, parentPath);
+      let matches = await getTemplateConfigsForFolder(this.obsidian, this.settings, parentPath);
+      let isFallback = false;
 
-    if (matches.length === 0) {
-      showMessage(`No template configured for folder: ${parentPath} or template file not found.`);
-      return;
-    }
+      if (matches.length === 0) {
+        matches = await getAllTemplateConfigs(this.obsidian);
+        isFallback = true;
+      }
 
-    let templateResult: TemplateMatch | null = null;
-    if (matches.length === 1) {
-      templateResult = matches[0];
-    } else {
-      templateResult = await pickTemplate(this.obsidian, matches);
-      console.log("templateResultºº", templateResult);
-    }
+      if (matches.length === 0) {
+        showMessage(`No templates found.`);
+        return;
+      }
 
-    if (!templateResult) {
-      showMessage('No template selected.');
-      return;
-    }
+      let templateResult: TemplateMatch | null = null;
+      if (matches.length === 1 && !isFallback) {
+        templateResult = matches[0];
+      } else {
+        templateResult = await new Promise<TemplateMatch | null>((resolve) => {
+          new GenericFuzzySuggestModal<TemplateMatch>(
+            this.obsidian,
+            matches,
+            (item) => item.templateFile.basename,
+            () => { },
+            resolve
+          ).open();
+        });
+      }
 
-    const { config, cleanedContent, templateFile } = templateResult;
+      if (!templateResult) {
+        showMessage('No template selected.');
+        return;
+      }
 
-    showMessage(`Applying template for ${parentPath}...`);
+      const { config, cleanedContent, templateFile } = templateResult;
 
-    const editor = view.editor;
-    const mergedContent = mergeNotes(cleanedContent, editor.getValue(), false);
-    const mergedSplit = splitFrontmatter(mergedContent);
-    const mergedFrontmatter = parseFrontmatter(mergedSplit.frontmatterText);
-    const bodyIsEmpty = mergedSplit.body.trim().length === 0;
+      showMessage(`Applying template ${templateFile.basename}...`);
 
-    const recomposedSegments: string[] = [];
-    let finalFrontmatter = mergedFrontmatter;
+      const editor = view.editor;
+      const mergedContent = mergeNotes(cleanedContent, editor.getValue(), false);
+      const mergedSplit = splitFrontmatter(mergedContent);
+      const mergedFrontmatter = parseFrontmatter(mergedSplit.frontmatterText);
 
-    if (mergedFrontmatter) {
-      recomposedSegments.push(formatFrontmatterBlock(mergedFrontmatter));
-    }
+      const recomposedSegments: string[] = [];
+      let finalFrontmatter = mergedFrontmatter;
 
-    const normalizedBody = mergedSplit.body;
-    if (normalizedBody) {
-      recomposedSegments.push(normalizedBody);
-    }
+      if (mergedFrontmatter) {
+        recomposedSegments.push(formatFrontmatterBlock(mergedFrontmatter));
+      }
 
-    let finalContent = recomposedSegments.join('\n\n');
+      const normalizedBody = mergedSplit.body;
+      if (normalizedBody) {
+        recomposedSegments.push(normalizedBody);
+      }
 
-    if (config.prompt) {
-      const prompt = this.buildPrompt(file.basename, mergedFrontmatter, config.prompt);
+      let finalContent = recomposedSegments.join('\n\n');
 
-      const enrichment = await this.llm.requestEnrichment({
-        prompt,
-      });
+      if (config.prompt) {
+        const prompt = this.buildPrompt(file.basename, mergedFrontmatter, config.prompt);
 
-      if (enrichment) {
-        let updatedFrontmatter = mergeFrontmatterSuggestions(
-          mergedFrontmatter,
-          enrichment.frontmatter,
-        );
+        const enrichment = await this.llm.requestEnrichment({
+          prompt,
+        });
 
-        // Check for empty image URLs
-        if (updatedFrontmatter && Array.isArray(updatedFrontmatter[FrontmatterKeys.ImagenesUrls]) && (updatedFrontmatter[FrontmatterKeys.ImagenesUrls] as any[]).length === 0) {
-          showMessage('Buscando imágenes...');
-          const images = await this.imageSearch.searchImages(file.basename, 3);
-          if (images.length > 0) {
-            updatedFrontmatter = {
-              ...updatedFrontmatter,
-              [FrontmatterKeys.ImagenesUrls]: images,
-            };
-            showMessage(`Se encontraron ${images.length} imágenes.`);
+        if (enrichment) {
+          let updatedFrontmatter = mergeFrontmatterSuggestions(
+            mergedFrontmatter,
+            enrichment.frontmatter,
+          );
+
+          // Check for empty image URLs
+          if (updatedFrontmatter && Array.isArray(updatedFrontmatter[FrontmatterKeys.ImagenesUrls]) && (updatedFrontmatter[FrontmatterKeys.ImagenesUrls] as any[]).length === 0) {
+            showMessage('Buscando imágenes...');
+            const images = await this.imageSearch.searchImages(file.basename, 3);
+            if (images.length > 0) {
+              updatedFrontmatter = {
+                ...updatedFrontmatter,
+                [FrontmatterKeys.ImagenesUrls]: images,
+              };
+              showMessage(`Se encontraron ${images.length} imágenes.`);
+            } else {
+              showMessage('No se encontraron imágenes.');
+            }
+          }
+
+          if (updatedFrontmatter) {
+            finalFrontmatter = updatedFrontmatter;
+          }
+
+          const frontmatterBlock = updatedFrontmatter
+            ? formatFrontmatterBlock(updatedFrontmatter)
+            : '';
+          const bodyFromGemini = enrichment.body
+            ? enrichment.body.trim()
+            : '';
+          const segments: string[] = [];
+
+          if (frontmatterBlock) {
+            segments.push(frontmatterBlock);
+          }
+
+          if (bodyFromGemini) {
+            segments.push(bodyFromGemini);
+          }
+
+          finalContent = segments.join('\n\n');
+        }
+      }
+
+      editor.setValue(finalContent);
+
+      if (finalFrontmatter) {
+        const organizer = new PersonasNoteOrganizer(this.obsidian);
+        await organizer.organize(file, finalFrontmatter);
+      }
+
+      // Handle !!path (Move note)
+      if (config.path) {
+        try {
+          const targetPath = config.path.endsWith('.md')
+            ? normalizePath(config.path)
+            : normalizePath(`${config.path}/${file.name}`);
+
+          await ensureFolderExists(this.obsidian, targetPath);
+
+          // Check if file already exists at target to avoid error or overwrite? 
+          // Obsidian's rename throws if exists.
+          const existing = this.obsidian.vault.getAbstractFileByPath(targetPath);
+          if (!existing || existing === file) {
+            await this.obsidian.fileManager.renameFile(file, targetPath);
           } else {
-            showMessage('No se encontraron imágenes.');
+            showMessage(`File already exists at ${targetPath}. Cannot move.`);
+          }
+
+        } catch (e: any) {
+          console.error("Error moving file based on template config:", e);
+          showMessage(`Error moving file: ${e.message}`);
+        }
+      }
+
+      // Handle !!commands (Execute commands)
+      if (config.commands && Array.isArray(config.commands)) {
+        for (const commandId of config.commands) {
+          let command = (this.obsidian as any).commands?.findCommand(commandId);
+          if (!command) {
+            const prefixedId = `elocuency:${commandId}`;
+            command = (this.obsidian as any).commands?.findCommand(prefixedId);
+            if (command) {
+              (this.obsidian as any).commands.executeCommandById(prefixedId);
+              continue;
+            }
+          }
+
+          if (command) {
+            (this.obsidian as any).commands.executeCommandById(commandId);
+          } else {
+            console.warn(`Command not found: ${commandId}`);
+            showMessage(`Command not found: ${commandId}`);
           }
         }
-
-
-
-        if (updatedFrontmatter) {
-          finalFrontmatter = updatedFrontmatter;
-        }
-
-        const frontmatterBlock = updatedFrontmatter
-          ? formatFrontmatterBlock(updatedFrontmatter)
-          : '';
-        const bodyFromGemini = enrichment.body
-          ? enrichment.body.trim()
-          : '';
-        const segments: string[] = [];
-
-        if (frontmatterBlock) {
-          segments.push(frontmatterBlock);
-        }
-
-        if (bodyFromGemini) {
-          segments.push(bodyFromGemini);
-        }
-
-        finalContent = segments.join('\n\n');
       }
-    }
 
-    editor.setValue(finalContent);
-
-    if (finalFrontmatter) {
-      const organizer = new PersonasNoteOrganizer(this.obsidian);
-      // Give a small delay to allow editor update to propagate or just fire and forget? 
-      // safer to await.
-      await organizer.organize(file, finalFrontmatter);
-    }
-
-    await view.setState({ ...view.getState(), mode: 'preview' }, { history: false });
+    });
 
   }
 

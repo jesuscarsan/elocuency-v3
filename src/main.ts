@@ -25,6 +25,8 @@ import { Notice } from 'obsidian';
 import { registerGoogleMapsRenderer } from './Application/Views/GoogleMapsRenderer';
 import { registerImageGalleryRenderer } from './Application/Views/ImageGalleryRenderer';
 import { AddImagesCommand } from './Application/Commands/AddImagesCommand';
+import { CreateReciprocityNotesCommand } from './Application/Commands/CreateReciprocityNotesCommand';
+import { ReallocateNoteCommand } from './Application/Commands/ReallocateNoteCommand';
 
 export default class ObsidianExtension extends Plugin {
   settings: UnresolvedLinkGeneratorSettings = DEFAULT_SETTINGS;
@@ -206,6 +208,22 @@ export default class ObsidianExtension extends Plugin {
     });
 
     this.addCommand({
+      id: 'CreateReciprocityNotesCommand',
+      name: 'Create Reciprocity Notes',
+      callback: () => {
+        new CreateReciprocityNotesCommand(this.app).execute();
+      }
+    });
+
+    this.addCommand({
+      id: 'ReallocateNoteCommand',
+      name: 'Reallocate Note',
+      callback: () => {
+        new ReallocateNoteCommand(this.app).execute();
+      }
+    });
+
+    this.addCommand({
       id: 'SearchSpotifyTrack',
       name: 'Search Spotify Track',
       callback: () => {
@@ -225,12 +243,12 @@ export default class ObsidianExtension extends Plugin {
     });
 
 
-    this.registerEvent(
-      this.app.vault.on('rename', async (file, oldPath) => {
-        new EnhanceNoteCommand(this, llm).execute(file);
+    // this.registerEvent(
+    //   this.app.vault.on('rename', async (file, oldPath) => {
+    //     new EnhanceNoteCommand(this, llm).execute(file);
 
-      }),
-    );
+    //   }),
+    // );
 
     this.addSettingTab(new SettingsView(this.app, this));
     registerImageGalleryRenderer(this);

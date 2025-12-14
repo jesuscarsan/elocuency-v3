@@ -1,6 +1,10 @@
 
 import { parseYaml, stringifyYaml } from 'obsidian';
 
+export interface FrontmatterUpdateOptions {
+    overwrite?: boolean;
+}
+
 type FrontmatterSplit = {
     frontmatterText: string | null;
     body: string;
@@ -147,8 +151,40 @@ export function mergeFrontmatterSuggestions(
     return changed ? base : null;
 }
 
+export function applyFrontmatterUpdates(
+    current: Record<string, unknown> | null,
+    updates: Record<string, unknown> | undefined | null,
+): Record<string, unknown> | null {
+    if (!updates || Object.keys(updates).length === 0) {
+        return current;
+    }
 
-function hasMeaningfulValue(value: unknown): boolean {
+    const base = current ? { ...current } : {};
+    let changed = false;
+
+    for (const [key, value] of Object.entries(updates)) {
+        // If the update has a meaningful value, apply it regardless of whether
+        // the current key has a value or not. Overwrite is implied.
+        if (hasMeaningfulValue(value)) {
+            // Only update if the value is actually different?
+            // For simplicity, we just check if it's meaningful to be applied.
+            // Deep equality check might be better but for now naive replacement is consistent with "overwrite"
+            if (JSON.stringify(base[key]) !== JSON.stringify(value)) {
+                base[key] = value;
+                changed = true;
+            }
+        }
+    }
+
+    if (!changed && current) {
+        return current;
+    }
+
+    return changed ? base : null;
+}
+
+
+export function hasMeaningfulValue(value: unknown): boolean {
     if (value === null || value === undefined) {
         return false;
     }

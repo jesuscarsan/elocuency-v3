@@ -3,6 +3,7 @@ import type { ImageSearchPort } from 'src/Domain/Ports/ImageSearchPort';
 import { FrontmatterKeys } from 'src/Domain/Constants/FrontmatterRegistry';
 import { showMessage } from 'src/Application/Utils/Messages';
 import { formatFrontmatterBlock, parseFrontmatter, splitFrontmatter } from 'src/Application/Utils/Frontmatter';
+import { executeInEditMode } from '../Utils/ViewMode';
 
 export class AddImagesCommand {
     constructor(
@@ -11,47 +12,50 @@ export class AddImagesCommand {
     ) { }
 
     async execute() {
-        const file = this.app.workspace.getActiveFile();
-        if (!file) {
+        const view = this.app.workspace.getActiveViewOfType(MarkdownView);
+        if (!view?.file) {
             showMessage('Open a markdown note to add images.');
             return;
         }
+        const file = view.file;
 
-        const currentContent = await this.app.vault.read(file);
-        const split = splitFrontmatter(currentContent);
-        const frontmatter = parseFrontmatter(split.frontmatterText) || {};
+        await executeInEditMode(view, async () => {
+            const currentContent = await this.app.vault.read(file);
+            const split = splitFrontmatter(currentContent);
+            const frontmatter = parseFrontmatter(split.frontmatterText) || {};
 
-        const existingImages = frontmatter[FrontmatterKeys.ImagenesUrls];
+            const existingImages = frontmatter[FrontmatterKeys.ImagenesUrls];
 
-        if (Array.isArray(existingImages) && existingImages.length > 0) {
-            showMessage('La nota ya tiene imágenes.');
-            return;
-        }
-
-        showMessage(`Buscando imágenes para: ${file.basename}...`);
-
-        try {
-            const images = await this.imageSearch.searchImages(file.basename, 3);
-
-            if (images.length === 0) {
-                showMessage('No se encontraron imágenes.');
+            if (Array.isArray(existingImages) && existingImages.length > 0) {
+                showMessage('La nota ya tiene imágenes.');
                 return;
             }
 
-            const updatedFrontmatter = {
-                ...frontmatter,
-                [FrontmatterKeys.ImagenesUrls]: images,
-            };
+            showMessage(`Buscando imágenes para: ${file.basename}...`);
 
-            const newFrontmatterBlock = formatFrontmatterBlock(updatedFrontmatter);
-            const newContent = newFrontmatterBlock + '\n' + split.body;
+            try {
+                const images = await this.imageSearch.searchImages(file.basename, 3);
 
-            await this.app.vault.modify(file, newContent);
-            showMessage(`Se añadieron ${images.length} imágenes.`);
+                if (images.length === 0) {
+                    showMessage('No se encontraron imágenes.');
+                    return;
+                }
 
-        } catch (error) {
-            console.error(error);
-            showMessage('Error al buscar imágenes.');
-        }
+                const updatedFrontmatter = {
+                    ...frontmatter,
+                    [FrontmatterKeys.ImagenesUrls]: images,
+                };
+
+                const newFrontmatterBlock = formatFrontmatterBlock(updatedFrontmatter);
+                const newContent = newFrontmatterBlock + '\n' + split.body;
+
+                await this.app.vault.modify(file, newContent);
+                showMessage(`Se añadieron ${images.length} imágenes.`);
+
+            } catch (error) {
+                console.error(error);
+                showMessage('Error al buscar imágenes.');
+            }
+        });
     }
 }

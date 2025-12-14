@@ -7,8 +7,8 @@ export const PlaceTypes = [
     "Lugares/Parques",
     "Lugares/Cafeterías",
     "Lugares/Bares",
-    "Lugares/Museos Artes",
-    "Lugares/Museos Ciencia",
+    "Lugares/Museos-Artes",
+    "Lugares/Museos-Ciencia",
     "Lugares/Hoteles",
     "Lugares/Tiendas",
     "Lugares/Estadios",
@@ -21,6 +21,11 @@ export const PlaceTypes = [
     "Lugares/Paises",
     "Lugares/Ciudades",
     "Lugares/Continentes",
+    "Lugares/Barrios",
+    "Lugares/Pueblos",
+    "Lugares/Grandes-almacenes",
+    "Lugares/Parques-naturales",
+
 ] as const;
 
 export type PlaceType = (typeof PlaceTypes)[number];

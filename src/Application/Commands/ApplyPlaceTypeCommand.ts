@@ -9,6 +9,7 @@ import {
 } from 'src/Application/Utils/Frontmatter';
 import type { GeocodingPort, GeocodingResponse } from 'src/Domain/Ports/GeocodingPort';
 import type { LlmPort } from 'src/Domain/Ports/LlmPort';
+import { executeInEditMode } from '../Utils/ViewMode';
 
 export class ApplyPlaceTypeCommand extends ApplyGeocoderCommand {
     constructor(
@@ -28,47 +29,52 @@ export class ApplyPlaceTypeCommand extends ApplyGeocoderCommand {
             return;
         }
 
-        const file = view.file;
-        const placeName = file.basename;
+        await executeInEditMode(view, async () => {
+            const file = view.file;
+            // Additional safety check
+            if (!file) return;
 
-        showMessage(`Analyzing place type for ${placeName}...`);
+            const placeName = file.basename;
 
-        // 2. AI Classification + Geocoding Preview
-        // We need geocoding details to make a good decision (e.g. is it a Restaurant in Madrid?)
-        // Reuse getEnrichedData but with an augmented prompt?
-        // Or better: ask for classification specifically.
+            showMessage(`Analyzing place type for ${placeName}...`);
 
-        // Let's call the classification first.
-        const classification = await this.classifyPlace(placeName);
+            // 2. AI Classification + Geocoding Preview
+            // We need geocoding details to make a good decision (e.g. is it a Restaurant in Madrid?)
+            // Reuse getEnrichedData but with an augmented prompt?
+            // Or better: ask for classification specifically.
 
-        if (!classification) {
-            showMessage('Could not classify place.');
-            return;
-        }
+            // Let's call the classification first.
+            const classification = await this.classifyPlace(placeName);
 
-        let selectedTag: string | null = classification.suggestedTag;
+            if (!classification) {
+                showMessage('Could not classify place.');
+                return;
+            }
 
-        // 3. Auto-Decision Logic
-        if (!classification.isConfident || !selectedTag || selectedTag === 'Other') {
-            // User intervention required
-            selectedTag = await this.askUserForTag();
-        } else {
-            new Notice(`Auto-detected: ${selectedTag}`);
-        }
+            let selectedTag: string | null = classification.suggestedTag;
 
-        if (!selectedTag) {
-            showMessage('No place type selected. Aborting.');
-            return;
-        }
+            // 3. Auto-Decision Logic
+            if (!classification.isConfident || !selectedTag || selectedTag === 'Other') {
+                // User intervention required
+                selectedTag = await this.askUserForTag();
+            } else {
+                new Notice(`Auto-detected: ${selectedTag}`);
+            }
 
-        // 4. Update Tags
-        await this.addTagToFrontmatter(file, selectedTag);
+            if (!selectedTag) {
+                showMessage('No place type selected. Aborting.');
+                return;
+            }
 
-        // 5. Trigger standard Geocoder flow
-        // effectively calling super.execute() but we are already in execute()
-        // so we call the logic directly or call super.execute() 
-        // calling super.execute() will re-read the file, which is fine.
-        await super.execute();
+            // 4. Update Tags
+            await this.addTagToFrontmatter(file, selectedTag);
+
+            // 5. Trigger standard Geocoder flow
+            // effectively calling super.execute() but we are already in execute()
+            // so we call the logic directly or call super.execute() 
+            // calling super.execute() will re-read the file, which is fine.
+            await super.execute();
+        });
     }
 
     private async classifyPlace(placeName: string): Promise<{ suggestedTag: string | null, isConfident: boolean } | null> {

@@ -8,6 +8,7 @@ import {
 import { getStreamTranscript } from 'src/Application/Utils/Streams';
 import type { LlmPort } from 'src/Domain/Ports/LlmPort';
 import { FrontmatterKeys } from 'src/Domain/Constants/FrontmatterRegistry';
+import { executeInEditMode } from '../Utils/ViewMode';
 
 export class ApplyStreamBriefCommand {
   constructor(
@@ -22,60 +23,65 @@ export class ApplyStreamBriefCommand {
       return;
     }
 
-    const file = view.file;
-    const content = await this.obsidian.vault.read(file);
-    const split = splitFrontmatter(content);
+    await executeInEditMode(view, async () => {
+      const file = view.file;
+      // Additional check
+      if (!file) return;
 
-    if (!split.frontmatterText) {
-      showMessage(
-        'Añade un frontmatter con la URL del streaming antes de generar el brief.',
+      const content = await this.obsidian.vault.read(file);
+      const split = splitFrontmatter(content);
+
+      if (!split.frontmatterText) {
+        showMessage(
+          'Añade un frontmatter con la URL del streaming antes de generar el brief.',
+        );
+        return;
+      }
+
+      const frontmatter = parseFrontmatter(split.frontmatterText);
+      if (!frontmatter) {
+        showMessage('No se pudo interpretar el frontmatter de la nota.');
+        return;
+      }
+
+      const streamUrl = this.extractUrl(frontmatter);
+      if (!streamUrl) {
+        showMessage('Incluye una clave "url" con la dirección del streaming.');
+        return;
+      }
+
+      showMessage('Buscando la transcripción del streaming...');
+      const transcript = await getStreamTranscript(streamUrl);
+      if (transcript === null) {
+        showMessage('No se pudo obtener la transcripción del streaming.');
+        return;
+      }
+
+      const normalizedTranscript = transcript.trim();
+      if (!normalizedTranscript) {
+        showMessage('La transcripción del streaming está vacía.');
+        return;
+      }
+
+      const prompt = this.buildStreamBriefPrompt(
+        file.basename,
+        streamUrl,
+        normalizedTranscript,
       );
-      return;
-    }
 
-    const frontmatter = parseFrontmatter(split.frontmatterText);
-    if (!frontmatter) {
-      showMessage('No se pudo interpretar el frontmatter de la nota.');
-      return;
-    }
+      const brief = await this.llm.requestStreamBrief({
+        prompt,
+      });
 
-    const streamUrl = this.extractStreamUrl(frontmatter);
-    if (!streamUrl) {
-      showMessage('Incluye una clave "url" con la dirección del streaming.');
-      return;
-    }
+      if (!brief) {
+        showMessage('No se pudo generar el brief con Gemini.');
+        return;
+      }
 
-    showMessage('Buscando la transcripción del streaming...');
-    const transcript = await getStreamTranscript(streamUrl);
-    if (transcript === null) {
-      showMessage('No se pudo obtener la transcripción del streaming.');
-      return;
-    }
-
-    const normalizedTranscript = transcript.trim();
-    if (!normalizedTranscript) {
-      showMessage('La transcripción del streaming está vacía.');
-      return;
-    }
-
-    const prompt = this.buildStreamBriefPrompt(
-      file.basename,
-      streamUrl,
-      normalizedTranscript,
-    );
-
-    const brief = await this.llm.requestStreamBrief({
-      prompt,
+      const updatedContent = this.composeNote(frontmatter, split.body, brief);
+      await this.obsidian.vault.modify(file, updatedContent);
+      showMessage('Brief del streaming actualizado.');
     });
-
-    if (!brief) {
-      showMessage('No se pudo generar el brief con Gemini.');
-      return;
-    }
-
-    const updatedContent = this.composeNote(frontmatter, split.body, brief);
-    await this.obsidian.vault.modify(file, updatedContent);
-    showMessage('Brief del streaming actualizado.');
   }
 
   private buildStreamBriefPrompt(
@@ -93,8 +99,8 @@ export class ApplyStreamBriefCommand {
     ].join('\n');
   }
 
-  private extractStreamUrl(frontmatter: Record<string, unknown>): string {
-    const candidates = [FrontmatterKeys.StreamUrl, 'stream-url', 'stream_url', 'url'];
+  private extractUrl(frontmatter: Record<string, unknown>): string {
+    const candidates = [FrontmatterKeys.Url];
     for (const key of candidates) {
       const value = frontmatter[key];
       if (typeof value === 'string') {
@@ -114,13 +120,13 @@ export class ApplyStreamBriefCommand {
     brief: string,
   ): string {
     const normalizedBody = body.replace(/^[\n\r]+/, '');
-    const nextFrontmatter = { ...frontmatter, brief };
-    const frontmatterBlock = formatFrontmatterBlock(nextFrontmatter);
+    const frontmatterBlock = formatFrontmatterBlock(frontmatter);
+    const briefSection = `\n\n## Resumen\n\n${brief}`;
 
     if (normalizedBody) {
-      return `${frontmatterBlock}\n\n${normalizedBody}`;
+      return `${frontmatterBlock}\n\n${normalizedBody}${briefSection}`;
     }
 
-    return `${frontmatterBlock}\n`;
+    return `${frontmatterBlock}${briefSection}`;
   }
 }

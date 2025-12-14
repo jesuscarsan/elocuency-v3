@@ -8,7 +8,8 @@ import { getTemplatesFolder, isFolderMatch } from '../Utils/Vault';
 import { EnhanceByAiCommand } from './EnhanceByAiCommand';
 import { LlmPort } from 'src/Domain/Ports/LlmPort';
 import { getTemplateConfigForFolder } from '../Utils/TemplateConfig';
-import { normalizePath } from 'obsidian';
+import { normalizePath, MarkdownView } from 'obsidian';
+import { executeInEditMode } from '../Utils/ViewMode';
 
 interface EloPlugin extends ObsidianPlugin {
     settings: UnresolvedLinkGeneratorSettings;
@@ -48,15 +49,32 @@ export class EnhanceNoteCommand {
             const app = this.obsidianPlugin.app as any;
             await leaf.openFile(file);
 
-            for (let commandId of config.commands) {
-                commandId = commandId.indexOf(':') === -1 ? 'elocuency:' + commandId : commandId;
-                const command = app.commands.findCommand(commandId);
-                if (command) {
-                    app.commands.executeCommandById(commandId);
-                } else {
-                    console.warn(`[Elocuency] Command not found: ${commandId}`);
+            const view = leaf.view;
+            if (view instanceof MarkdownView) {
+                await executeInEditMode(view, async () => {
+                    const commandsToRun = config.commands || [];
+                    for (let commandId of commandsToRun) {
+                        commandId = commandId.indexOf(':') === -1 ? 'elocuency:' + commandId : commandId;
+                        const command = app.commands.findCommand(commandId);
+                        if (command) {
+                            app.commands.executeCommandById(commandId);
+                        } else {
+                            console.warn(`[Elocuency] Command not found: ${commandId}`);
+                        }
+                    }
+                });
+            } else {
+                // If not a markdown view, just run commands? But user wants edits. 
+                // Mostly this will be a MarkDown view for a .md file.
+                for (let commandId of config.commands) {
+                    commandId = commandId.indexOf(':') === -1 ? 'elocuency:' + commandId : commandId;
+                    const command = app.commands.findCommand(commandId);
+                    if (command) {
+                        app.commands.executeCommandById(commandId);
+                    }
                 }
             }
+
 
         }
         if (config.prompt) {

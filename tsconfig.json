@@ -5,7 +5,7 @@
     "module": "ESNext",
     "moduleResolution": "Node",
     "lib": ["ES2020", "DOM"],
-    "types": ["node", "obsidian"],
+    "types": ["node", "obsidian", "jest"],
     "allowJs": false,
     "strict": true,
     "noImplicitAny": true,
@@ -14,5 +14,5 @@
     "forceConsistentCasingInFileNames": true,
     "skipLibCheck": true
   },
-  "include": ["src"]
+  "include": ["src", "tests"]
 }

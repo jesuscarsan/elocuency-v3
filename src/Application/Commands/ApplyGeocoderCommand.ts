@@ -12,6 +12,7 @@ import { ensureFolderExists } from 'src/Application/Utils/Vault';
 import { capitalize } from '../Utils/Strings';
 import { FrontmatterKeys, FrontmatterRegistry } from 'src/Domain/Constants/FrontmatterRegistry';
 import { PlaceTypes } from 'src/Domain/Constants/PlaceTypes';
+import { executeInEditMode } from '../Utils/ViewMode';
 
 export class ApplyGeocoderCommand {
     protected readonly pathBuilder: LocationPathBuilder;
@@ -31,70 +32,71 @@ export class ApplyGeocoderCommand {
             return;
         }
 
-        const file = view.file;
-        const content = await this.obsidian.vault.read(file);
-        const split = splitFrontmatter(content);
-        const currentFrontmatter = parseFrontmatter(split.frontmatterText);
+        await executeInEditMode(view, async () => {
+            const file = view.file;
+            // Additional check because executeInEditMode might have a slight delay, though view.file should be stable
+            if (!file) return;
 
-        showMessage(`Fetching place details for ${file.basename}...`);
+            const content = await this.obsidian.vault.read(file);
+            const split = splitFrontmatter(content);
+            const currentFrontmatter = parseFrontmatter(split.frontmatterText);
 
-        const placeDetails = await this.geocoder.requestPlaceDetails({
-            placeName: file.basename.trim(),
+            showMessage(`Fetching place details for ${file.basename}...`);
+
+            const placeDetails = await this.geocoder.requestPlaceDetails({
+                placeName: file.basename.trim(),
+            });
+            console.log({ placeDetails });
+
+            if (!placeDetails) {
+                showMessage('No place details found.');
+                return;
+            }
+
+            showMessage(`Refining location data for ${file.basename}...`);
+            const enriched = await this.getEnrichedData(file.basename.trim(), placeDetails);
+            console.log({ enriched });
+
+            if (!enriched) {
+                showMessage('Could not refine location data.');
+                return;
+            }
+
+            const { refinedDetails, metadata, summary, tags } = enriched;
+
+            // 1. Update Frontmatter
+            const updatedFrontmatter = this.mergeFrontmatter(currentFrontmatter, refinedDetails, tags);
+
+            const frontmatterBlock = formatFrontmatterBlock(updatedFrontmatter);
+            const normalizedBody = split.body.replace(/^[\n\r]+/, '');
+            const segments: string[] = [];
+            if (frontmatterBlock) segments.push(frontmatterBlock);
+
+            // Add summary if present and not already in body (simple check)
+            if (summary) {
+                segments.push(summary);
+            }
+
+            if (normalizedBody) segments.push(normalizedBody);
+
+            const finalContent = segments.join('\n\n');
+            if (finalContent !== content) {
+                await this.obsidian.vault.modify(file, finalContent);
+            }
+
+            // 2. Move File
+            showMessage(`Determining location hierarchy for ${file.basename}...`);
+
+            const newPath = this.pathBuilder.buildPath(file.basename, refinedDetails, metadata);
+
+            if (newPath !== file.path) {
+                await ensureFolderExists(this.obsidian, newPath);
+                await this.obsidian.fileManager.renameFile(file, newPath);
+                new Notice(`Moved to ${newPath}`);
+            } else {
+                showMessage('Place details applied. Location already correct.');
+            }
         });
-        console.log({ placeDetails });
-
-        if (!placeDetails) {
-            showMessage('No place details found.');
-            return;
-        }
-
-        showMessage(`Refining location data for ${file.basename}...`);
-        const enriched = await this.getEnrichedData(file.basename.trim(), placeDetails);
-        console.log({ enriched });
-
-        if (!enriched) {
-            showMessage('Could not refine location data.');
-            return;
-        }
-
-        const { refinedDetails, metadata, summary, tags } = enriched;
-
-        // 1. Update Frontmatter
-        const updatedFrontmatter = this.mergeFrontmatter(currentFrontmatter, refinedDetails, tags);
-
-        const frontmatterBlock = formatFrontmatterBlock(updatedFrontmatter);
-        const normalizedBody = split.body.replace(/^[\n\r]+/, '');
-        const segments: string[] = [];
-        if (frontmatterBlock) segments.push(frontmatterBlock);
-
-        // Add summary if present and not already in body (simple check)
-        // We append it to the top of the body or replace if we find a previous summary?
-        // User asked "que añada un parrafo", so just adding it.
-        // Let's prepend it to the body or append? "añada" usually implies adding to existing.
-        // But usually summary goes to top. Let's prepend to body.
-        if (summary) {
-            segments.push(summary);
-        }
-
-        if (normalizedBody) segments.push(normalizedBody);
-
-        const finalContent = segments.join('\n\n');
-        if (finalContent !== content) {
-            await this.obsidian.vault.modify(file, finalContent);
-        }
-
-        // 2. Move File
-        showMessage(`Determining location hierarchy for ${file.basename}...`);
-
-        const newPath = this.pathBuilder.buildPath(file.basename, refinedDetails, metadata);
-
-        if (newPath !== file.path) {
-            await ensureFolderExists(this.obsidian, newPath);
-            await this.obsidian.fileManager.renameFile(file, newPath);
-            new Notice(`Moved to ${newPath}`);
-        } else {
-            showMessage('Place details applied. Location already correct.');
-        }
     }
 
     private mergeFrontmatter(
