@@ -27,6 +27,12 @@ import { registerImageGalleryRenderer } from './Application/Views/ImageGalleryRe
 import { AddImagesCommand } from './Application/Commands/AddImagesCommand';
 import { CreateReciprocityNotesCommand } from './Application/Commands/CreateReciprocityNotesCommand';
 import { ReallocateNoteCommand } from './Application/Commands/ReallocateNoteCommand';
+import { SpotifyAuthModal } from './Application/Views/SpotifyAuthModal';
+import { SearchSpotifyArtistCommand } from './Application/Commands/SearchSpotifyArtistCommand';
+import { CreateNoteFromImagesCommand } from './Application/Commands/CreateNoteFromImagesCommand';
+import { GoogleGeminiImagesAdapter } from './Infrastructure/Adapters/GoogleGeminiAdapter/GoogleGeminiImagesAdapter';
+import { createHeaderProgressRenderer } from './Infrastructure/Obsidian/MarkdownPostProcessors/HeaderProgressRenderer';
+import { LiveSessionView, LIVE_SESSION_VIEW_TYPE } from './Infrastructure/Obsidian/Views/LiveSessionView';
 
 export default class ObsidianExtension extends Plugin {
   settings: UnresolvedLinkGeneratorSettings = DEFAULT_SETTINGS;
@@ -42,6 +48,7 @@ export default class ObsidianExtension extends Plugin {
       this.settings.googleGeocodingAPIKey ?? '',
       this.app
     );
+    const geminiImages = new GoogleGeminiImagesAdapter(this.settings.geminiApiKey ?? '');
 
     const imageSearch = new GoogleImageSearchAdapter(
       this.settings.googleCustomSearchApiKey ?? '',
@@ -50,7 +57,18 @@ export default class ObsidianExtension extends Plugin {
 
     this.spotifyAdapter = new SpotifyAdapter(
       this.settings.spotifyClientId,
-      this.settings.spotifyAccessToken
+      this.settings.spotifyAccessToken,
+      this.settings.spotifyRefreshToken,
+      this.settings.spotifyTokenExpirationTime,
+      async (newToken, newExpiration) => {
+        this.settings.spotifyAccessToken = newToken;
+        this.settings.spotifyTokenExpirationTime = newExpiration;
+        await this.saveSettings();
+      },
+      () => {
+        new Notice('Spotify token expired. Please re-login.');
+        new SpotifyAuthModal(this.app, this).open();
+      }
     );
 
     this.addCommand({
@@ -151,61 +169,7 @@ export default class ObsidianExtension extends Plugin {
       },
     });
 
-    this.addCommand({
-      id: 'ConnectSpotify',
-      name: 'Connect Spotify',
-      callback: async () => {
-        if (!this.settings.spotifyClientId) {
-          new Notice('Please set your Spotify Client ID in settings first.');
-          return;
-        }
-        const redirectUri = this.settings.spotifyRedirectUri || 'http://localhost:8080';
-
-        const verifier = this.spotifyAdapter.generatePkceVerifier();
-        this.settings.spotifyPkceVerifier = verifier;
-        await this.saveSettings();
-
-        const challenge = await this.spotifyAdapter.generatePkceChallenge(verifier);
-        const authUrl = this.spotifyAdapter.getAuthUrl(redirectUri, challenge);
-
-        window.open(authUrl);
-        new Notice('Opened Spotify Auth page. Copy the code from the URL and run "Enter Spotify Code".');
-      }
-    });
-
-    this.addCommand({
-      id: 'EnterSpotifyCode',
-      name: 'Enter Spotify Code',
-      callback: () => {
-        new InputModal(this.app, async (code) => {
-          if (!code) {
-            new Notice('No code entered.');
-            return;
-          }
-
-          try {
-            const redirectUri = this.settings.spotifyRedirectUri || 'http://localhost:8080';
-            const verifier = this.settings.spotifyPkceVerifier;
-
-            if (!verifier) {
-              new Notice('PKCE Verifier missing. Please run "Connect Spotify" first.');
-              return;
-            }
-
-            const token = await this.spotifyAdapter.exchangeCode(code, redirectUri, verifier);
-            this.settings.spotifyAccessToken = token;
-            // Clear verifier after successful exchange
-            this.settings.spotifyPkceVerifier = '';
-            await this.saveSettings();
-
-            new Notice('Spotify Connected Successfully!');
-          } catch (error) {
-            new Notice('Failed to exchange code for token. Check console.');
-            console.error(error);
-          }
-        }).open();
-      }
-    });
+    // ConnectSpotify and EnterSpotifyCode commands removed in favor of Auto-Auth Modal
 
     this.addCommand({
       id: 'CreateReciprocityNotesCommand',
@@ -229,6 +193,12 @@ export default class ObsidianExtension extends Plugin {
       callback: () => {
         // Ensure adapter has latest credentials
         this.spotifyAdapter.updateCredentials(this.settings.spotifyClientId, this.settings.spotifyAccessToken);
+
+        if (!this.spotifyAdapter.isAuthenticated()) {
+          new SpotifyAuthModal(this.app, this).open();
+          return;
+        }
+
         new SpotifyModal(this.app, this.spotifyAdapter).open();
       }
     });
@@ -238,7 +208,28 @@ export default class ObsidianExtension extends Plugin {
       name: 'Import Playlist Tracks',
       callback: async () => {
         this.spotifyAdapter.updateCredentials(this.settings.spotifyClientId, this.settings.spotifyAccessToken);
+
+        if (!this.spotifyAdapter.isAuthenticated()) {
+          new SpotifyAuthModal(this.app, this).open();
+          return;
+        }
+
         new SpotifyPlaylistModal(this.app, this.spotifyAdapter).open();
+      }
+    });
+
+    this.addCommand({
+      id: 'SearchSpotifyArtistCommand',
+      name: 'Search Spotify Artist',
+      callback: () => {
+        // Ensure adapter has latest credentials
+        this.spotifyAdapter.updateCredentials(this.settings.spotifyClientId, this.settings.spotifyAccessToken);
+
+        new SearchSpotifyArtistCommand(
+          this.app,
+          this.spotifyAdapter,
+          () => new SpotifyAuthModal(this.app, this).open()
+        ).checkCallback(false);
       }
     });
 
@@ -254,6 +245,37 @@ export default class ObsidianExtension extends Plugin {
     registerImageGalleryRenderer(this);
     registerSpotifyRenderer(this);
     registerGoogleMapsRenderer(this);
+    this.registerMarkdownPostProcessor(createHeaderProgressRenderer(this.app));
+
+    this.addCommand({
+      id: 'CreateNoteFromImagesCommand',
+      name: 'Create Note From Images (Gemini)',
+      callback: () => {
+        new CreateNoteFromImagesCommand(this.app, geminiImages).execute();
+      }
+    });
+
+    this.registerView(
+      LIVE_SESSION_VIEW_TYPE,
+      (leaf) => {
+        const view = new LiveSessionView(leaf);
+        view.setApiKey(this.settings.geminiApiKey);
+        return view;
+      }
+    );
+
+    this.addCommand({
+      id: 'open-gemini-live-session',
+      name: 'Open Gemini Live Session',
+      callback: () => {
+        this.activateView();
+      }
+    });
+
+    this.addRibbonIcon('microphone', 'Gemini Live', () => {
+      this.activateView();
+    });
+
   }
 
   onunload() {
@@ -271,5 +293,26 @@ export default class ObsidianExtension extends Plugin {
 
   async saveSettings() {
     await this.saveData(this.settings);
+  }
+
+  async activateView() {
+    const { workspace } = this.app;
+
+    let leaf = workspace.getLeavesOfType(LIVE_SESSION_VIEW_TYPE)[0];
+
+    if (!leaf) {
+      const rightLeaf = workspace.getRightLeaf(false);
+      if (rightLeaf) {
+        await rightLeaf.setViewState({
+          type: LIVE_SESSION_VIEW_TYPE,
+          active: true,
+        });
+        leaf = workspace.getLeavesOfType(LIVE_SESSION_VIEW_TYPE)[0];
+      }
+    }
+
+    if (leaf) {
+      workspace.revealLeaf(leaf);
+    }
   }
 }

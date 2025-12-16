@@ -7,6 +7,14 @@ export interface SpotifyTrack {
     album: string;
 }
 
+export interface SpotifyArtist {
+    uri: string;
+    name: string;
+    popularity: number;
+    genres: string[];
+    images: { url: string; height: number; width: number }[];
+}
+
 export interface SpotifyPlaylist {
     uri: string;
     name: string;
@@ -19,15 +27,90 @@ export interface SpotifyPlaylist {
 export class SpotifyAdapter {
     private clientId: string;
     private accessToken: string;
+    private refreshToken: string;
+    private tokenExpirationTime: number;
+    private onTokenRefreshed: (token: string, expirationTime: number) => Promise<void>;
+    private onAuthNeeded: () => void;
 
-    constructor(clientId: string, accessToken: string) {
+    constructor(
+        clientId: string,
+        accessToken: string,
+        refreshToken: string = '',
+        tokenExpirationTime: number = 0,
+        onTokenRefreshed: (token: string, expirationTime: number) => Promise<void> = async () => { },
+        onAuthNeeded: () => void = () => { }
+    ) {
         this.clientId = clientId;
         this.accessToken = accessToken;
+        this.refreshToken = refreshToken;
+        this.tokenExpirationTime = tokenExpirationTime;
+        this.onTokenRefreshed = onTokenRefreshed;
+        this.onAuthNeeded = onAuthNeeded;
     }
 
     public updateCredentials(clientId: string, accessToken: string) {
         this.clientId = clientId;
         this.accessToken = accessToken;
+    }
+
+    public isAuthenticated(): boolean {
+        // If we have an access token and it is not expired (with buffer), we are good.
+        if (this.accessToken && this.tokenExpirationTime > Date.now()) {
+            return true;
+        }
+        // If we have a refresh token, we can considered "potentially authenticated" 
+        // because we can get a new token.
+        // However, if the intention is "ready to request immediately without user interaction",
+        // then having a refresh token is enough assuming refresh works.
+        // BUT, if refresh fails, we are not authenticated.
+
+        // Let's say: Authenticated if we have EITHER a valid access token OR a refresh token.
+        if (this.refreshToken) {
+            return true;
+        }
+
+        return false;
+    }
+
+    private async refreshAccessToken(): Promise<void> {
+        if (!this.refreshToken) {
+            console.warn('Cannot refresh Spotify token: No refresh token available.');
+            return;
+        }
+
+        const params = new URLSearchParams({
+            client_id: this.clientId,
+            grant_type: 'refresh_token',
+            refresh_token: this.refreshToken,
+        });
+
+        try {
+            const response = await requestUrl({
+                url: 'https://accounts.spotify.com/api/token',
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded'
+                },
+                body: params.toString()
+            });
+
+            if (response.status === 200) {
+                const data = response.json;
+                this.accessToken = data.access_token;
+                // Expiration is usually 3600 seconds (1 hour)
+                this.tokenExpirationTime = Date.now() + (data.expires_in * 1000);
+
+                await this.onTokenRefreshed(this.accessToken, this.tokenExpirationTime);
+                console.log('Spotify access token refreshed successfully.');
+            } else {
+                console.error(`Failed to refresh Spotify token: ${response.status} - ${response.text}`);
+                throw new Error(`Token refresh failed: ${response.status}`);
+            }
+        } catch (error) {
+            console.error('Error refreshing Spotify token:', error);
+            this.onAuthNeeded();
+            throw error;
+        }
     }
 
     public getAuthUrl(redirectUri: string, challenge: string): string {
@@ -44,7 +127,7 @@ export class SpotifyAdapter {
         return `https://accounts.spotify.com/authorize?${params.toString()}`;
     }
 
-    public async exchangeCode(code: string, redirectUri: string, verifier: string): Promise<string> {
+    public async exchangeCode(code: string, redirectUri: string, verifier: string): Promise<{ accessToken: string, refreshToken: string, expiresIn: number }> {
         const params = new URLSearchParams({
             client_id: this.clientId,
             grant_type: 'authorization_code',
@@ -65,7 +148,16 @@ export class SpotifyAdapter {
         if (response.status === 200) {
             const data = response.json;
             this.accessToken = data.access_token;
-            return data.access_token;
+            this.refreshToken = data.refresh_token; // Capture refresh token
+
+            // Calculate absolute expiration time
+            const expiresIn = data.expires_in;
+
+            return {
+                accessToken: data.access_token,
+                refreshToken: data.refresh_token,
+                expiresIn: expiresIn
+            };
         } else {
             throw new Error(`Token exchange failed: ${response.status} - ${response.text}`);
         }
@@ -93,6 +185,12 @@ export class SpotifyAdapter {
     }
 
     private async request<T>(url: string, method: string = 'GET', body?: any): Promise<T> {
+        // Check for token expiration (add a 5-minute buffer)
+        if (this.refreshToken && this.tokenExpirationTime && Date.now() > (this.tokenExpirationTime - 5 * 60 * 1000)) {
+            console.log('Spotify token expired or about to expire. Refreshing...');
+            await this.refreshAccessToken();
+        }
+
         if (!this.accessToken) {
             throw new Error('Spotify access token is missing.');
         }
@@ -158,6 +256,19 @@ export class SpotifyAdapter {
             name: item.track.name,
             artists: item.track.artists.map((artist: any) => artist.name),
             album: item.track.album.name
+        }));
+    }
+
+    public async searchArtists(query: string): Promise<SpotifyArtist[]> {
+        const url = `https://api.spotify.com/v1/search?q=${encodeURIComponent(query)}&type=artist&limit=5`;
+        const response = await this.request<any>(url);
+
+        return response.artists.items.map((item: any) => ({
+            uri: item.uri,
+            name: item.name,
+            popularity: item.popularity,
+            genres: item.genres,
+            images: item.images
         }));
     }
 }

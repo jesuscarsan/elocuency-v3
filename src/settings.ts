@@ -18,6 +18,8 @@ export interface UnresolvedLinkGeneratorSettings {
 
   spotifyRedirectUri: string;
   spotifyPkceVerifier: string;
+  spotifyRefreshToken: string;
+  spotifyTokenExpirationTime: number;
   googleCustomSearchApiKey: string;
   googleCustomSearchEngineId: string;
 }
@@ -40,6 +42,8 @@ export const DEFAULT_SETTINGS: UnresolvedLinkGeneratorSettings = {
   spotifyAccessToken: '',
   spotifyRedirectUri: 'http://localhost:8080',
   spotifyPkceVerifier: '',
+  spotifyRefreshToken: '',
+  spotifyTokenExpirationTime: 0,
   googleCustomSearchApiKey: '',
   googleCustomSearchEngineId: '',
   templateOptions: DEFAULT_TEMPLATE_OPTIONS.map((option) => ({ ...option })),

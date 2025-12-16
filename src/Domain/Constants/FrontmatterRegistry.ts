@@ -25,6 +25,7 @@ export const FrontmatterKeys = {
     CompanerosTrabajo: "Compañeros de trabajo",
     Jefes: "Jefes",
     Empleados: "Empleados",
+    EstilosMusicales: "Estilos musicales",
 } as const;
 
 export type FrontmatterKey = (typeof FrontmatterKeys)[keyof typeof FrontmatterKeys];
@@ -197,5 +198,15 @@ export const FrontmatterRegistry: Record<string, FrontmatterFieldConfig> = {
         type: 'array',
         reciprocityField: FrontmatterKeys.Jefes,
         asLink: true
+    },
+    [FrontmatterKeys.EstilosMusicales]: {
+        key: FrontmatterKeys.EstilosMusicales,
+        description: "Estilos musicales del artista",
+        type: 'array'
+    },
+    [FrontmatterKeys.SpotifyPopularity]: {
+        key: FrontmatterKeys.SpotifyPopularity,
+        description: "Popularidad del artista en Spotify (0-100)",
+        type: 'number'
     }
 };
