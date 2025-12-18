@@ -26,10 +26,16 @@ export class LiveSessionView extends ItemView {
     private currentQuizIndex: number = 0;
     private quizStatusEl: HTMLElement | null = null;
     private currentQuizStatusText: string = 'Presiona "Preguntar siguiente" para comenzar.'; // State for persistence
+    private onlyTitlesWithoutSubtitles: boolean = true; // Default checked
 
     // Config State
     private selectedVoice: string = 'Aoede';
     private selectedTemperature: number = 1;
+
+    // UI References
+    private voiceDropdownRef: DropdownComponent | null = null;
+    private tempSliderRef: HTMLInputElement | null = null;
+    private tempValLabelRef: HTMLSpanElement | null = null;
 
     constructor(leaf: WorkspaceLeaf) {
         super(leaf);
@@ -124,6 +130,21 @@ export class LiveSessionView extends ItemView {
                     const selectedRole = roles.find(r => r.prompt === value);
                     this.selectedRoleEvaluationPrompt = selectedRole?.evaluationPrompt || '';
 
+                    // Apply Role specific settings or defaults
+                    if (selectedRole) {
+                        this.selectedVoice = selectedRole.liveVoice || 'Aoede';
+                        this.selectedTemperature = selectedRole.liveTemperature !== undefined ? selectedRole.liveTemperature : 1;
+                    } else {
+                        // Revert to defaults if no role selected
+                        this.selectedVoice = 'Aoede';
+                        this.selectedTemperature = 1;
+                    }
+
+                    // Update UI elements
+                    if (this.voiceDropdownRef) this.voiceDropdownRef.setValue(this.selectedVoice);
+                    if (this.tempSliderRef) this.tempSliderRef.value = this.selectedTemperature.toString();
+                    if (this.tempValLabelRef) this.tempValLabelRef.textContent = this.selectedTemperature.toFixed(1);
+
                     // Toggle visibility immediately on change
                     if (value) {
                         mainInterface.style.display = 'block';
@@ -148,36 +169,43 @@ export class LiveSessionView extends ItemView {
                             }
                         }
                     });
-
-                // Evaluation Button
-                new ButtonComponent(roleRow)
-                    .setButtonText('Eval Headers')
-                    .setTooltip('Batchevaluation of headers')
-                    .onClick(async () => {
-                        if (!this.selectedRoleEvaluationPrompt) {
-                            new Notice('Current role has no !!evaluationPrompt defined.');
-                            return;
-                        }
-                        await this.evaluateHeaders();
-                    });
             }
 
+            // --- Advanced Section ---
+            const advancedDetails = rolesContainer.createEl('details');
+            advancedDetails.style.marginTop = '10px';
+            advancedDetails.style.borderTop = '1px solid var(--background-modifier-border)';
+            advancedDetails.style.paddingTop = '10px';
+
+            const advancedSummary = advancedDetails.createEl('summary', { text: 'Avanzado' });
+            advancedSummary.style.cursor = 'pointer';
+            advancedSummary.style.marginBottom = '10px';
+            advancedSummary.style.fontWeight = 'bold';
+            advancedSummary.style.color = 'var(--text-muted)';
+
+            const advancedContent = advancedDetails.createDiv();
+            advancedContent.style.display = 'flex';
+            advancedContent.style.flexDirection = 'column';
+            advancedContent.style.gap = '10px';
+            advancedContent.style.paddingLeft = '10px';
+            advancedDetails.appendChild(advancedSummary); // Summary must be child of details
+            advancedDetails.appendChild(advancedContent);
+
             // --- Voice & Temp Config Row ---
-            const configRow = rolesContainer.createDiv();
+            const configRow = advancedContent.createDiv();
             configRow.style.display = 'flex';
             configRow.style.alignItems = 'center';
             configRow.style.gap = '15px';
-            configRow.style.marginTop = '10px';
             configRow.style.flexWrap = 'wrap';
 
             // Voice Dropdown
             configRow.createSpan({ text: 'Voz:' });
-            const voiceDropdown = new DropdownComponent(configRow);
+            this.voiceDropdownRef = new DropdownComponent(configRow);
             ['Puck', 'Charon', 'Kore', 'Fenrir', 'Aoede'].forEach(voice => {
-                voiceDropdown.addOption(voice, voice);
+                this.voiceDropdownRef!.addOption(voice, voice);
             });
-            voiceDropdown.setValue(this.selectedVoice);
-            voiceDropdown.onChange(async (val) => {
+            this.voiceDropdownRef.setValue(this.selectedVoice);
+            this.voiceDropdownRef.onChange(async (val) => {
                 this.selectedVoice = val;
                 if (this.isSessionActive) {
                     new Notice('Reiniciando sesión para aplicar nueva voz...');
@@ -193,20 +221,20 @@ export class LiveSessionView extends ItemView {
             tempContainer.style.gap = '5px';
 
             tempContainer.createSpan({ text: 'Temp:' });
-            const tempValLabel = tempContainer.createSpan({ text: this.selectedTemperature.toFixed(1) });
+            this.tempValLabelRef = tempContainer.createSpan({ text: this.selectedTemperature.toFixed(1) });
 
-            const tempSlider = document.createElement('input');
-            tempSlider.type = 'range';
-            tempSlider.min = '0';
-            tempSlider.max = '2';
-            tempSlider.step = '0.1';
-            tempSlider.value = this.selectedTemperature.toString();
-            tempSlider.style.width = '80px';
+            this.tempSliderRef = document.createElement('input');
+            this.tempSliderRef.type = 'range';
+            this.tempSliderRef.min = '0';
+            this.tempSliderRef.max = '2';
+            this.tempSliderRef.step = '0.1';
+            this.tempSliderRef.value = this.selectedTemperature.toString();
+            this.tempSliderRef.style.width = '80px';
 
-            tempSlider.addEventListener('change', async (e) => {
+            this.tempSliderRef.addEventListener('change', async (e) => {
                 const val = parseFloat((e.target as HTMLInputElement).value);
                 this.selectedTemperature = val;
-                tempValLabel.textContent = val.toFixed(1);
+                if (this.tempValLabelRef) this.tempValLabelRef.textContent = val.toFixed(1);
                 if (this.isSessionActive) {
                     new Notice('Reiniciando sesión para aplicar temperatura...');
                     await this.stopSession();
@@ -214,11 +242,26 @@ export class LiveSessionView extends ItemView {
                 }
             });
             // Update label while dragging
-            tempSlider.addEventListener('input', (e) => {
-                tempValLabel.textContent = parseFloat((e.target as HTMLInputElement).value).toFixed(1);
+            this.tempSliderRef.addEventListener('input', (e) => {
+                if (this.tempValLabelRef) this.tempValLabelRef.textContent = parseFloat((e.target as HTMLInputElement).value).toFixed(1);
             });
 
-            tempContainer.appendChild(tempSlider);
+            tempContainer.appendChild(this.tempSliderRef);
+
+            // Evaluation Button (Moved to Advanced)
+            if (roles.length > 0) {
+                const buttonContainer = advancedContent.createDiv();
+                new ButtonComponent(buttonContainer)
+                    .setButtonText('Eval Headers')
+                    .setTooltip('Batchevaluation of headers')
+                    .onClick(async () => {
+                        if (!this.selectedRoleEvaluationPrompt) {
+                            new Notice('Current role has no !!evaluationPrompt defined.');
+                            return;
+                        }
+                        await this.evaluateHeaders();
+                    });
+            }
         }
 
         // --- Main Interface (Hidden if no role) ---
@@ -272,6 +315,31 @@ export class LiveSessionView extends ItemView {
             .onClick(async () => {
                 await this.askNextHeader();
             });
+
+        // "Only titles without subtitles" Checkbox
+        const filterContainer = quizControls.createDiv();
+        filterContainer.style.display = 'flex';
+        filterContainer.style.alignItems = 'center';
+        filterContainer.style.gap = '5px';
+
+        const filterCheckbox = document.createElement('input');
+        filterCheckbox.type = 'checkbox';
+        filterCheckbox.checked = this.onlyTitlesWithoutSubtitles;
+        filterCheckbox.id = 'only-titles-no-subtitles';
+        filterCheckbox.addEventListener('change', (e) => {
+            this.onlyTitlesWithoutSubtitles = (e.target as HTMLInputElement).checked;
+            // Reset queue
+            this.quizQueue = [];
+            this.currentQuizIndex = 0;
+            this.updateQuizStatus(`Filtro actualizado. Presiona "Preguntar siguiente".`);
+        });
+
+        const filterLabel = document.createElement('label');
+        filterLabel.htmlFor = 'only-titles-no-subtitles';
+        filterLabel.innerText = 'Solo títulos sin subtítulos';
+
+        filterContainer.appendChild(filterCheckbox);
+        filterContainer.appendChild(filterLabel);
 
         // Quiz Status Label
         this.quizStatusEl = quizContainer.createDiv({ cls: 'gemini-quiz-status' });
@@ -429,7 +497,7 @@ export class LiveSessionView extends ItemView {
         new Notice(`Evaluation complete. Processed ${processedCount} headers.`);
     }
 
-    private async loadRoles(): Promise<{ name: string, prompt: string, trackLevelAnswer: boolean, evaluationPrompt?: string }[]> {
+    private async loadRoles(): Promise<{ name: string, prompt: string, trackLevelAnswer: boolean, evaluationPrompt?: string, liveVoice?: string, liveTemperature?: number }[]> {
         if (!this.plugin || !this.plugin.settings.geminiRolesFolder) return [];
 
         const folderPath = this.plugin.settings.geminiRolesFolder;
@@ -439,7 +507,7 @@ export class LiveSessionView extends ItemView {
             return [];
         }
 
-        const roles: { name: string, prompt: string, trackLevelAnswer: boolean, evaluationPrompt?: string }[] = [];
+        const roles: { name: string, prompt: string, trackLevelAnswer: boolean, evaluationPrompt?: string, liveVoice?: string, liveTemperature?: number }[] = [];
 
         for (const child of folder.children) {
             if (child instanceof TFile && child.extension === 'md') {
@@ -449,12 +517,18 @@ export class LiveSessionView extends ItemView {
                 const trackLevelRaw = cache?.frontmatter?.['!!trackLevelAnswer'];
                 const trackLevel = trackLevelRaw === true || trackLevelRaw === 'true';
 
+                // Read new params
+                const liveVoice = cache?.frontmatter?.['!!liveVoice'];
+                const liveTemperature = cache?.frontmatter?.['!!liveTemperature'];
+
                 if (prompt && typeof prompt === 'string') {
                     roles.push({
                         name: child.basename,
                         prompt: prompt,
                         trackLevelAnswer: trackLevel,
-                        evaluationPrompt: typeof evaluationPrompt === 'string' ? evaluationPrompt : undefined
+                        evaluationPrompt: typeof evaluationPrompt === 'string' ? evaluationPrompt : undefined,
+                        liveVoice: typeof liveVoice === 'string' ? liveVoice : undefined,
+                        liveTemperature: typeof liveTemperature === 'number' ? liveTemperature : undefined
                     });
                 }
             }
@@ -712,15 +786,36 @@ export class LiveSessionView extends ItemView {
                 if (blockId && metadata[blockId]) {
                     const importance = metadata[blockId].importance;
                     if (typeof importance === 'number' && ScoreUtils.normalizeImportance(importance) >= requiredLevel) {
-                        // Found a candidate!
-                        // Extract content until next header
+
+                        // Check for children if "onlyTitlesWithoutSubtitles" is enabled
+                        const currentHeaderLevelMatch = line.match(/^(#{1,6})\s+/);
+                        const currentHeaderLevel = currentHeaderLevelMatch ? currentHeaderLevelMatch[1].length : 0;
+                        let hasChildren = false;
+
+                        // Peek at following lines to see if there is a header with higher level (more #'s) immediately following logic
+                        // (until the next header of same or lower level)
+                        // Actually, we just need to see if the NEXT header in the file is a child.
+                        // We are iterating lines. 
+
                         let endLine = lines.length;
                         for (let j = i + 1; j < lines.length; j++) {
-                            if (lines[j].match(/^(#{1,6})\s+/)) {
+                            const nextHeaderMatch = lines[j].match(/^(#{1,6})\s+/);
+                            if (nextHeaderMatch) {
+                                const nextHeaderLevel = nextHeaderMatch[1].length;
+                                if (nextHeaderLevel > currentHeaderLevel) {
+                                    hasChildren = true;
+                                }
+                                // If we find a header, that's the end of THIS section regardless of level (unless it is a child, but we just want the text range)
+                                // Actually, `endLine` for section text usually stops at ANY next header.
                                 endLine = j;
                                 break;
                             }
                         }
+
+                        if (this.onlyTitlesWithoutSubtitles && hasChildren) {
+                            continue; // Skip this header
+                        }
+
                         const sectionContent = lines.slice(i, endLine).join('\n');
                         queue.push({
                             heading: headingText.replace(/\^([a-zA-Z0-9-]+)$/, '').trim(),

@@ -208,7 +208,7 @@ export class GoogleGeminiLiveAdapter {
         }
 
         // Log for debug (careful with huge logs)
-        console.log("WS Msg:", JSON.stringify(data, null, 2));
+        // console.log("WS Msg:", JSON.stringify(data, null, 2));
 
         // Handle tool calls / function calls
         // In some API versions this might be deeper or slightly different named,
