@@ -11,11 +11,16 @@ export class GoogleGeminiLiveAdapter {
     private audioPlayer: AudioPlayer;
     private apiKey: string;
     private isConnected: boolean = false;
-    private initialContext: string = '';
+    private systemInstruction: string = '';
     private isAiSpeaking: boolean = false;
 
-    constructor(apiKey: string) {
+    private onTextReceived: (text: string) => void;
+    private onScoreReceived: (score: number) => void;
+
+    constructor(apiKey: string, onTextReceived?: (text: string) => void, onScoreReceived?: (score: number) => void) {
         this.apiKey = apiKey;
+        this.onTextReceived = onTextReceived || (() => { });
+        this.onScoreReceived = onScoreReceived || (() => { });
         this.audioPlayer = new AudioPlayer((isPlaying) => {
             this.isAiSpeaking = isPlaying;
         });
@@ -24,8 +29,8 @@ export class GoogleGeminiLiveAdapter {
         });
     }
 
-    async connect(initialContext: string = ''): Promise<boolean> {
-        this.initialContext = initialContext;
+    async connect(systemInstruction: string = '', enableScoreTracking: boolean = false): Promise<boolean> {
+        this.systemInstruction = systemInstruction;
         if (!this.apiKey) {
             new Notice('Falta la API Key de Gemini');
             return false;
@@ -47,7 +52,7 @@ export class GoogleGeminiLiveAdapter {
             this.ws.onopen = async () => {
                 console.log('Gemini Live WS Connected');
                 this.isConnected = true;
-                this.sendSetupMessage();
+                this.sendSetupMessage(enableScoreTracking);
 
                 // Start recording immediately upon connection (or can be manual)
                 const micStarted = await this.audioRecorder.start();
@@ -87,7 +92,7 @@ export class GoogleGeminiLiveAdapter {
         }
     }
 
-    private sendSetupMessage(): void {
+    private sendSetupMessage(enableScoreTracking: boolean): void {
         if (!this.ws) return;
 
         const setupMsg: any = {
@@ -99,13 +104,44 @@ export class GoogleGeminiLiveAdapter {
             },
         };
 
-        if (this.initialContext) {
+        if (enableScoreTracking) {
+            console.log("Enabling Score Tracking Tool in Setup");
+            setupMsg.setup.tools = [
+                {
+                    function_declarations: [
+                        {
+                            name: 'report_score',
+                            description: 'Report the score of the user\'s answer effectiveness.',
+                            parameters: {
+                                type: 'OBJECT',
+                                properties: {
+                                    score: {
+                                        type: 'INTEGER',
+                                        description: 'The score of the answer from 0 to 10.',
+                                    },
+                                },
+                                required: ['score'],
+                            },
+                        },
+                    ],
+                },
+            ];
+        }
+
+        if (this.systemInstruction) {
+            let finalInstruction = this.systemInstruction;
+            if (enableScoreTracking) {
+                finalInstruction += '\n\nIMPORTANT: You are configured to track the user\'s answer quality. When the user answers, you MUST evaluate it and call the "report_score" function with a score from 0 to 10. HOWEVER, you MUST ALSO provide a verbal response and feedback to the user. Do not just call the function and go silent. Speak to the user.';
+            }
+
             setupMsg.setup.system_instruction = {
                 parts: [
-                    { text: `Contexto de la nota activa:\n${this.initialContext}` }
+                    { text: finalInstruction }
                 ]
             };
         }
+
+        console.log("Sending Setup Msg:", JSON.stringify(setupMsg, null, 2));
 
         this.ws.send(JSON.stringify(setupMsg));
     }
@@ -126,6 +162,8 @@ export class GoogleGeminiLiveAdapter {
         this.ws.send(JSON.stringify(msg));
     }
 
+    private chunkCount = 0;
+
     private sendAudioChunk(base64Audio: string): void {
         if (!this.ws || !this.isConnected || this.isAiSpeaking) return;
 
@@ -139,6 +177,11 @@ export class GoogleGeminiLiveAdapter {
                 ],
             },
         };
+
+        this.chunkCount++;
+        if (this.chunkCount % 50 === 0) {
+            console.log(`Sending Audio Chunk #${this.chunkCount} (size: ${base64Audio.length})`);
+        }
 
         this.ws.send(JSON.stringify(msg));
     }
@@ -157,18 +200,96 @@ export class GoogleGeminiLiveAdapter {
         }
 
         // Log for debug (careful with huge logs)
-        // console.log("WS Msg:", data);
+        // console.log("WS Msg:", JSON.stringify(data, null, 2));
 
-        const parts = data?.serverContent?.modelTurn?.parts;
+        // Handle tool calls / function calls
+        // In some API versions this might be deeper or slightly different named,
+        // but typically it is in modelTurn parts or toolCall.
+        // Let's check modelTurn parts first.
+
+        const serverContent = data?.serverContent;
+        if (!serverContent) {
+            console.log("No serverContent in message", data);
+            // Could be tool_response confirmation or something else
+            return;
+        }
+
+        const modelTurn = serverContent.modelTurn;
+        console.log("Model Turn:", modelTurn);
+        if (!modelTurn || !modelTurn.parts) {
+            console.log("No modelTurn or parts in message", serverContent);
+            // It might be turnComplete or interrupted
+            if (serverContent.turnComplete) {
+                console.log("Turn Complete");
+            }
+            return;
+        }
+
+        const parts = modelTurn.parts;
         if (parts && Array.isArray(parts)) {
             for (const part of parts) {
                 if (part.inlineData && part.inlineData.mimeType.startsWith('audio/pcm')) {
                     this.audioPlayer.addPcmData(part.inlineData.data);
+                } else if (part.text) {
+                    console.log("Received Text Part:", part.text);
+                    this.onTextReceived(part.text);
+                } else if (part.functionCall) {
+                    console.log('Gemini Live: Function Call detected', part.functionCall);
+                    // Handle function call
+                    if (part.functionCall.name === 'report_score') {
+                        const args = part.functionCall.args;
+                        console.log('Gemini Live: report_score args:', args);
+
+                        let score = args?.score;
+                        // Handle string or number
+                        if (typeof score === 'string') {
+                            score = parseInt(score, 10);
+                        }
+
+                        if (typeof score === 'number' && !isNaN(score)) {
+                            console.log('Gemini Live: Emitting score event:', score);
+                            this.onScoreReceived(score);
+                        } else {
+                            console.warn('Gemini Live: Invalid score received:', args);
+                        }
+                    }
+
+                    const responseId = part.functionCall.id || 'no-id'; // standard fallback
+                    this.sendFunctionResponse(part.functionCall.name, responseId, { status: 'ok' });
+                } else if (part.executableCode) {
+                    console.log('Gemini Live: Executable Code detected', part.executableCode);
+                    const code = part.executableCode.code;
+                    if (code) {
+                        // Look for report_score(score=X) or report_score(X)
+                        // The user saw: "default_api.report_score(score=10)\n"
+                        const match = code.match(/report_score\s*\(\s*(?:score\s*=\s*)?(\d+)\s*\)/);
+                        if (match && match[1]) {
+                            const score = parseInt(match[1], 10);
+                            console.log('Gemini Live: Parsed score from code:', score);
+                            if (!isNaN(score)) {
+                                this.onScoreReceived(score);
+                            }
+                        }
+                    }
                 }
             }
         }
+    }
 
-        // Handle turn_complete to maybe interrupt audio? 
-        // Usually we just play what we get.
+    private sendFunctionResponse(name: string, id: string, result: any): void {
+        if (!this.ws || !this.isConnected) return;
+
+        const msg = {
+            tool_response: {
+                function_responses: [
+                    {
+                        name: name,
+                        id: id,
+                        response: { result: result }
+                    }
+                ]
+            }
+        };
+        this.ws.send(JSON.stringify(msg));
     }
 }

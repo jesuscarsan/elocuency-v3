@@ -26,6 +26,7 @@ export const FrontmatterKeys = {
     Jefes: "Jefes",
     Empleados: "Empleados",
     EstilosMusicales: "Estilos musicales",
+    SpotifyPopularity: "Spotify popularidad",
 } as const;
 
 export type FrontmatterKey = (typeof FrontmatterKeys)[keyof typeof FrontmatterKeys];

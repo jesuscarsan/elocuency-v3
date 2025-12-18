@@ -33,17 +33,21 @@ import { CreateNoteFromImagesCommand } from './Application/Commands/CreateNoteFr
 import { GoogleGeminiImagesAdapter } from './Infrastructure/Adapters/GoogleGeminiAdapter/GoogleGeminiImagesAdapter';
 import { createHeaderProgressRenderer } from './Infrastructure/Obsidian/MarkdownPostProcessors/HeaderProgressRenderer';
 import { LiveSessionView, LIVE_SESSION_VIEW_TYPE } from './Infrastructure/Obsidian/Views/LiveSessionView';
+import { GenerateHeaderMetadataCommand } from './Application/Commands/GenerateHeaderMetadataCommand';
+import { MetadataService } from './Infrastructure/Services/MetadataService';
+import { createHeaderMetadataRenderer } from './Infrastructure/Obsidian/MarkdownPostProcessors/HeaderMetadataRenderer';
 
 export default class ObsidianExtension extends Plugin {
   settings: UnresolvedLinkGeneratorSettings = DEFAULT_SETTINGS;
   spotifyAdapter!: SpotifyAdapter;
+  llm!: GoogleGeminiAdapter;
 
   async onload() {
     console.log('Elocuency plugin loaded');
 
     await this.loadSettings();
 
-    const llm = new GoogleGeminiAdapter(this.settings.geminiApiKey ?? '');
+    this.llm = new GoogleGeminiAdapter(this.settings.geminiApiKey ?? '');
     const geocoder = new GoogleMapsAdapter(
       this.settings.googleGeocodingAPIKey ?? '',
       this.app
@@ -88,7 +92,7 @@ export default class ObsidianExtension extends Plugin {
       name: 'Apply template',
       callback: () => {
         const applyTemplateCommand = new ApplyTemplateCommand(
-          llm,
+          this.llm,
           imageSearch,
           this.app,
           this.settings,
@@ -102,7 +106,7 @@ export default class ObsidianExtension extends Plugin {
       name: 'Apply stream brief',
       callback: () => {
         const applyStreamBriefCommand = new ApplyStreamBriefCommand(
-          llm,
+          this.llm,
           this.app,
         );
         applyStreamBriefCommand.execute();
@@ -115,7 +119,7 @@ export default class ObsidianExtension extends Plugin {
       callback: () => {
         const applyGeocoderCommand = new ApplyGeocoderCommand(
           geocoder,
-          llm,
+          this.llm,
           this.app,
         );
         applyGeocoderCommand.execute();
@@ -140,7 +144,7 @@ export default class ObsidianExtension extends Plugin {
       callback: () => {
         const activeFile = this.app.workspace.getActiveFile();
         if (activeFile) {
-          new EnhanceNoteCommand(this, llm).execute(activeFile);
+          new EnhanceNoteCommand(this, this.llm).execute(activeFile);
         }
       },
     });
@@ -149,7 +153,7 @@ export default class ObsidianExtension extends Plugin {
       id: 'EnhanceByAiCommand',
       name: 'Enhance with AI',
       callback: () => {
-        new EnhanceByAiCommand(this.app, this.settings, llm).execute();
+        new EnhanceByAiCommand(this.app, this.settings, this.llm).execute();
       },
     });
 
@@ -157,7 +161,7 @@ export default class ObsidianExtension extends Plugin {
       id: 'ApplyPlaceTypeCommand',
       name: 'Indicate Place Type',
       callback: () => {
-        new ApplyPlaceTypeCommand(geocoder, llm, this.app).execute();
+        new ApplyPlaceTypeCommand(geocoder, this.llm, this.app).execute();
       },
     });
 
@@ -234,18 +238,21 @@ export default class ObsidianExtension extends Plugin {
     });
 
 
-    // this.registerEvent(
-    //   this.app.vault.on('rename', async (file, oldPath) => {
-    //     new EnhanceNoteCommand(this, llm).execute(file);
-
-    //   }),
-    // );
+    this.registerEvent(
+      this.app.vault.on('rename', async (file, oldPath) => {
+        // new EnhanceNoteCommand(this, llm).execute(file);
+        if (file instanceof TFile) {
+          new MetadataService(this.app).handleRename(file, oldPath);
+        }
+      }),
+    );
 
     this.addSettingTab(new SettingsView(this.app, this));
     registerImageGalleryRenderer(this);
     registerSpotifyRenderer(this);
     registerGoogleMapsRenderer(this);
     this.registerMarkdownPostProcessor(createHeaderProgressRenderer(this.app));
+    this.registerMarkdownPostProcessor(createHeaderMetadataRenderer(this.app));
 
     this.addCommand({
       id: 'CreateNoteFromImagesCommand',
@@ -259,7 +266,7 @@ export default class ObsidianExtension extends Plugin {
       LIVE_SESSION_VIEW_TYPE,
       (leaf) => {
         const view = new LiveSessionView(leaf);
-        view.setApiKey(this.settings.geminiApiKey);
+        view.setPlugin(this);
         return view;
       }
     );
@@ -274,6 +281,14 @@ export default class ObsidianExtension extends Plugin {
 
     this.addRibbonIcon('microphone', 'Gemini Live', () => {
       this.activateView();
+    });
+
+    this.addCommand({
+      id: 'generate-header-metadata',
+      name: 'Generate Header Metadata',
+      callback: () => {
+        new GenerateHeaderMetadataCommand(this.app).execute();
+      }
     });
 
   }

@@ -89,6 +89,19 @@ export class SettingsView extends PluginSettingTab {
       });
 
     new Setting(containerEl)
+      .setName('Roles Folder')
+      .setDesc('Folder containing notes with roles for Gemini Live (defined by !!prompt frontmatter).')
+      .addText((text: TextComponent) => {
+        text
+          .setPlaceholder('Roles')
+          .setValue(this.plugin.settings.geminiRolesFolder)
+          .onChange(async (value: string) => {
+            this.plugin.settings.geminiRolesFolder = value.trim();
+            await this.plugin.saveSettings();
+          });
+      });
+
+    new Setting(containerEl)
       .setName('Google Geocoding API key')
       .setDesc(
         'Used for Geocoding (backend queries). Restricted by IP if possible.',

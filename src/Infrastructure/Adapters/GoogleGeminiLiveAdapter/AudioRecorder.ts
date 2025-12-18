@@ -1,9 +1,48 @@
 import { Notice } from 'obsidian';
 
+// Inline AudioWorkletProcessor code to avoid file loading issues in Obsidian
+const WORKLET_CODE = `
+class GeminiAudioProcessor extends AudioWorkletProcessor {
+    constructor() {
+        super();
+        this.bufferSize = 4096;
+        this.buffer = new Float32Array(this.bufferSize);
+        this.bufferIndex = 0;
+    }
+
+    process(inputs, outputs, parameters) {
+        const input = inputs[0];
+        if (!input || !input.length) return true;
+
+        const channelData = input[0];
+        
+        for (let i = 0; i < channelData.length; i++) {
+            this.buffer[this.bufferIndex++] = channelData[i];
+
+            if (this.bufferIndex >= this.bufferSize) {
+                this.flush();
+            }
+        }
+
+        return true;
+    }
+
+    flush() {
+        // Send the buffer to the main thread
+        // We clone the buffer because the underlying ArrayBuffer might be detached or reused
+        const dataToSend = new Float32Array(this.buffer);
+        this.port.postMessage(dataToSend);
+        this.bufferIndex = 0;
+    }
+}
+
+registerProcessor('gemini-audio-processor', GeminiAudioProcessor);
+`;
+
 export class AudioRecorder {
     private mediaStream: MediaStream | null = null;
     private audioContext: AudioContext | null = null;
-    private processor: ScriptProcessorNode | null = null;
+    private workletNode: AudioWorkletNode | null = null;
     private input: MediaStreamAudioSourceNode | null = null;
     private onDataAvailable: (base64Audio: string) => void;
 
@@ -27,18 +66,42 @@ export class AudioRecorder {
                 sampleRate: 16000,
             });
 
+            // Load the worklet from a Blob
+            const blob = new Blob([WORKLET_CODE], { type: 'application/javascript' });
+            const workletUrl = URL.createObjectURL(blob);
+            await this.audioContext.audioWorklet.addModule(workletUrl);
+
             this.input = this.audioContext.createMediaStreamSource(this.mediaStream);
 
-            // Buffer size 4096 gives ~256ms of audio at 16kHz
-            this.processor = this.audioContext.createScriptProcessor(4096, 1, 1);
+            this.workletNode = new AudioWorkletNode(this.audioContext, 'gemini-audio-processor');
 
-            this.processor.onaudioprocess = (e) => {
-                const inputData = e.inputBuffer.getChannelData(0);
-                this.processAudio(inputData);
+            this.workletNode.port.onmessage = (event) => {
+                const float32Data = event.data;
+                this.processAudio(float32Data);
             };
 
-            this.input.connect(this.processor);
-            this.processor.connect(this.audioContext.destination);
+            this.input.connect(this.workletNode);
+            this.workletNode.connect(this.audioContext.destination); // Connect to destination to keep the graph alive (often needed), or just let it run.
+            // Note: Connecting to destination might cause feedback if not careful, but usually required for the graph to "pull" audio. 
+            // However, with Worklet, if we just want to process, we might not need to connect to destination if we return true.
+            // But let's keep it disconnected from destination if we don't want to hear it? 
+            // Wait, usually we DON'T want to hear ourselves.
+            // Let's TRY connecting to destination but maybe with gain 0 if needed? 
+            // Actually, AudioWorkletNode works as long as it's connected to something or the context is running?
+            // "The audio graph is being driven by the AudioDestinationNode at the end."
+            // If we don't connect to destination, the graph might not process.
+            // BUT we don't want to play the audio back to the user (echo).
+            // Common trick: connect to a GainNode with gain 0, then to destination.
+            // Or just rely on modern browsers handling source nodes that are active?
+            // Let's try connecting to a GainNode(0) -> Destination just to be safe and avoid echo.
+
+            // Actually, let's just NOT connect to destination and see if it works. 
+            // If it stops processing, we add a mute node.
+            // Update: Many browsers require a path to destination.
+            const muteNode = this.audioContext.createGain();
+            muteNode.gain.value = 0;
+            this.workletNode.connect(muteNode);
+            muteNode.connect(this.audioContext.destination);
 
             return true;
         } catch (error) {
@@ -54,9 +117,9 @@ export class AudioRecorder {
             this.mediaStream = null;
         }
 
-        if (this.processor) {
-            this.processor.disconnect();
-            this.processor = null;
+        if (this.workletNode) {
+            this.workletNode.disconnect();
+            this.workletNode = null;
         }
 
         if (this.input) {
