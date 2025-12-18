@@ -99,7 +99,7 @@ export class GoogleGeminiLiveAdapter {
             setup: {
                 model: 'models/gemini-2.0-flash-exp',
                 generation_config: {
-                    response_modalities: ["TEXT", "AUDIO"],
+                    response_modalities: ["AUDIO"],
                     temperature: temperature,
                     speech_config: {
                         voice_config: {
