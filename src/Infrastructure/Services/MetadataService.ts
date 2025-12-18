@@ -134,4 +134,24 @@ export class MetadataService {
 
         await this.app.vault.adapter.write(jsonPath, JSON.stringify(currentData, null, 2));
     }
+    /**
+     * Retrieves the metadata from the sidecar JSON file for the given markdown file.
+     * Returns an empty object if the file doesn't exist or is invalid.
+     */
+    public async getFileMetadata(file: TFile): Promise<Record<string, Record<string, any>>> {
+        const jsonPath = file.path.replace(/\.md$/, '.json');
+
+        if (await this.app.vault.adapter.exists(jsonPath)) {
+            try {
+                const content = await this.app.vault.adapter.read(jsonPath);
+                const parsed = JSON.parse(content);
+                if (typeof parsed === 'object' && parsed !== null) {
+                    return parsed;
+                }
+            } catch (e) {
+                console.warn(`[MetadataService] Failed to parse JSON at ${jsonPath}`, e);
+            }
+        }
+        return {};
+    }
 }

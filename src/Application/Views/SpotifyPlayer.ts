@@ -3,7 +3,7 @@ import { Plugin, MarkdownPostProcessorContext, TFile } from 'obsidian';
 export function registerSpotifyRenderer(plugin: Plugin) {
     console.log("[SpotifyPlayer] Registering markdown post processor")
     plugin.registerMarkdownPostProcessor((element: HTMLElement, context: MarkdownPostProcessorContext) => {
-        console.log('[SpotifyPlayer] Processing file:', context.sourcePath);
+        // console.log('[SpotifyPlayer] Processing file:', context.sourcePath);
         const file = plugin.app.vault.getAbstractFileByPath(context.sourcePath);
 
         if (!(file instanceof TFile)) {
@@ -15,7 +15,7 @@ export function registerSpotifyRenderer(plugin: Plugin) {
         const frontmatter = cache?.frontmatter;
 
         if (!frontmatter) {
-            console.log('[SpotifyPlayer] No frontmatter');
+            // console.log('[SpotifyPlayer] No frontmatter');
             return;
         }
 

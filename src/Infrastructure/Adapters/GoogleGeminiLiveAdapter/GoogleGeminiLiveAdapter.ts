@@ -29,7 +29,7 @@ export class GoogleGeminiLiveAdapter {
         });
     }
 
-    async connect(systemInstruction: string = '', enableScoreTracking: boolean = false): Promise<boolean> {
+    async connect(systemInstruction: string = '', enableScoreTracking: boolean = false, voice: string = 'Aoede', temperature: number = 0.5): Promise<boolean> {
         this.systemInstruction = systemInstruction;
         if (!this.apiKey) {
             new Notice('Falta la API Key de Gemini');
@@ -52,7 +52,7 @@ export class GoogleGeminiLiveAdapter {
             this.ws.onopen = async () => {
                 console.log('Gemini Live WS Connected');
                 this.isConnected = true;
-                this.sendSetupMessage(enableScoreTracking);
+                this.sendSetupMessage(enableScoreTracking, voice, temperature);
 
                 // Start recording immediately upon connection (or can be manual)
                 const micStarted = await this.audioRecorder.start();
@@ -92,7 +92,7 @@ export class GoogleGeminiLiveAdapter {
         }
     }
 
-    private sendSetupMessage(enableScoreTracking: boolean): void {
+    private sendSetupMessage(enableScoreTracking: boolean, voice: string, temperature: number): void {
         if (!this.ws) return;
 
         const setupMsg: any = {
@@ -100,6 +100,14 @@ export class GoogleGeminiLiveAdapter {
                 model: 'models/gemini-2.0-flash-exp',
                 generation_config: {
                     response_modalities: ['AUDIO'],
+                    temperature: temperature,
+                    speech_config: {
+                        voice_config: {
+                            prebuilt_voice_config: {
+                                voice_name: voice
+                            }
+                        }
+                    }
                 },
             },
         };
@@ -215,7 +223,7 @@ export class GoogleGeminiLiveAdapter {
         }
 
         const modelTurn = serverContent.modelTurn;
-        console.log("Model Turn:", modelTurn);
+        // console.log("Model Turn:", modelTurn);
         if (!modelTurn || !modelTurn.parts) {
             console.log("No modelTurn or parts in message", serverContent);
             // It might be turnComplete or interrupted

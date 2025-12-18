@@ -1,6 +1,7 @@
 import { ItemView, WorkspaceLeaf, ButtonComponent, Notice, setIcon, TFile, DropdownComponent, TFolder } from 'obsidian';
 import { GoogleGeminiLiveAdapter } from '../../Adapters/GoogleGeminiLiveAdapter/GoogleGeminiLiveAdapter';
 import { MetadataService } from '../../Services/MetadataService';
+import { ScoreUtils } from '../../../Domain/Utils/ScoreUtils';
 import ObsidianExtension from 'src/main';
 
 export const LIVE_SESSION_VIEW_TYPE = 'gemini-live-session-view';
@@ -19,9 +20,21 @@ export class LiveSessionView extends ItemView {
     private sessionBtn: ButtonComponent | null = null;
     private plugin!: ObsidianExtension;
 
+    // Quiz Mode State
+    private selectedStarLevel: string = '1';
+    private quizQueue: { heading: string, blockId: string, text: string }[] = [];
+    private currentQuizIndex: number = 0;
+    private quizStatusEl: HTMLElement | null = null;
+    private currentQuizStatusText: string = 'Presiona "Preguntar siguiente" para comenzar.'; // State for persistence
+
+    // Config State
+    private selectedVoice: string = 'Aoede';
+    private selectedTemperature: number = 1;
+
     constructor(leaf: WorkspaceLeaf) {
         super(leaf);
     }
+
 
     // Need to pass plugin instance to access settings for roles folder
     setPlugin(plugin: ObsidianExtension) {
@@ -38,7 +51,7 @@ export class LiveSessionView extends ItemView {
     }
 
     getDisplayText() {
-        return 'Gemini Live';
+        return 'Live';
     }
 
     getIcon() {
@@ -62,64 +75,84 @@ export class LiveSessionView extends ItemView {
         this.contentContainer = container;
         this.transcriptContainer = null; // reset
 
-        this.contentContainer.createEl('h2', { text: 'Gemini Live Session' });
+        this.contentContainer.createEl('h2', { text: 'Live Session' });
+
+        // Wrapper for "The Rest" (Status, Transcript, Controls, Quiz)
+        const mainInterface = this.contentContainer.createDiv();
 
         // --- Roles Section ---
         if (this.plugin && this.plugin.settings.geminiRolesFolder) {
             const rolesContainer = this.contentContainer.createDiv({ cls: 'gemini-roles-container' });
+            rolesContainer.style.marginTop = '20px';
             rolesContainer.style.marginBottom = '20px';
             rolesContainer.style.display = 'flex';
+            rolesContainer.style.flexDirection = 'column';
             rolesContainer.style.gap = '10px';
-            rolesContainer.style.alignItems = 'center';
+            rolesContainer.style.border = '1px solid var(--background-modifier-border)';
+            rolesContainer.style.padding = '10px';
+            rolesContainer.style.borderRadius = '4px';
 
-            rolesContainer.createSpan({ text: 'Role:' });
+            // Role Selector Row
+            const roleRow = rolesContainer.createDiv();
+            roleRow.style.display = 'flex';
+            roleRow.style.alignItems = 'center';
+            roleRow.style.gap = '10px';
+
+            roleRow.createSpan({ text: 'Role:' });
 
             const roles = await this.loadRoles();
 
             if (roles.length === 0) {
-                rolesContainer.createSpan({ text: '(No roles found in folder)', cls: 'gemini-muted-text' });
+                roleRow.createSpan({ text: '(No roles found in folder)', cls: 'gemini-muted-text' });
             } else {
-                const dropdown = new DropdownComponent(rolesContainer);
+                const dropdown = new DropdownComponent(roleRow);
                 dropdown.addOption('', 'Default (None)');
                 roles.forEach(role => dropdown.addOption(role.prompt, role.name));
 
                 // Set initial value if matches
                 if (this.selectedRolePrompt) {
-                    // Check if the current selected prompt is still valid
                     const exists = roles.find(r => r.prompt === this.selectedRolePrompt);
                     if (exists) {
                         dropdown.setValue(this.selectedRolePrompt);
                     } else {
-                        // Keep it but maybe show it's custom? Or reset. Reset for now.
                         this.selectedRolePrompt = '';
                     }
                 }
 
                 dropdown.onChange((value) => {
-                    // Dropdown value is the prompt itself
                     this.selectedRolePrompt = value;
                     const selectedRole = roles.find(r => r.prompt === value);
                     this.selectedRoleEvaluationPrompt = selectedRole?.evaluationPrompt || '';
+
+                    // Toggle visibility immediately on change
+                    if (value) {
+                        mainInterface.style.display = 'block';
+                    } else {
+                        mainInterface.style.display = 'none';
+                    }
                 });
 
-                new ButtonComponent(rolesContainer)
+                new ButtonComponent(roleRow)
                     .setButtonText('Apply Role')
                     .setTooltip('Apply selected role (restarts session if active)')
                     .onClick(async () => {
-                        // Check if session is active
                         if (this.isSessionActive) {
                             new Notice('Applying role... restarting session.');
                             await this.stopSession();
                             await this.startSession();
                         } else {
-                            new Notice(`Role applied: ${roles.find(r => r.prompt === this.selectedRolePrompt)?.name || 'Default'}`);
+                            if (this.selectedRolePrompt) {
+                                new Notice(`Role applied: ${roles.find(r => r.prompt === this.selectedRolePrompt)?.name}`);
+                            } else {
+                                new Notice('No role selected.');
+                            }
                         }
                     });
 
                 // Evaluation Button
-                const evalBtn = new ButtonComponent(rolesContainer)
+                new ButtonComponent(roleRow)
                     .setButtonText('Eval Headers')
-                    .setTooltip('batch evaluate all headers in active note')
+                    .setTooltip('Batchevaluation of headers')
                     .onClick(async () => {
                         if (!this.selectedRoleEvaluationPrompt) {
                             new Notice('Current role has no !!evaluationPrompt defined.');
@@ -128,17 +161,133 @@ export class LiveSessionView extends ItemView {
                         await this.evaluateHeaders();
                     });
             }
+
+            // --- Voice & Temp Config Row ---
+            const configRow = rolesContainer.createDiv();
+            configRow.style.display = 'flex';
+            configRow.style.alignItems = 'center';
+            configRow.style.gap = '15px';
+            configRow.style.marginTop = '10px';
+            configRow.style.flexWrap = 'wrap';
+
+            // Voice Dropdown
+            configRow.createSpan({ text: 'Voz:' });
+            const voiceDropdown = new DropdownComponent(configRow);
+            ['Puck', 'Charon', 'Kore', 'Fenrir', 'Aoede'].forEach(voice => {
+                voiceDropdown.addOption(voice, voice);
+            });
+            voiceDropdown.setValue(this.selectedVoice);
+            voiceDropdown.onChange(async (val) => {
+                this.selectedVoice = val;
+                if (this.isSessionActive) {
+                    new Notice('Reiniciando sesión para aplicar nueva voz...');
+                    await this.stopSession();
+                    await this.startSession();
+                }
+            });
+
+            // Temperature Slider
+            const tempContainer = configRow.createDiv();
+            tempContainer.style.display = 'flex';
+            tempContainer.style.alignItems = 'center';
+            tempContainer.style.gap = '5px';
+
+            tempContainer.createSpan({ text: 'Temp:' });
+            const tempValLabel = tempContainer.createSpan({ text: this.selectedTemperature.toFixed(1) });
+
+            const tempSlider = document.createElement('input');
+            tempSlider.type = 'range';
+            tempSlider.min = '0';
+            tempSlider.max = '2';
+            tempSlider.step = '0.1';
+            tempSlider.value = this.selectedTemperature.toString();
+            tempSlider.style.width = '80px';
+
+            tempSlider.addEventListener('change', async (e) => {
+                const val = parseFloat((e.target as HTMLInputElement).value);
+                this.selectedTemperature = val;
+                tempValLabel.textContent = val.toFixed(1);
+                if (this.isSessionActive) {
+                    new Notice('Reiniciando sesión para aplicar temperatura...');
+                    await this.stopSession();
+                    await this.startSession();
+                }
+            });
+            // Update label while dragging
+            tempSlider.addEventListener('input', (e) => {
+                tempValLabel.textContent = parseFloat((e.target as HTMLInputElement).value).toFixed(1);
+            });
+
+            tempContainer.appendChild(tempSlider);
         }
 
-        this.statusEl = this.contentContainer.createEl('div', {
+        // --- Main Interface (Hidden if no role) ---
+        if (!this.selectedRolePrompt) {
+            mainInterface.style.display = 'none';
+        }
+
+        // 1. Status
+        this.statusEl = mainInterface.createEl('div', {
             text: this.isSessionActive ? '🔴 Live - Listening' : 'Ready to connect',
             cls: 'gemini-live-status'
         });
         this.statusEl.style.marginBottom = '20px';
         this.statusEl.style.color = this.isSessionActive ? 'var(--color-red)' : 'var(--text-muted)';
 
-        // --- Transcript Area ---
-        this.transcriptContainer = this.contentContainer.createDiv({ cls: 'gemini-live-transcript' });
+
+        // 2. Quiz Section
+        const quizContainer = mainInterface.createDiv({ cls: 'gemini-quiz-container' });
+        quizContainer.style.marginBottom = '20px';
+        quizContainer.style.padding = '10px';
+        quizContainer.style.border = '1px solid var(--background-modifier-border)';
+        quizContainer.style.borderRadius = '4px';
+
+        quizContainer.createEl('h4', { text: 'Quiz Mode' });
+        quizContainer.querySelector('h4')!.style.marginTop = '0';
+
+        const quizControls = quizContainer.createDiv();
+        quizControls.style.display = 'flex';
+        quizControls.style.gap = '10px';
+        quizControls.style.alignItems = 'center';
+        quizControls.style.flexWrap = 'wrap';
+
+        // Star Level Dropdown
+        quizControls.createSpan({ text: 'Relevancia:' });
+        const starDropdown = new DropdownComponent(quizControls);
+        ['1', '2', '3', '4', '5'].forEach(level => starDropdown.addOption(level, `⭐`.repeat(Number(level))));
+        starDropdown.setValue(this.selectedStarLevel);
+        starDropdown.onChange((val) => {
+            this.selectedStarLevel = val;
+            console.log('Selected Star Level:', this.selectedStarLevel);
+            // Reset queue to force rebuild with new filter level
+            this.quizQueue = [];
+            this.currentQuizIndex = 0;
+            this.updateQuizStatus(`Filtro actualizado a ⭐${val}+. Presiona "Preguntar siguiente".`);
+        });
+
+        // "Ask Next" Button
+        new ButtonComponent(quizControls)
+            .setButtonText('Preguntar siguiente')
+            .setTooltip('Start/Continue Quiz for this level')
+            .onClick(async () => {
+                await this.askNextHeader();
+            });
+
+        // Quiz Status Label
+        this.quizStatusEl = quizContainer.createDiv({ cls: 'gemini-quiz-status' });
+        this.quizStatusEl.style.marginTop = '15px';
+        this.quizStatusEl.style.padding = '10px';
+        this.quizStatusEl.style.backgroundColor = 'var(--background-secondary)';
+        this.quizStatusEl.style.borderRadius = '4px';
+        this.quizStatusEl.style.fontSize = '1.1em';
+        this.quizStatusEl.style.fontWeight = 'bold';
+        this.quizStatusEl.style.color = 'var(--text-normal)';
+        this.quizStatusEl.style.borderLeft = '4px solid var(--text-accent)';
+        this.quizStatusEl.innerText = this.currentQuizStatusText;
+
+
+        // 3. Transcript Area
+        this.transcriptContainer = mainInterface.createDiv({ cls: 'gemini-live-transcript' });
         this.transcriptContainer.style.height = '300px';
         this.transcriptContainer.style.overflowY = 'auto';
         this.transcriptContainer.style.border = '1px solid var(--background-modifier-border)';
@@ -151,7 +300,8 @@ export class LiveSessionView extends ItemView {
         placeholder.style.fontStyle = 'italic';
 
 
-        const controls = this.contentContainer.createEl('div', { cls: 'gemini-live-controls' });
+        // 4. Session Controls
+        const controls = mainInterface.createEl('div', { cls: 'gemini-live-controls' });
 
         this.sessionBtn = new ButtonComponent(controls)
             .setButtonText(this.isSessionActive ? 'Stop Session' : 'Start Session')
@@ -225,7 +375,7 @@ export class LiveSessionView extends ItemView {
             RETURN JSON ONLY:
             {
               "difficulty": <integer 0-10>,
-              "importance": <integer 0-5>
+              "importance": <integer 0-10>
             }
             `;
 
@@ -387,6 +537,19 @@ export class LiveSessionView extends ItemView {
                 } else {
                     console.error('LiveSessionView: Transcript container is missing!');
                 }
+
+                // QUIZ AUTO-ADVANCE
+                if (this.quizQueue.length > 0) {
+                    // We just finished this item.
+                    // The requirement: "Cuando Live haya evaluado la respuesta... se busca el siguiente titulo"
+                    this.currentQuizIndex++;
+
+                    // Small delay to let the user see the score? 
+                    // Or instant? Let's do instant or 2 seconds.
+                    setTimeout(() => {
+                        this.askNextHeader();
+                    }, 2000);
+                }
             }
         );
 
@@ -396,7 +559,7 @@ export class LiveSessionView extends ItemView {
             ? `${this.selectedRolePrompt}\n\n${activeNoteContext}`
             : activeNoteContext;
 
-        const success = await this.adapter.connect(systemInstruction, enableScoreTracking);
+        const success = await this.adapter.connect(systemInstruction, enableScoreTracking, this.selectedVoice, this.selectedTemperature);
 
         if (success) {
             this.isSessionActive = true;
@@ -408,7 +571,7 @@ export class LiveSessionView extends ItemView {
                 this.sessionBtn.setWarning();
             }
 
-            new Notice('Gemini Live Connected');
+            new Notice('Live Connected');
             if (enableScoreTracking) {
                 new Notice('Answer scoring enabled.');
             }
@@ -438,7 +601,7 @@ export class LiveSessionView extends ItemView {
     private handleTranscription(text: string) {
         if (!this.transcriptContainer) return;
 
-        // Simple append for now. Could be fancier with roles but Gemini Live V1 usually just streams text chunks.
+        // Simple append for now. Could be fancier with roles but Live usually just streams text chunks.
         // We might want to deduplicate or handle markdown, but simple text streaming is a good start.
         // To make it look like "streaming", we just append span or text node.
 
@@ -486,10 +649,10 @@ export class LiveSessionView extends ItemView {
     private async saveTranscript() {
         const date = new Date();
         const timestamp = `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}-${date.getDate().toString().padStart(2, '0')} ${date.getHours().toString().padStart(2, '0')}-${date.getMinutes().toString().padStart(2, '0')}-${date.getSeconds().toString().padStart(2, '0')}`;
-        const filename = `Gemini Live Session ${timestamp}.md`;
+        const filename = `Live Session ${timestamp}.md`;
 
         try {
-            const content = `# Gemini Live Session - ${timestamp}\n\n${this.fullTranscript}`;
+            const content = `# Live Session - ${timestamp}\n\n${this.fullTranscript}`;
             await this.app.vault.create(filename, content);
             new Notice(`Transcript saved to: ${filename}`);
         } catch (e) {
@@ -505,6 +668,140 @@ export class LiveSessionView extends ItemView {
         if (this.statusEl) {
             this.statusEl.textContent = text;
             this.statusEl.style.color = color;
+        }
+    }
+
+    // --- Quiz Logic ---
+
+    private async buildQuizQueue(): Promise<boolean> {
+        const activeFile = this.app.workspace.getActiveFile();
+        if (!activeFile || activeFile.extension !== 'md') {
+            new Notice('Open a markdown file to start quiz.');
+            return false;
+        }
+
+        const content = await this.app.vault.read(activeFile);
+        const lines = content.split('\n');
+
+        // Use MetadataService to get sidecar data
+        const metaService = new MetadataService(this.app);
+        const metadata = await metaService.getFileMetadata(activeFile);
+
+        const queue: { heading: string, blockId: string, text: string }[] = [];
+        const requiredLevel = parseInt(this.selectedStarLevel) || 1;
+
+        // Naive header parsing similar to evaluateHeaders
+        // Iterate lines
+        for (let i = 0; i < lines.length; i++) {
+            const line = lines[i];
+            const headerMatch = line.match(/^(#{1,6})\s+(.*)/);
+            if (headerMatch) {
+                const headingText = headerMatch[2].trim(); // Raw text often contains block ID? 
+                // Actually regex above captures everything. 
+                // We should separate blockId if present
+
+                // Check block ID
+                const idMatch = line.match(/\^([a-zA-Z0-9-]+)$/);
+                const blockId = idMatch ? idMatch[1] : null;
+
+                if (blockId && metadata[blockId]) {
+                    const importance = metadata[blockId].importance;
+                    if (typeof importance === 'number' && ScoreUtils.importanceToStars(importance) >= requiredLevel) {
+                        // Found a candidate!
+                        // Extract content until next header
+                        let endLine = lines.length;
+                        for (let j = i + 1; j < lines.length; j++) {
+                            if (lines[j].match(/^(#{1,6})\s+/)) {
+                                endLine = j;
+                                break;
+                            }
+                        }
+                        const sectionContent = lines.slice(i, endLine).join('\n');
+                        queue.push({
+                            heading: headingText.replace(/\^([a-zA-Z0-9-]+)$/, '').trim(),
+                            blockId: blockId,
+                            text: sectionContent
+                        });
+                    }
+                }
+            }
+        }
+
+
+        this.quizQueue = queue;
+        this.currentQuizIndex = 0;
+
+        if (this.quizQueue.length === 0) {
+            new Notice(`No headers found with Importance >= ${requiredLevel}`);
+            this.updateQuizStatus('No matching headers found.');
+            return false;
+        }
+
+        new Notice(`Quiz Queue: ${this.quizQueue.length} headers found.`);
+        return true;
+    }
+
+    private async askNextHeader() {
+        if (!this.isSessionActive) {
+            new Notice('Starting session...');
+            await this.startSession();
+            // Wait a small moment for connection? startSession is async so it should be connected if it returns.
+            if (!this.isSessionActive) return; // Connection failed
+        }
+
+        // If queue empty or finished, try to build/rebuild
+        if (this.quizQueue.length === 0 || this.currentQuizIndex >= this.quizQueue.length) {
+            // Only rebuild if empty. If finished, maybe reset?
+            if (this.currentQuizIndex > 0 && this.currentQuizIndex >= this.quizQueue.length) {
+                // Already finished
+                this.updateQuizStatus('Nivel completado 🎉');
+                return;
+            }
+
+            const success = await this.buildQuizQueue();
+            if (!success) return;
+        }
+
+        // Check again (paranoia)
+        if (this.currentQuizIndex >= this.quizQueue.length) {
+            this.updateQuizStatus('Nivel completado 🎉');
+            return;
+        }
+
+        const item = this.quizQueue[this.currentQuizIndex];
+
+        const statusText = `Examinando: ${item.heading} (${this.currentQuizIndex + 1}/${this.quizQueue.length})`;
+        this.updateQuizStatus(statusText);
+
+        // LOG TO VIDEO-STYLE TRANSCRIPT FOR VISIBILITY
+        if (this.transcriptContainer) {
+            const topicEl = this.transcriptContainer.createEl('div', {
+                text: `📝 PREGUNTA: ${item.heading}`,
+                cls: 'gemini-quiz-topic'
+            });
+            topicEl.style.backgroundColor = 'var(--interactive-accent)';
+            topicEl.style.color = 'var(--text-on-accent)';
+            topicEl.style.padding = '10px';
+            topicEl.style.borderRadius = '8px';
+            topicEl.style.marginTop = '15px';
+            topicEl.style.marginBottom = '15px';
+            topicEl.style.textAlign = 'center';
+            topicEl.style.fontWeight = 'bold';
+
+            topicEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            // Add score to transcript text buffer so it's saved
+            this.fullTranscript += `\n\n[PREGUNTA: ${item.heading}]\n\n`;
+        }
+
+        this.adapter?.sendContextUpdate('Quiz Content', `Por favor examina al usuario sobre el siguiente contenido:\n\n${item.text}`);
+
+        new Notice(`Sent: ${item.heading}`);
+    }
+
+    private updateQuizStatus(text: string) {
+        this.currentQuizStatusText = text; // Persist
+        if (this.quizStatusEl) {
+            this.quizStatusEl.textContent = text;
         }
     }
 }
