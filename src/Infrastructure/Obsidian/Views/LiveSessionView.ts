@@ -1,4 +1,4 @@
-import { ItemView, WorkspaceLeaf, ButtonComponent, Notice, setIcon, TFile, DropdownComponent, TFolder } from 'obsidian';
+import { ItemView, WorkspaceLeaf, ButtonComponent, Notice, setIcon, TFile, DropdownComponent, TFolder, MarkdownView } from 'obsidian';
 import { GoogleGeminiLiveAdapter } from '../../Adapters/GoogleGeminiLiveAdapter/GoogleGeminiLiveAdapter';
 import { MetadataService } from '../../Services/MetadataService';
 import { ScoreUtils } from '../../../Domain/Utils/ScoreUtils';
@@ -580,9 +580,53 @@ export class LiveSessionView extends ItemView {
             (text) => {
                 this.handleTranscription(text);
             },
-            (score) => {
+            async (score) => {
                 console.log('LiveSessionView: Received score:', score);
                 new Notice(`💡 Answer Score: ${score}/10`, 5000);
+
+                // --- Update Metadata Logic ---
+                if (this.quizQueue.length > 0) {
+                    const currentItem = this.quizQueue[this.currentQuizIndex];
+                    if (currentItem && currentItem.blockId) {
+                        const activeFile = this.app.workspace.getActiveFile();
+                        if (activeFile instanceof TFile && activeFile.extension === 'md') {
+                            try {
+                                const metaService = new MetadataService(this.app);
+                                const fileMetadata = await metaService.getFileMetadata(activeFile);
+                                const currentMeta = fileMetadata[currentItem.blockId];
+                                const oldScore = currentMeta?.score || 0;
+
+                                let finalScore = score;
+                                if (oldScore > 0) {
+                                    // Average
+                                    finalScore = (oldScore + score) / 2;
+                                    // Round to 1 decimal? User didn't specify, but scores are usually integers 0-10 or floats.
+                                    // Let's keep one decimal if needed.
+                                    finalScore = Math.round(finalScore * 10) / 10;
+                                }
+
+                                await metaService.updateBlockMetadata(activeFile, currentItem.blockId, {
+                                    score: finalScore
+                                });
+                                new Notice(`Score updated: ${oldScore} -> ${finalScore}`);
+
+                                // Refresh the active view to update markers
+                                const view = this.app.workspace.getActiveViewOfType(MarkdownView);
+                                if (view && view.file === activeFile) {
+                                    // Force full rerender for Reading View
+                                    view.previewMode.rerender(true);
+
+                                    // For Live Preview, we might need to trigger an editor update or similar.
+                                    // Sometimes rerender(true) handles both if the view logic is unified.
+                                    // If not, we can try to trigger a metadata update event.
+                                    // this.app.metadataCache.trigger('resolve', activeFile); 
+                                }
+                            } catch (e) {
+                                console.error('Error updating score metadata', e);
+                            }
+                        }
+                    }
+                }
 
                 if (this.transcriptContainer) {
                     const scoreEl = this.transcriptContainer.createEl('div', {
@@ -616,13 +660,13 @@ export class LiveSessionView extends ItemView {
                 if (this.quizQueue.length > 0) {
                     // We just finished this item.
                     // The requirement: "Cuando Live haya evaluado la respuesta... se busca el siguiente titulo"
-                    this.currentQuizIndex++;
+                    // this.currentQuizIndex++;
 
                     // Small delay to let the user see the score? 
                     // Or instant? Let's do instant or 2 seconds.
-                    setTimeout(() => {
-                        this.askNextHeader();
-                    }, 2000);
+                    // setTimeout(() => {
+                    //     this.askNextHeader();
+                    // }, 2000);
                 }
             }
         );
