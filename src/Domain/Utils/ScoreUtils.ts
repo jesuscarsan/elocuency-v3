@@ -1,28 +1,35 @@
 
 export class ScoreUtils {
     /**
-     * Converts an importance score (0-10) to a star rating (1-5).
-     * @param importance The raw importance score from 0 to 10.
+     * Ensures importance is between 1 and 5.
+     * @param importance The raw importance score.
      * @returns A number between 1 and 5.
      */
-    public static importanceToStars(importance: number): number {
-        if (importance <= 0) return 0; // Or 1? Usually 0 means unrated. 
-        // Mapping: 
-        // 1-2 -> 1
-        // 3-4 -> 2
-        // 5-6 -> 3
-        // 7-8 -> 4
-        // 9-10 -> 5
-        return Math.min(5, Math.ceil(importance / 2));
+    public static normalizeImportance(importance: number): number {
+        if (importance <= 1) return 1;
+        if (importance >= 5) return 5;
+        return Math.round(importance);
     }
 
     /**
-     * Converts a difficulty score (0-10) to a roughly mapped color or level if needed.
-     * (Placeholder for future use)
+     * Ensures difficulty is between 1 and 3.
+     */
+    public static normalizeDifficulty(difficulty: number): number {
+        if (difficulty <= 1) return 1;
+        if (difficulty >= 3) return 3;
+        return Math.round(difficulty);
+    }
+
+    /**
+     * Converts a difficulty score (1-3) to a mapped color.
+     * 1: Baja (Green)
+     * 2: Media (Orange)
+     * 3: Alta (Red)
      */
     public static difficultyToColor(difficulty: number): string {
-        if (difficulty < 4) return 'green';
-        if (difficulty < 7) return 'yellow';
-        return 'red';
+        const normalized = this.normalizeDifficulty(difficulty);
+        if (normalized === 1) return '#50fa7b'; // Green
+        if (normalized === 2) return '#ffb86c'; // Orange
+        return '#ff5555'; // Red
     }
 }

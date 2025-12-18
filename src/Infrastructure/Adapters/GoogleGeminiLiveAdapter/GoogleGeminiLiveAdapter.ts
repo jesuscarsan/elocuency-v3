@@ -99,7 +99,7 @@ export class GoogleGeminiLiveAdapter {
             setup: {
                 model: 'models/gemini-2.0-flash-exp',
                 generation_config: {
-                    response_modalities: ['AUDIO'],
+                    response_modalities: ["TEXT", "AUDIO"],
                     temperature: temperature,
                     speech_config: {
                         voice_config: {
@@ -188,7 +188,7 @@ export class GoogleGeminiLiveAdapter {
 
         this.chunkCount++;
         if (this.chunkCount % 50 === 0) {
-            console.log(`Sending Audio Chunk #${this.chunkCount} (size: ${base64Audio.length})`);
+            // console.log(`Sending Audio Chunk #${this.chunkCount} (size: ${base64Audio.length})`);
         }
 
         this.ws.send(JSON.stringify(msg));
@@ -208,7 +208,7 @@ export class GoogleGeminiLiveAdapter {
         }
 
         // Log for debug (careful with huge logs)
-        // console.log("WS Msg:", JSON.stringify(data, null, 2));
+        console.log("WS Msg:", JSON.stringify(data, null, 2));
 
         // Handle tool calls / function calls
         // In some API versions this might be deeper or slightly different named,

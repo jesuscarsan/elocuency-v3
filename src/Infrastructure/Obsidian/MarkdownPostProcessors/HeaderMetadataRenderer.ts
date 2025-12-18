@@ -1,5 +1,6 @@
 import { App, MarkdownPostProcessor, MarkdownPostProcessorContext, TFile } from "obsidian";
 import { HeaderMetadataKeys } from "../../../Domain/Constants/HeaderMetadataRegistry";
+import { ScoreUtils } from "../../../Domain/Utils/ScoreUtils";
 
 export const createHeaderMetadataRenderer = (app: App): MarkdownPostProcessor => {
     return async (el: HTMLElement, ctx: MarkdownPostProcessorContext) => {
@@ -138,19 +139,15 @@ function renderMetadataPill(container: HTMLElement, data: any) {
 
     // Normalization Logic (0-10 input)
     const score = (typeof data[HeaderMetadataKeys.Score] === 'number') ? data[HeaderMetadataKeys.Score] : 0; // 0-10
-    const importance = (typeof data[HeaderMetadataKeys.Importance] === 'number') ? data[HeaderMetadataKeys.Importance] : 0; // 0-10
+    const importance = (typeof data[HeaderMetadataKeys.Importance] === 'number') ? data[HeaderMetadataKeys.Importance] : 1; // 1-5
     const difficulty = (typeof data[HeaderMetadataKeys.Difficulty] === 'number') ? data[HeaderMetadataKeys.Difficulty] : 0; // 0-10
 
     const pill = document.createElement('span');
     pill.addClass('header-metadata-container');
 
     // 2. Importance (Stars)
-    // Map 0-10 to 1-5 stars
-    let stars = 1;
-    if (importance >= 9) stars = 5;
-    else if (importance >= 7) stars = 4;
-    else if (importance >= 4) stars = 3;
-    else if (importance >= 2) stars = 2;
+    // Value is 1-5 direct
+    let stars = Math.max(1, Math.min(5, Math.round(importance)));
 
     const impEl = document.createElement('span');
     impEl.addClass('hm-item', 'hm-importance');
@@ -159,14 +156,15 @@ function renderMetadataPill(container: HTMLElement, data: any) {
     impEl.style.fontSize = '18px'; // Match SVG size
     impEl.style.lineHeight = '1';
     impEl.style.textShadow = '0 0 1px #b8860b';
-    impEl.title = `Importancia: ${importance}/10`;
+    impEl.title = `Importancia: ${importance}/5`;
     pill.appendChild(impEl);
 
-    // 3. Difficulty (Dot - SVG)
-    let diffColor = '#50fa7b'; // Easy (Green)
-    let diffText = 'Fácil';
-    if (difficulty >= 8) { diffColor = '#ff5555'; diffText = 'Difícil'; }
-    else if (difficulty >= 4) { diffColor = '#ffb86c'; diffText = 'Media'; }
+    // 3. Difficulty (Dot - SVG) with tooltips: 1: Baja, 2: Media, 3: Alta
+    const normDiff = ScoreUtils.normalizeDifficulty(difficulty);
+    const diffColor = ScoreUtils.difficultyToColor(normDiff);
+    let diffText = 'Baja'; // 1
+    if (normDiff === 2) diffText = 'Media';
+    if (normDiff === 3) diffText = 'Alta';
 
     const diffEl = document.createElement('span');
     diffEl.addClass('hm-item');
@@ -174,7 +172,7 @@ function renderMetadataPill(container: HTMLElement, data: any) {
     diffEl.innerHTML = `<svg width="18" height="18" viewBox="0 0 18 18">
         <circle cx="9" cy="9" r="6" fill="${diffColor}" stroke="none" />
     </svg>`;
-    diffEl.title = `Dificultad: ${diffText} (${difficulty}/10)`;
+    diffEl.title = `Dificultad: ${diffText} (${normDiff}/3)`;
     pill.appendChild(diffEl);
 
     // 1. Score (Circular Progress - SVG Donut)

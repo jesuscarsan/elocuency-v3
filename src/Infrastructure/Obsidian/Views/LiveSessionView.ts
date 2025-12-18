@@ -374,8 +374,8 @@ export class LiveSessionView extends ItemView {
             
             RETURN JSON ONLY:
             {
-              "difficulty": <integer 0-10>,
-              "importance": <integer 0-10>
+              "difficulty": <integer 1-3> (1=Baja/Facil, 2=Media, 3=Alta/Dificil),
+              "importance": <integer 1-5>
             }
             `;
 
@@ -553,7 +553,7 @@ export class LiveSessionView extends ItemView {
             }
         );
 
-        const activeNoteContext = `Contexto de la nota activa:\n${context}`;
+        const activeNoteContext = `Contexto de la nota activa:\n${this.cleanContext(context)}`;
         // Prepend role prompt if selected
         const systemInstruction = this.selectedRolePrompt
             ? `${this.selectedRolePrompt}\n\n${activeNoteContext}`
@@ -584,7 +584,7 @@ export class LiveSessionView extends ItemView {
                 if (file instanceof TFile && file.extension === 'md') {
                     try {
                         const newContext = await this.app.vault.read(file);
-                        this.adapter.sendContextUpdate(file.basename, newContext);
+                        this.adapter.sendContextUpdate(file.basename, this.cleanContext(newContext));
                         new Notice(`Context updated: ${file.basename}`);
                     } catch (e) {
                         console.error('Error reading file for context update', e);
@@ -596,6 +596,11 @@ export class LiveSessionView extends ItemView {
             this.updateStatus('Connection Failed', 'var(--text-error)');
             this.adapter = null;
         }
+    }
+
+    private cleanContext(text: string): string {
+        // Removes Obsidian block IDs (e.g., ^exiezi) from the end of lines
+        return text.replace(/\s+\^[a-zA-Z0-9-]+$/gm, '');
     }
 
     private handleTranscription(text: string) {
@@ -706,7 +711,7 @@ export class LiveSessionView extends ItemView {
 
                 if (blockId && metadata[blockId]) {
                     const importance = metadata[blockId].importance;
-                    if (typeof importance === 'number' && ScoreUtils.importanceToStars(importance) >= requiredLevel) {
+                    if (typeof importance === 'number' && ScoreUtils.normalizeImportance(importance) >= requiredLevel) {
                         // Found a candidate!
                         // Extract content until next header
                         let endLine = lines.length;
