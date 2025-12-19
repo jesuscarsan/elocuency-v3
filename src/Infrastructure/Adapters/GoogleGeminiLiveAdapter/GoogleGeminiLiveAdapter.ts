@@ -139,7 +139,7 @@ export class GoogleGeminiLiveAdapter {
         if (this.systemInstruction) {
             let finalInstruction = this.systemInstruction;
             if (enableScoreTracking) {
-                finalInstruction += '\n\nIMPORTANT: You are configured to track the user\'s answer quality. When the user answers, you MUST evaluate it and call the "report_score" function with a score from 0 to 10. HOWEVER, you MUST ALSO provide a verbal response and feedback to the user. Do not just call the function and go silent. Speak to the user.';
+                finalInstruction += '\n\nIMPORTANT: You are configured to track the user\'s answer quality. When the user answers, you MUST evaluate it and call the "report_score" function with a score from 0 to 10.';
             }
 
             setupMsg.setup.system_instruction = {

@@ -563,8 +563,17 @@ export class LiveSessionView extends ItemView {
         const activeFile = this.app.workspace.getActiveFile();
         if (activeFile instanceof TFile) {
             try {
-                context = await this.app.vault.read(activeFile);
+                const mainContent = await this.app.vault.read(activeFile);
+                context = mainContent;
                 new Notice(`Context loaded from: ${activeFile.basename}`);
+
+                // --- Load Linked Notes Content ---
+                const linkedContent = await this.getLinkedFileContent(activeFile);
+                if (linkedContent) {
+                    context += `\n\n--- CONTENIDO DE NOTAS RELACIONADAS ---\n${linkedContent}`;
+                    new Notice(`Loaded content from linked notes.`);
+                }
+
             } catch (e) {
                 console.error('Failed to read active file', e);
             }
@@ -694,7 +703,7 @@ export class LiveSessionView extends ItemView {
                 new Notice('Answer scoring enabled.');
             }
 
-            // Subscribe to active leaf changes
+            /* Subscribe to active leaf changes
             this.activeLeafEvent = this.app.workspace.on('active-leaf-change', async (leaf) => {
                 if (!this.isSessionActive || !this.adapter) return;
 
@@ -710,6 +719,7 @@ export class LiveSessionView extends ItemView {
                 }
             });
             this.registerEvent(this.activeLeafEvent);
+            */
         } else {
             this.updateStatus('Connection Failed', 'var(--text-error)');
             this.adapter = null;
@@ -792,6 +802,31 @@ export class LiveSessionView extends ItemView {
             this.statusEl.textContent = text;
             this.statusEl.style.color = color;
         }
+    }
+
+    private async getLinkedFileContent(sourceFile: TFile): Promise<string> {
+        const cache = this.app.metadataCache.getFileCache(sourceFile);
+        if (!cache || !cache.links) return '';
+
+        let linkedContext = '';
+        const processedFiles = new Set<string>();
+
+        for (const link of cache.links) {
+            const linkPath = link.link;
+            const linkFile = this.app.metadataCache.getFirstLinkpathDest(linkPath, sourceFile.path);
+
+            if (linkFile instanceof TFile && linkFile.extension === 'md' && !processedFiles.has(linkFile.path)) {
+                processedFiles.add(linkFile.path);
+                try {
+                    const content = await this.app.vault.read(linkFile);
+                    linkedContext += `\n\n--- Nota Vinculada: [[${linkFile.basename}]] ---\n${this.cleanContext(content)}`;
+                } catch (e) {
+                    console.error(`Failed to read linked file: ${linkFile.path}`, e);
+                }
+            }
+        }
+
+        return linkedContext;
     }
 
     // --- Quiz Logic ---
