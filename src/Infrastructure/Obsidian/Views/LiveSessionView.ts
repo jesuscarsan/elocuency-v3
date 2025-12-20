@@ -1,8 +1,11 @@
-import { ItemView, WorkspaceLeaf, ButtonComponent, Notice, setIcon, TFile, DropdownComponent, TFolder, MarkdownView } from 'obsidian';
+import { ItemView, WorkspaceLeaf, ButtonComponent, Notice, setIcon, TFile, DropdownComponent, TFolder, MarkdownView, LinkCache, FrontmatterLinkCache } from 'obsidian';
 import { GoogleGeminiLiveAdapter } from '../../Adapters/GoogleGeminiLiveAdapter/GoogleGeminiLiveAdapter';
 import { MetadataService } from '../../Services/MetadataService';
+import { SessionLogger } from '../../Services/SessionLogger';
 import { ScoreUtils } from '../../../Domain/Utils/ScoreUtils';
 import ObsidianExtension from 'src/main';
+import { GenerateHeaderMetadataCommand } from '../../../Application/Commands/GenerateHeaderMetadataCommand';
+import { showMessage } from 'src/Application/Utils/Messages';
 
 export const LIVE_SESSION_VIEW_TYPE = 'gemini-live-session-view';
 
@@ -19,14 +22,17 @@ export class LiveSessionView extends ItemView {
     private selectedRoleEvaluationPrompt: string = '';
     private sessionBtn: ButtonComponent | null = null;
     private plugin!: ObsidianExtension;
+    private sessionLogger: SessionLogger;
+    private sessionStartTime: Date | null = null;
 
     // Quiz Mode State
     private selectedStarLevel: string = '1';
-    private quizQueue: { heading: string, blockId: string, text: string }[] = [];
+    private quizQueue: { heading: string, blockId: string, text: string, range?: { start: number, end: number } }[] = [];
     private currentQuizIndex: number = 0;
     private quizStatusEl: HTMLElement | null = null;
-    private currentQuizStatusText: string = 'Presiona "Preguntar siguiente" para comenzar.'; // State for persistence
+    private currentQuizStatusText: string = 'Presiona "Preguntar siguiente" o selecciona un tema de la lista.'; // State for persistence
     private onlyTitlesWithoutSubtitles: boolean = true; // Default checked
+    private quizListContainer: HTMLElement | null = null;
 
     // Config State
     private selectedVoice: string = 'Aoede';
@@ -39,6 +45,7 @@ export class LiveSessionView extends ItemView {
 
     constructor(leaf: WorkspaceLeaf) {
         super(leaf);
+        this.sessionLogger = new SessionLogger(this.app);
     }
 
 
@@ -115,14 +122,22 @@ export class LiveSessionView extends ItemView {
                 dropdown.addOption('', 'Default (None)');
                 roles.forEach(role => dropdown.addOption(role.prompt, role.name));
 
-                // Set initial value if matches
-                if (this.selectedRolePrompt) {
-                    const exists = roles.find(r => r.prompt === this.selectedRolePrompt);
-                    if (exists) {
-                        dropdown.setValue(this.selectedRolePrompt);
-                    } else {
-                        this.selectedRolePrompt = '';
-                    }
+                // Auto-select first role if none selected or invalid
+                let activeRole = roles.find(r => r.prompt === this.selectedRolePrompt);
+
+                if (!activeRole && roles.length > 0) {
+                    activeRole = roles[0];
+                    this.selectedRolePrompt = activeRole.prompt;
+                }
+
+                if (activeRole) {
+                    dropdown.setValue(activeRole.prompt);
+                    // Sync state immediately so UI shows correct values
+                    this.selectedRoleEvaluationPrompt = activeRole.evaluationPrompt || '';
+                    this.selectedVoice = activeRole.liveVoice || 'Aoede';
+                    this.selectedTemperature = activeRole.liveTemperature !== undefined ? activeRole.liveTemperature : 1;
+                } else {
+                    this.selectedRolePrompt = '';
                 }
 
                 dropdown.onChange((value) => {
@@ -158,14 +173,14 @@ export class LiveSessionView extends ItemView {
                     .setTooltip('Apply selected role (restarts session if active)')
                     .onClick(async () => {
                         if (this.isSessionActive) {
-                            new Notice('Applying role... restarting session.');
+                            showMessage('Applying role... restarting session.');
                             await this.stopSession();
                             await this.startSession();
                         } else {
                             if (this.selectedRolePrompt) {
-                                new Notice(`Role applied: ${roles.find(r => r.prompt === this.selectedRolePrompt)?.name}`);
+                                showMessage(`Role applied: ${roles.find(r => r.prompt === this.selectedRolePrompt)?.name}`);
                             } else {
-                                new Notice('No role selected.');
+                                showMessage('No role selected.');
                             }
                         }
                     });
@@ -208,7 +223,7 @@ export class LiveSessionView extends ItemView {
             this.voiceDropdownRef.onChange(async (val) => {
                 this.selectedVoice = val;
                 if (this.isSessionActive) {
-                    new Notice('Reiniciando sesión para aplicar nueva voz...');
+                    showMessage('Reiniciando sesión para aplicar nueva voz...');
                     await this.stopSession();
                     await this.startSession();
                 }
@@ -236,7 +251,7 @@ export class LiveSessionView extends ItemView {
                 this.selectedTemperature = val;
                 if (this.tempValLabelRef) this.tempValLabelRef.textContent = val.toFixed(1);
                 if (this.isSessionActive) {
-                    new Notice('Reiniciando sesión para aplicar temperatura...');
+                    showMessage('Reiniciando sesión para aplicar temperatura...');
                     await this.stopSession();
                     await this.startSession();
                 }
@@ -256,10 +271,17 @@ export class LiveSessionView extends ItemView {
                     .setTooltip('Batchevaluation of headers')
                     .onClick(async () => {
                         if (!this.selectedRoleEvaluationPrompt) {
-                            new Notice('Current role has no !!evaluationPrompt defined.');
+                            showMessage('Current role has no !!evaluationPrompt defined.');
                             return;
                         }
                         await this.evaluateHeaders();
+                    });
+
+                new ButtonComponent(buttonContainer)
+                    .setButtonText('Generate Header Metadata')
+                    .setTooltip('Assign Block IDs and create metadata structure for headers')
+                    .onClick(async () => {
+                        new GenerateHeaderMetadataCommand(this.app).execute();
                     });
             }
         }
@@ -299,13 +321,11 @@ export class LiveSessionView extends ItemView {
         const starDropdown = new DropdownComponent(quizControls);
         ['1', '2', '3', '4', '5'].forEach(level => starDropdown.addOption(level, `⭐`.repeat(Number(level))));
         starDropdown.setValue(this.selectedStarLevel);
-        starDropdown.onChange((val) => {
+        starDropdown.onChange(async (val) => {
             this.selectedStarLevel = val;
             console.log('Selected Star Level:', this.selectedStarLevel);
-            // Reset queue to force rebuild with new filter level
-            this.quizQueue = [];
-            this.currentQuizIndex = 0;
-            this.updateQuizStatus(`Filtro actualizado a ⭐${val}+. Presiona "Preguntar siguiente".`);
+            // Rebuild queue immediately to show list
+            await this.buildQuizQueue();
         });
 
         // "Ask Next" Button
@@ -326,12 +346,10 @@ export class LiveSessionView extends ItemView {
         filterCheckbox.type = 'checkbox';
         filterCheckbox.checked = this.onlyTitlesWithoutSubtitles;
         filterCheckbox.id = 'only-titles-no-subtitles';
-        filterCheckbox.addEventListener('change', (e) => {
+        filterCheckbox.addEventListener('change', async (e) => {
             this.onlyTitlesWithoutSubtitles = (e.target as HTMLInputElement).checked;
-            // Reset queue
-            this.quizQueue = [];
-            this.currentQuizIndex = 0;
-            this.updateQuizStatus(`Filtro actualizado. Presiona "Preguntar siguiente".`);
+            // Rebuild queue
+            await this.buildQuizQueue();
         });
 
         const filterLabel = document.createElement('label');
@@ -352,6 +370,16 @@ export class LiveSessionView extends ItemView {
         this.quizStatusEl.style.color = 'var(--text-normal)';
         this.quizStatusEl.style.borderLeft = '4px solid var(--text-accent)';
         this.quizStatusEl.innerText = this.currentQuizStatusText;
+
+        // 2b. Quiz List
+        this.quizListContainer = quizContainer.createDiv({ cls: 'gemini-quiz-list' });
+        this.quizListContainer.style.marginTop = '10px';
+        this.quizListContainer.style.maxHeight = '200px';
+        this.quizListContainer.style.overflowY = 'auto';
+        this.quizListContainer.style.border = '1px solid var(--background-modifier-border)';
+        this.quizListContainer.style.borderRadius = '4px';
+        this.quizListContainer.style.padding = '5px';
+        this.quizListContainer.style.display = 'none'; // Hidden by default until populated
 
 
         // 3. Transcript Area
@@ -394,18 +422,18 @@ export class LiveSessionView extends ItemView {
 
         const activeFile = this.app.workspace.getActiveFile();
         if (!activeFile || activeFile.extension !== 'md') {
-            new Notice('Please open a markdown file first.');
+            showMessage('Please open a markdown file first.');
             return;
         }
 
-        new Notice('Starting header evaluation...');
+        showMessage('Starting header evaluation...');
 
         // Use MetadataService to get or create block IDs is a bit complex since it's inside a Command usually.
         // We can reuse the GenerateHeaderMetadataCommand logic or move it to a service.
         // For now, let's look at how to get headers.
         const cache = this.app.metadataCache.getFileCache(activeFile);
         if (!cache || !cache.headings) {
-            new Notice('No headings found.');
+            showMessage('No headings found.');
             return;
         }
 
@@ -486,7 +514,7 @@ export class LiveSessionView extends ItemView {
                     });
 
                     processedCount++;
-                    new Notice(`Evaluated: ${heading.heading} (d:${result.difficulty}, i:${result.importance})`);
+                    showMessage(`Evaluated: ${heading.heading} (d:${result.difficulty}, i:${result.importance})`);
 
                 }
             } catch (e) {
@@ -494,7 +522,7 @@ export class LiveSessionView extends ItemView {
             }
         }
 
-        new Notice(`Evaluation complete. Processed ${processedCount} headers.`);
+        showMessage(`Evaluation complete. Processed ${processedCount} headers.`);
     }
 
     private async loadRoles(): Promise<{ name: string, prompt: string, trackLevelAnswer: boolean, evaluationPrompt?: string, liveVoice?: string, liveTemperature?: number }[]> {
@@ -543,7 +571,7 @@ export class LiveSessionView extends ItemView {
 
     private async startSession() {
         if (!this.apiKey) {
-            new Notice('Gemini API Key is missing via settings.');
+            showMessage('Gemini API Key is missing via settings.');
             return;
         }
 
@@ -565,13 +593,13 @@ export class LiveSessionView extends ItemView {
             try {
                 const mainContent = await this.app.vault.read(activeFile);
                 context = mainContent;
-                new Notice(`Context loaded from: ${activeFile.basename}`);
+                showMessage(`Context loaded from: ${activeFile.basename}`);
 
                 // --- Load Linked Notes Content ---
                 const linkedContent = await this.getLinkedFileContent(activeFile);
                 if (linkedContent) {
                     context += `\n\n--- CONTENIDO DE NOTAS RELACIONADAS ---\n${linkedContent}`;
-                    new Notice(`Loaded content from linked notes.`);
+                    showMessage(`Loaded content from linked notes.`);
                 }
 
             } catch (e) {
@@ -591,7 +619,8 @@ export class LiveSessionView extends ItemView {
             },
             async (score) => {
                 console.log('LiveSessionView: Received score:', score);
-                new Notice(`💡 Answer Score: ${score}/10`, 5000);
+                await this.sessionLogger.logScore(score);
+                showMessage(`💡 Nota: ${score}`);
 
                 // --- Update Metadata Logic ---
                 if (this.quizQueue.length > 0) {
@@ -617,7 +646,7 @@ export class LiveSessionView extends ItemView {
                                 await metaService.updateBlockMetadata(activeFile, currentItem.blockId, {
                                     score: finalScore
                                 });
-                                new Notice(`Score updated: ${oldScore} -> ${finalScore}`);
+                                showMessage(`Score updated: ${oldScore} -> ${finalScore}`);
 
                                 // Refresh the active view to update markers
                                 const view = this.app.workspace.getActiveViewOfType(MarkdownView);
@@ -639,7 +668,7 @@ export class LiveSessionView extends ItemView {
 
                 if (this.transcriptContainer) {
                     const scoreEl = this.transcriptContainer.createEl('div', {
-                        text: `🌟 SCORE: ${score}/10`,
+                        text: `🌟 Nota: ${score}`,
                         cls: 'gemini-score-flag'
                     });
                     // Force high visibility styles
@@ -660,7 +689,7 @@ export class LiveSessionView extends ItemView {
                     scoreEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
 
                     // Add score to transcript
-                    this.fullTranscript += `\n\n[SCORE: ${score}/10]\n\n`;
+                    this.fullTranscript += `\n\n[SCORE: ${score}]\n\n`;
                 } else {
                     console.error('LiveSessionView: Transcript container is missing!');
                 }
@@ -690,6 +719,8 @@ export class LiveSessionView extends ItemView {
 
         if (success) {
             this.isSessionActive = true;
+            this.sessionStartTime = new Date();
+            await this.sessionLogger.logStart(this.sessionStartTime);
             this.updateStatus('🔴 Live - Listening', 'var(--color-red)');
 
             if (this.sessionBtn) {
@@ -698,9 +729,9 @@ export class LiveSessionView extends ItemView {
                 this.sessionBtn.setWarning();
             }
 
-            new Notice('Live Connected');
+            showMessage('Live Connected');
             if (enableScoreTracking) {
-                new Notice('Answer scoring enabled.');
+                showMessage('Answer scoring enabled.');
             }
 
             /* Subscribe to active leaf changes
@@ -712,7 +743,7 @@ export class LiveSessionView extends ItemView {
                     try {
                         const newContext = await this.app.vault.read(file);
                         this.adapter.sendContextUpdate(file.basename, this.cleanContext(newContext));
-                        new Notice(`Context updated: ${file.basename}`);
+                        showMessage(`Context updated: ${file.basename}`);
                     } catch (e) {
                         console.error('Error reading file for context update', e);
                     }
@@ -750,6 +781,13 @@ export class LiveSessionView extends ItemView {
     }
 
     private async stopSession() {
+        if (this.sessionStartTime) {
+            const now = new Date();
+            const duration = (now.getTime() - this.sessionStartTime.getTime()) / 60000;
+            await this.sessionLogger.logEnd(now, duration);
+            this.sessionStartTime = null;
+        }
+
         if (this.activeLeafEvent) {
             this.app.workspace.offref(this.activeLeafEvent);
             this.activeLeafEvent = null;
@@ -787,10 +825,10 @@ export class LiveSessionView extends ItemView {
         try {
             const content = `# Live Session - ${timestamp}\n\n${this.fullTranscript}`;
             await this.app.vault.create(filename, content);
-            new Notice(`Transcript saved to: ${filename}`);
+            showMessage(`Transcript saved to: ${filename}`);
         } catch (e) {
             console.error('Error saving transcript', e);
-            new Notice('Error saving transcript file.');
+            showMessage('Error saving transcript file.');
         }
 
         // Reset
@@ -804,29 +842,120 @@ export class LiveSessionView extends ItemView {
         }
     }
 
-    private async getLinkedFileContent(sourceFile: TFile): Promise<string> {
+    private async getLinkedFileContent(sourceFile: TFile, range?: { start: number, end: number }): Promise<string> {
         const cache = this.app.metadataCache.getFileCache(sourceFile);
-        if (!cache || !cache.links) return '';
+        if (!cache) return '';
+
+        let linksToProcess: (LinkCache | FrontmatterLinkCache)[] = [];
+
+        if (range) {
+            // If range is specified, only include links within that range.
+            if (cache.links) {
+                linksToProcess = cache.links.filter(l =>
+                    l.position.start.line >= range.start &&
+                    l.position.start.line < range.end
+                );
+            }
+        } else {
+            // No range? Include everything.
+            if (cache.links) linksToProcess.push(...cache.links);
+            if (cache.frontmatterLinks) linksToProcess.push(...cache.frontmatterLinks);
+        }
+
+        if (linksToProcess.length === 0) return '';
+
+        console.log(`LiveSessionView: Found ${linksToProcess.length} links in ${sourceFile.basename}`);
 
         let linkedContext = '';
         const processedFiles = new Set<string>();
 
-        for (const link of cache.links) {
-            const linkPath = link.link;
-            const linkFile = this.app.metadataCache.getFirstLinkpathDest(linkPath, sourceFile.path);
+        for (const link of linksToProcess) {
+            const fullLinkPath = link.link;
 
-            if (linkFile instanceof TFile && linkFile.extension === 'md' && !processedFiles.has(linkFile.path)) {
-                processedFiles.add(linkFile.path);
-                try {
-                    const content = await this.app.vault.read(linkFile);
-                    linkedContext += `\n\n--- Nota Vinculada: [[${linkFile.basename}]] ---\n${this.cleanContext(content)}`;
-                } catch (e) {
-                    console.error(`Failed to read linked file: ${linkFile.path}`, e);
+            // Generate clean path part by removing #header or ^blockId
+            let linkPathPart = fullLinkPath;
+            let headerName: string | undefined = undefined;
+
+            // Check for anchors
+            const hashIndex = fullLinkPath.indexOf('#');
+            const caretIndex = fullLinkPath.indexOf('^');
+
+            // We only care about file path and potentially the header (#).
+            // We do not currently support extracting specific blocks (^).
+            // If ^ is present, we resolve the file and read the whole file (or header if mixed).
+
+            if (hashIndex !== -1) {
+                // Has header
+                linkPathPart = fullLinkPath.substring(0, hashIndex);
+                // Extract header (handling edge case if ^ follows #)
+                const endOfHeader = caretIndex > hashIndex ? caretIndex : fullLinkPath.length;
+                headerName = fullLinkPath.substring(hashIndex + 1, endOfHeader);
+            } else if (caretIndex !== -1) {
+                // Has block ID only
+                linkPathPart = fullLinkPath.substring(0, caretIndex);
+            }
+
+            // Resolve file from the path part
+            const linkFile = this.app.metadataCache.getFirstLinkpathDest(linkPathPart, sourceFile.path);
+
+            if (linkFile instanceof TFile && linkFile.extension === 'md') {
+                // Create a unique key for "File + Header" to allow linking different sections
+                const uniqueKey = linkFile.path + (headerName ? `:${headerName}` : '');
+
+                if (!processedFiles.has(uniqueKey)) {
+                    processedFiles.add(uniqueKey);
+                    try {
+                        let content = '';
+                        let displayTitle = linkFile.basename;
+
+                        if (headerName) {
+                            // Extract specific header content
+                            content = await this.getSectionContent(linkFile, headerName);
+                            displayTitle += ` > ${headerName}`;
+                        } else {
+                            // Default: read entire file
+                            content = await this.app.vault.read(linkFile);
+                        }
+
+                        if (content) {
+                            console.log(`LiveSessionView: Added content from ${displayTitle}`);
+                            linkedContext += `\n\n--- Nota Vinculada: [[${displayTitle}]] ---\n${this.cleanContext(content)}`;
+                        }
+                    } catch (e) {
+                        console.error(`Failed to read linked file: ${linkFile.path}`, e);
+                    }
                 }
+            } else {
+                console.warn(`LiveSessionView: Could not resolve link: ${fullLinkPath} (PathPart: ${linkPathPart})`);
             }
         }
 
         return linkedContext;
+    }
+
+    private async getSectionContent(file: TFile, headerName: string): Promise<string> {
+        const cache = this.app.metadataCache.getFileCache(file);
+        if (!cache || !cache.headings) return '';
+
+        const targetHeading = cache.headings.find(h => h.heading === headerName);
+        if (!targetHeading) return '';
+
+        const content = await this.app.vault.read(file);
+        const lines = content.split('\n');
+
+        const startLine = targetHeading.position.start.line;
+        let endLine = lines.length;
+
+        // Find the next heading that is at the same level or higher (numerically lower level)
+        for (let i = cache.headings.indexOf(targetHeading) + 1; i < cache.headings.length; i++) {
+            const h = cache.headings[i];
+            if (h.level <= targetHeading.level) {
+                endLine = h.position.start.line;
+                break;
+            }
+        }
+
+        return lines.slice(startLine, endLine).join('\n');
     }
 
     // --- Quiz Logic ---
@@ -834,7 +963,7 @@ export class LiveSessionView extends ItemView {
     private async buildQuizQueue(): Promise<boolean> {
         const activeFile = this.app.workspace.getActiveFile();
         if (!activeFile || activeFile.extension !== 'md') {
-            new Notice('Open a markdown file to start quiz.');
+            showMessage('Open a markdown file to start quiz.');
             return false;
         }
 
@@ -845,7 +974,7 @@ export class LiveSessionView extends ItemView {
         const metaService = new MetadataService(this.app);
         const metadata = await metaService.getFileMetadata(activeFile);
 
-        const queue: { heading: string, blockId: string, text: string }[] = [];
+        const queue: { heading: string, blockId: string, text: string, range: { start: number, end: number } }[] = [];
         const requiredLevel = parseInt(this.selectedStarLevel) || 1;
 
         // Naive header parsing similar to evaluateHeaders
@@ -899,7 +1028,8 @@ export class LiveSessionView extends ItemView {
                         queue.push({
                             heading: headingText.replace(/\^([a-zA-Z0-9-]+)$/, '').trim(),
                             blockId: blockId,
-                            text: sectionContent
+                            text: sectionContent,
+                            range: { start: i, end: endLine }
                         });
                     }
                 }
@@ -910,19 +1040,70 @@ export class LiveSessionView extends ItemView {
         this.quizQueue = queue;
         this.currentQuizIndex = 0;
 
+        this.renderQuizQueue();
+
         if (this.quizQueue.length === 0) {
-            new Notice(`No headers found with Importance >= ${requiredLevel}`);
+            showMessage(`No headers found with Importance >= ${requiredLevel}`);
             this.updateQuizStatus('No matching headers found.');
             return false;
         }
 
-        new Notice(`Quiz Queue: ${this.quizQueue.length} headers found.`);
+        showMessage(`Quiz Queue: ${this.quizQueue.length} headers found.`);
+        this.updateQuizStatus(`Lista actualizada: ${this.quizQueue.length} temas.`);
         return true;
+    }
+
+    private renderQuizQueue() {
+        if (!this.quizListContainer) return;
+
+        this.quizListContainer.empty();
+
+        if (this.quizQueue.length === 0) {
+            this.quizListContainer.style.display = 'none';
+            return;
+        }
+
+        this.quizListContainer.style.display = 'block';
+
+        this.quizQueue.forEach((item, index) => {
+            const itemEl = this.quizListContainer!.createDiv({ cls: 'gemini-quiz-item' });
+            itemEl.style.padding = '6px';
+            itemEl.style.cursor = 'pointer';
+            itemEl.style.borderBottom = '1px solid var(--background-modifier-border)';
+            itemEl.style.display = 'flex';
+            itemEl.style.justifyContent = 'space-between';
+            itemEl.style.alignItems = 'center';
+            itemEl.style.fontSize = '0.9em';
+
+            if (index === this.currentQuizIndex) {
+                itemEl.style.backgroundColor = 'var(--interactive-accent)';
+                itemEl.style.color = 'var(--text-on-accent)';
+            } else {
+                itemEl.addEventListener('mouseenter', () => {
+                    itemEl.style.backgroundColor = 'var(--background-modifier-hover)';
+                });
+                itemEl.addEventListener('mouseleave', () => {
+                    itemEl.style.backgroundColor = 'transparent';
+                });
+            }
+
+            const textEl = itemEl.createSpan({ text: `${index + 1}. ${item.heading}` });
+            textEl.style.overflow = 'hidden';
+            textEl.style.textOverflow = 'ellipsis';
+            textEl.style.whiteSpace = 'nowrap';
+            textEl.style.flex = '1';
+
+            itemEl.addEventListener('click', async () => {
+                this.currentQuizIndex = index;
+                this.renderQuizQueue(); // Re-render to update highlight
+                await this.askNextHeader();
+            });
+        });
     }
 
     private async askNextHeader() {
         if (!this.isSessionActive) {
-            new Notice('Starting session...');
+            showMessage('Starting session...');
             await this.startSession();
             // Wait a small moment for connection? startSession is async so it should be connected if it returns.
             if (!this.isSessionActive) return; // Connection failed
@@ -949,8 +1130,13 @@ export class LiveSessionView extends ItemView {
 
         const item = this.quizQueue[this.currentQuizIndex];
 
+        await this.sessionLogger.logQuestion(item.heading);
+
         const statusText = `Examinando: ${item.heading} (${this.currentQuizIndex + 1}/${this.quizQueue.length})`;
         this.updateQuizStatus(statusText);
+
+        // Refresh list highlight
+        this.renderQuizQueue();
 
         // LOG TO VIDEO-STYLE TRANSCRIPT FOR VISIBILITY
         if (this.transcriptContainer) {
@@ -972,9 +1158,20 @@ export class LiveSessionView extends ItemView {
             this.fullTranscript += `\n\n[PREGUNTA: ${item.heading}]\n\n`;
         }
 
-        this.adapter?.sendContextUpdate('Quiz Content', `Por favor examina al usuario sobre el siguiente contenido:\n\n${item.text}`);
+        // Fetch linked content specifically for this section
+        const activeFile = this.app.workspace.getActiveFile();
+        let sectionLinkedContent = '';
+        if (activeFile instanceof TFile) {
+            sectionLinkedContent = await this.getLinkedFileContent(activeFile, item.range);
+        }
 
-        new Notice(`Sent: ${item.heading}`);
+        const prompt = `Por favor examina al usuario sobre el siguiente contenido:\n\n${item.text}\n\n${sectionLinkedContent ? `--- INFO ADICIONAL (NOTAS VINCULADAS) ---\n${sectionLinkedContent}` : ''}`;
+
+        this.adapter?.sendContextUpdate('Quiz Content', prompt);
+
+        showMessage(`Sent: ${item.heading} (+ ${sectionLinkedContent ? 'links' : 'no links'})`);
+
+        showMessage(`Sent: ${item.heading}`);
     }
 
     private updateQuizStatus(text: string) {
