@@ -1,58 +1,69 @@
-import { ItemView, WorkspaceLeaf, ButtonComponent, Notice, setIcon, TFile, DropdownComponent, TFolder, MarkdownView, LinkCache, FrontmatterLinkCache } from 'obsidian';
+
+import { ItemView, WorkspaceLeaf, Notice, TFile, MarkdownView } from 'obsidian';
 import { GoogleGeminiLiveAdapter } from '../../Adapters/GoogleGeminiLiveAdapter/GoogleGeminiLiveAdapter';
 import { MetadataService } from '../../Services/MetadataService';
 import { SessionLogger } from '../../Services/SessionLogger';
-import { ScoreUtils } from '../../../Domain/Utils/ScoreUtils';
 import ObsidianExtension from 'src/main';
 import { GenerateHeaderMetadataCommand } from '../../../Application/Commands/GenerateHeaderMetadataCommand';
 import { showMessage } from 'src/Application/Utils/Messages';
 
+// Services
+import { RolesManager, Role } from './LiveSession/Services/RolesManager';
+import { ContextManager } from './LiveSession/Services/ContextManager';
+import { QuizManager } from './LiveSession/Services/QuizManager';
+
+// Components
+import { RolesComponent } from './LiveSession/Components/RolesComponent';
+import { QuizComponent } from './LiveSession/Components/QuizComponent';
+import { TranscriptComponent } from './LiveSession/Components/TranscriptComponent';
+import { SessionControlsComponent } from './LiveSession/Components/SessionControlsComponent';
+
 export const LIVE_SESSION_VIEW_TYPE = 'gemini-live-session-view';
 
 export class LiveSessionView extends ItemView {
-    private fullTranscript: string = '';
-    private transcriptContainer: HTMLElement | null = null;
-    private adapter: GoogleGeminiLiveAdapter | null = null;
-    private apiKey: string = '';
-    private isSessionActive: boolean = false;
-    private statusEl: HTMLElement | null = null;
-    private contentContainer: HTMLElement | null = null;
-    private activeLeafEvent: any = null;
-    private selectedRolePrompt: string = '';
-    private selectedRoleEvaluationPrompt: string = '';
-    private sessionBtn: ButtonComponent | null = null;
+    // Config State
     private plugin!: ObsidianExtension;
+    private apiKey: string = '';
+
+    // Services
     private sessionLogger: SessionLogger;
+    private rolesManager!: RolesManager;
+    private contextManager!: ContextManager;
+    private quizManager!: QuizManager;
+    private adapter: GoogleGeminiLiveAdapter | null = null;
+
+    // Component References
+    private transcriptComponent: TranscriptComponent | null = null;
+    private rolesComponent: RolesComponent | null = null;
+    private quizComponent: QuizComponent | null = null;
+    private sessionControlsComponent: SessionControlsComponent | null = null;
+
+    private contentContainer: HTMLElement | null = null;
+
+    // Active Session State
+    private isSessionActive: boolean = false;
     private sessionStartTime: Date | null = null;
 
-    // Quiz Mode State
-    private selectedStarLevel: string = '1';
-    private quizQueue: { heading: string, blockId: string, text: string, range?: { start: number, end: number } }[] = [];
-    private currentQuizIndex: number = 0;
-    private quizStatusEl: HTMLElement | null = null;
-    private currentQuizStatusText: string = 'Presiona "Preguntar siguiente" o selecciona un tema de la lista.'; // State for persistence
-    private onlyTitlesWithoutSubtitles: boolean = true; // Default checked
-    private quizListContainer: HTMLElement | null = null;
-
-    // Config State
+    // User Selections (State)
+    private selectedRolePrompt: string = '';
+    private selectedRoleEvaluationPrompt: string = '';
     private selectedVoice: string = 'Aoede';
     private selectedTemperature: number = 1;
 
-    // UI References
-    private voiceDropdownRef: DropdownComponent | null = null;
-    private tempSliderRef: HTMLInputElement | null = null;
-    private tempValLabelRef: HTMLSpanElement | null = null;
+    // Data
+    private availableRoles: Role[] = [];
 
     constructor(leaf: WorkspaceLeaf) {
         super(leaf);
         this.sessionLogger = new SessionLogger(this.app);
+        this.contextManager = new ContextManager(this.app);
+        this.quizManager = new QuizManager(this.app);
     }
 
-
-    // Need to pass plugin instance to access settings for roles folder
     setPlugin(plugin: ObsidianExtension) {
         this.plugin = plugin;
         this.apiKey = plugin.settings.geminiApiKey;
+        this.rolesManager = new RolesManager(this.app, this.plugin);
     }
 
     setApiKey(key: string) {
@@ -74,504 +85,147 @@ export class LiveSessionView extends ItemView {
     async onOpen() {
         await this.renderContent();
 
-        // Refresh view when it becomes active to pick up setting changes
+        // Refresh view when it becomes active or markdown context changes
         this.registerEvent(this.app.workspace.on('active-leaf-change', async (leaf) => {
             if (leaf) {
                 if (leaf.view.getViewType() === LIVE_SESSION_VIEW_TYPE && leaf.view === this) {
                     await this.renderContent();
                 } else if (leaf.view instanceof MarkdownView) {
-                    // When switching to a markdown file, refresh header list based on current filter
-                    await this.buildQuizQueue();
+                    // Refresh Quiz Queue silently if using quiz mode
+                    if (this.quizManager.queue.length > 0 || this.quizManager.selectedStarLevel !== '1') {
+                        // Check if we should auto-refresh or just wait for user interaction?
+                        // Original code did buildQuizQueue().
+                        await this.quizManager.buildQuizQueue();
+                        this.quizComponent?.refreshList(this.quizManager, (i) => this.onQuizSelect(i));
+                    }
                 }
             }
         }));
     }
 
-    private async renderContent() {
+    async renderContent() {
         const container = this.contentContainer || this.containerEl.children[1] as HTMLElement;
         container.empty();
         this.contentContainer = container;
-        this.transcriptContainer = null; // reset
 
         this.contentContainer.createEl('h2', { text: 'Live Session' });
 
-        // Wrapper for "The Rest" (Status, Transcript, Controls, Quiz)
-        const mainInterface = this.contentContainer.createDiv();
-
-        // --- Roles Section ---
-        if (this.plugin && this.plugin.settings.geminiRolesFolder) {
-            const rolesContainer = this.contentContainer.createDiv({ cls: 'gemini-roles-container' });
-            rolesContainer.style.marginTop = '20px';
-            rolesContainer.style.marginBottom = '20px';
-            rolesContainer.style.display = 'flex';
-            rolesContainer.style.flexDirection = 'column';
-            rolesContainer.style.gap = '10px';
-            rolesContainer.style.border = '1px solid var(--background-modifier-border)';
-            rolesContainer.style.padding = '10px';
-            rolesContainer.style.borderRadius = '4px';
-
-            // Role Selector Row
-            const roleRow = rolesContainer.createDiv();
-            roleRow.style.display = 'flex';
-            roleRow.style.alignItems = 'center';
-            roleRow.style.gap = '10px';
-
-            roleRow.createSpan({ text: 'Role:' });
-
-            const roles = await this.loadRoles();
-
-            if (roles.length === 0) {
-                roleRow.createSpan({ text: '(No roles found in folder)', cls: 'gemini-muted-text' });
-            } else {
-                const dropdown = new DropdownComponent(roleRow);
-                dropdown.addOption('', 'Default (None)');
-                roles.forEach(role => dropdown.addOption(role.prompt, role.name));
-
-                // Auto-select first role if none selected or invalid
-                let activeRole = roles.find(r => r.prompt === this.selectedRolePrompt);
-
-                if (!activeRole && roles.length > 0) {
-                    activeRole = roles[0];
-                    this.selectedRolePrompt = activeRole.prompt;
-                }
-
-                if (activeRole) {
-                    dropdown.setValue(activeRole.prompt);
-                    // Sync state immediately so UI shows correct values
-                    this.selectedRoleEvaluationPrompt = activeRole.evaluationPrompt || '';
-                    this.selectedVoice = activeRole.liveVoice || 'Aoede';
-                    this.selectedTemperature = activeRole.liveTemperature !== undefined ? activeRole.liveTemperature : 1;
-                } else {
-                    this.selectedRolePrompt = '';
-                }
-
-                dropdown.onChange((value) => {
-                    this.selectedRolePrompt = value;
-                    const selectedRole = roles.find(r => r.prompt === value);
-                    this.selectedRoleEvaluationPrompt = selectedRole?.evaluationPrompt || '';
-
-                    // Apply Role specific settings or defaults
-                    if (selectedRole) {
-                        this.selectedVoice = selectedRole.liveVoice || 'Aoede';
-                        this.selectedTemperature = selectedRole.liveTemperature !== undefined ? selectedRole.liveTemperature : 1;
-                    } else {
-                        // Revert to defaults if no role selected
-                        this.selectedVoice = 'Aoede';
-                        this.selectedTemperature = 1;
-                    }
-
-                    // Update UI elements
-                    if (this.voiceDropdownRef) this.voiceDropdownRef.setValue(this.selectedVoice);
-                    if (this.tempSliderRef) this.tempSliderRef.value = this.selectedTemperature.toString();
-                    if (this.tempValLabelRef) this.tempValLabelRef.textContent = this.selectedTemperature.toFixed(1);
-
-                    // Toggle visibility immediately on change
-                    if (value) {
-                        mainInterface.style.display = 'block';
-                    } else {
-                        mainInterface.style.display = 'none';
-                    }
-                });
-
-                new ButtonComponent(roleRow)
-                    .setButtonText('Apply Role')
-                    .setTooltip('Apply selected role (restarts session if active)')
-                    .onClick(async () => {
-                        if (this.isSessionActive) {
-                            showMessage('Applying role... restarting session.');
-                            await this.stopSession();
-                            await this.startSession();
-                        } else {
-                            if (this.selectedRolePrompt) {
-                                showMessage(`Role applied: ${roles.find(r => r.prompt === this.selectedRolePrompt)?.name}`);
-                            } else {
-                                showMessage('No role selected.');
-                            }
-                        }
-                    });
-            }
-
-            // --- Advanced Section ---
-            const advancedDetails = rolesContainer.createEl('details');
-            advancedDetails.style.marginTop = '10px';
-            advancedDetails.style.borderTop = '1px solid var(--background-modifier-border)';
-            advancedDetails.style.paddingTop = '10px';
-
-            const advancedSummary = advancedDetails.createEl('summary', { text: 'Avanzado' });
-            advancedSummary.style.cursor = 'pointer';
-            advancedSummary.style.marginBottom = '10px';
-            advancedSummary.style.fontWeight = 'bold';
-            advancedSummary.style.color = 'var(--text-muted)';
-
-            const advancedContent = advancedDetails.createDiv();
-            advancedContent.style.display = 'flex';
-            advancedContent.style.flexDirection = 'column';
-            advancedContent.style.gap = '10px';
-            advancedContent.style.paddingLeft = '10px';
-            advancedDetails.appendChild(advancedSummary); // Summary must be child of details
-            advancedDetails.appendChild(advancedContent);
-
-            // --- Voice & Temp Config Row ---
-            const configRow = advancedContent.createDiv();
-            configRow.style.display = 'flex';
-            configRow.style.alignItems = 'center';
-            configRow.style.gap = '15px';
-            configRow.style.flexWrap = 'wrap';
-
-            // Voice Dropdown
-            configRow.createSpan({ text: 'Voz:' });
-            this.voiceDropdownRef = new DropdownComponent(configRow);
-            ['Puck', 'Charon', 'Kore', 'Fenrir', 'Aoede'].forEach(voice => {
-                this.voiceDropdownRef!.addOption(voice, voice);
-            });
-            this.voiceDropdownRef.setValue(this.selectedVoice);
-            this.voiceDropdownRef.onChange(async (val) => {
-                this.selectedVoice = val;
-                if (this.isSessionActive) {
-                    showMessage('Reiniciando sesión para aplicar nueva voz...');
-                    await this.stopSession();
-                    await this.startSession();
-                }
-            });
-
-            // Temperature Slider
-            const tempContainer = configRow.createDiv();
-            tempContainer.style.display = 'flex';
-            tempContainer.style.alignItems = 'center';
-            tempContainer.style.gap = '5px';
-
-            tempContainer.createSpan({ text: 'Temp:' });
-            this.tempValLabelRef = tempContainer.createSpan({ text: this.selectedTemperature.toFixed(1) });
-
-            this.tempSliderRef = document.createElement('input');
-            this.tempSliderRef.type = 'range';
-            this.tempSliderRef.min = '0';
-            this.tempSliderRef.max = '2';
-            this.tempSliderRef.step = '0.1';
-            this.tempSliderRef.value = this.selectedTemperature.toString();
-            this.tempSliderRef.style.width = '80px';
-
-            this.tempSliderRef.addEventListener('change', async (e) => {
-                const val = parseFloat((e.target as HTMLInputElement).value);
-                this.selectedTemperature = val;
-                if (this.tempValLabelRef) this.tempValLabelRef.textContent = val.toFixed(1);
-                if (this.isSessionActive) {
-                    showMessage('Reiniciando sesión para aplicar temperatura...');
-                    await this.stopSession();
-                    await this.startSession();
-                }
-            });
-            // Update label while dragging
-            this.tempSliderRef.addEventListener('input', (e) => {
-                if (this.tempValLabelRef) this.tempValLabelRef.textContent = parseFloat((e.target as HTMLInputElement).value).toFixed(1);
-            });
-
-            tempContainer.appendChild(this.tempSliderRef);
-
-            // Evaluation Button (Moved to Advanced)
-            if (roles.length > 0) {
-                const buttonContainer = advancedContent.createDiv();
-                new ButtonComponent(buttonContainer)
-                    .setButtonText('Eval Headers')
-                    .setTooltip('Batchevaluation of headers')
-                    .onClick(async () => {
-                        if (!this.selectedRoleEvaluationPrompt) {
-                            showMessage('Current role has no !!evaluationPrompt defined.');
-                            return;
-                        }
-                        await this.evaluateHeaders();
-                    });
-
-                new ButtonComponent(buttonContainer)
-                    .setButtonText('Generate Header Metadata')
-                    .setTooltip('Assign Block IDs and create metadata structure for headers')
-                    .onClick(async () => {
-                        new GenerateHeaderMetadataCommand(this.app).execute();
-                    });
-            }
+        // Load Roles
+        if (this.rolesManager) {
+            this.availableRoles = await this.rolesManager.loadRoles();
         }
 
-        // --- Main Interface (Hidden if no role) ---
-        if (!this.selectedRolePrompt) {
+        // Initialize Defaults if needed
+        if (this.availableRoles.length > 0 && !this.selectedRolePrompt) {
+            // Only auto-select if no selection (e.g. first load)
+            const firstRole = this.availableRoles[0];
+            this.applyRoleSettings(firstRole);
+        }
+
+        const mainInterface = this.contentContainer.createDiv();
+
+        // 1. Roles Component
+        this.rolesComponent = new RolesComponent(this.contentContainer);
+        this.rolesComponent.render({
+            roles: this.availableRoles,
+            selectedRolePrompt: this.selectedRolePrompt,
+            selectedVoice: this.selectedVoice,
+            selectedTemperature: this.selectedTemperature,
+            isSessionActive: this.isSessionActive,
+            onRoleChange: (val) => this.handleRoleChange(val),
+            onVoiceChange: async (val) => {
+                this.selectedVoice = val;
+                if (this.isSessionActive) await this.restartSession('voice update');
+            },
+            onTemperatureChange: async (val) => {
+                this.selectedTemperature = val;
+                if (this.isSessionActive) await this.restartSession('temperature update');
+            },
+            onEvalHeaders: () => this.evaluateHeaders(),
+            onGenerateMetadata: () => new GenerateHeaderMetadataCommand(this.app).execute()
+        });
+
+        // Toggle visibility of main interface based on role selection
+        if (!this.selectedRolePrompt && this.availableRoles.length > 0) {
+            // If we have roles but none selected, maybe hide? 
+            // Logic in original: "Main Interface (Hidden if no role)"
+            // But we just rendered RolesComponent, which IS inside contentContainer.
+            // But the REST should be hidden.
+            // Let's hide mainInterface.
+        } else if (this.availableRoles.length > 0 && !this.selectedRolePrompt) {
             mainInterface.style.display = 'none';
         }
 
-        // 1. Status
-        this.statusEl = mainInterface.createEl('div', {
-            text: this.isSessionActive ? '🔴 Live - Listening' : 'Ready to connect',
-            cls: 'gemini-live-status'
-        });
-        this.statusEl.style.marginBottom = '20px';
-        this.statusEl.style.color = this.isSessionActive ? 'var(--color-red)' : 'var(--text-muted)';
+        // 2. Status & Controls Component
+        // We put status first
+        this.sessionControlsComponent = new SessionControlsComponent(mainInterface, () => this.handleStartStop());
+        this.sessionControlsComponent.updateStatus(this.isSessionActive);
 
-
-        // 2. Quiz Section
-        const quizContainer = mainInterface.createDiv({ cls: 'gemini-quiz-container' });
-        quizContainer.style.marginBottom = '20px';
-        quizContainer.style.padding = '10px';
-        quizContainer.style.border = '1px solid var(--background-modifier-border)';
-        quizContainer.style.borderRadius = '4px';
-
-        quizContainer.createEl('h4', { text: 'Quiz Mode' });
-        quizContainer.querySelector('h4')!.style.marginTop = '0';
-
-        const quizControls = quizContainer.createDiv();
-        quizControls.style.display = 'flex';
-        quizControls.style.gap = '10px';
-        quizControls.style.alignItems = 'center';
-        quizControls.style.flexWrap = 'wrap';
-
-        // Star Level Dropdown
-        quizControls.createSpan({ text: 'Relevancia:' });
-        const importanceDropdown = new DropdownComponent(quizControls);
-        ['1', '2', '3', '4', '5'].forEach(level => importanceDropdown.addOption(level, `⭐`.repeat(Number(level))));
-        importanceDropdown.setValue(this.selectedStarLevel);
-        importanceDropdown.onChange(async (val) => {
-            this.selectedStarLevel = val;
-            console.log('Selected Star Level:', this.selectedStarLevel);
-            // Rebuild queue immediately to show list
-            await this.buildQuizQueue();
+        // 3. Quiz Component
+        this.quizComponent = new QuizComponent(mainInterface);
+        this.quizComponent.render({
+            quizManager: this.quizManager,
+            onStarLevelChange: async (val) => {
+                this.quizManager.selectedStarLevel = val;
+                await this.quizManager.buildQuizQueue();
+                this.quizComponent?.refreshList(this.quizManager, (i) => this.onQuizSelect(i));
+            },
+            onFilterChange: async (val) => {
+                this.quizManager.onlyTitlesWithoutSubtitles = val;
+                await this.quizManager.buildQuizQueue();
+                this.quizComponent?.refreshList(this.quizManager, (i) => this.onQuizSelect(i));
+            },
+            onAskNext: () => this.handleAskNext()
         });
 
-        // "Ask Next" Button
-        new ButtonComponent(quizControls)
-            .setButtonText('Preguntar siguiente')
-            .setTooltip('Start/Continue Quiz for this level')
-            .onClick(async () => {
-                await this.askNextHeader();
-            });
+        // 4. Transcript Component
+        this.transcriptComponent = new TranscriptComponent(mainInterface);
+        // If we have history? We don't persist it for now across renders unless we store it.
+        // LiveSessionView::fullTranscript logic.
+    }
 
-        // "Only titles without subtitles" Checkbox
-        const filterContainer = quizControls.createDiv();
-        filterContainer.style.display = 'flex';
-        filterContainer.style.alignItems = 'center';
-        filterContainer.style.gap = '5px';
+    // --- Logic Handlers ---
 
-        const filterCheckbox = document.createElement('input');
-        filterCheckbox.type = 'checkbox';
-        filterCheckbox.checked = this.onlyTitlesWithoutSubtitles;
-        filterCheckbox.id = 'only-titles-no-subtitles';
-        filterCheckbox.addEventListener('change', async (e) => {
-            this.onlyTitlesWithoutSubtitles = (e.target as HTMLInputElement).checked;
-            // Rebuild queue
-            await this.buildQuizQueue();
-        });
+    private applyRoleSettings(role: Role) {
+        this.selectedRolePrompt = role.prompt;
+        this.selectedRoleEvaluationPrompt = role.evaluationPrompt || '';
+        this.selectedVoice = role.liveVoice || 'Aoede';
+        this.selectedTemperature = role.liveTemperature !== undefined ? role.liveTemperature : 1;
+    }
 
-        const filterLabel = document.createElement('label');
-        filterLabel.htmlFor = 'only-titles-no-subtitles';
-        filterLabel.innerText = 'Solo títulos sin subtítulos';
+    private async handleRoleChange(rolePrompt: string) {
+        this.selectedRolePrompt = rolePrompt;
+        const role = this.availableRoles.find(r => r.prompt === rolePrompt);
 
-        filterContainer.appendChild(filterCheckbox);
-        filterContainer.appendChild(filterLabel);
+        let shouldRestart = this.isSessionActive;
 
-        // Quiz Status Label
-        this.quizStatusEl = quizContainer.createDiv({ cls: 'gemini-quiz-status' });
-        this.quizStatusEl.style.marginTop = '15px';
-        this.quizStatusEl.style.padding = '10px';
-        this.quizStatusEl.style.backgroundColor = 'var(--background-secondary)';
-        this.quizStatusEl.style.borderRadius = '4px';
-        this.quizStatusEl.style.fontSize = '1.1em';
-        this.quizStatusEl.style.fontWeight = 'bold';
-        this.quizStatusEl.style.color = 'var(--text-normal)';
-        this.quizStatusEl.style.borderLeft = '4px solid var(--text-accent)';
-        this.quizStatusEl.innerText = this.currentQuizStatusText;
+        if (role) {
+            this.applyRoleSettings(role);
+        } else {
+            this.selectedRolePrompt = '';
+        }
 
-        // 2b. Quiz List
-        this.quizListContainer = quizContainer.createDiv({ cls: 'gemini-quiz-list' });
-        this.quizListContainer.style.marginTop = '10px';
-        this.quizListContainer.style.maxHeight = '200px';
-        this.quizListContainer.style.overflowY = 'auto';
-        this.quizListContainer.style.border = '1px solid var(--background-modifier-border)';
-        this.quizListContainer.style.borderRadius = '4px';
-        this.quizListContainer.style.padding = '5px';
-        this.quizListContainer.style.display = 'none'; // Hidden by default until populated
+        await this.renderContent();
 
+        if (shouldRestart) {
+            await this.restartSession('role change');
+        } else if (role) {
+            showMessage(`Role applied: ${role.name}`);
+        }
+    }
 
-        // 3. Transcript Area
-        this.transcriptContainer = mainInterface.createDiv({ cls: 'gemini-live-transcript' });
-        this.transcriptContainer.style.height = '300px';
-        this.transcriptContainer.style.overflowY = 'auto';
-        this.transcriptContainer.style.border = '1px solid var(--background-modifier-border)';
-        this.transcriptContainer.style.padding = '10px';
-        this.transcriptContainer.style.marginBottom = '20px';
-        this.transcriptContainer.style.borderRadius = '4px';
-        this.transcriptContainer.style.backgroundColor = 'var(--background-primary)';
-        const placeholder = this.transcriptContainer.createEl('span', { text: 'Transcription will appear here...', cls: 'transcript-placeholder' });
-        placeholder.style.color = 'var(--text-muted)';
-        placeholder.style.fontStyle = 'italic';
-
-
-        // 4. Session Controls
-        const controls = mainInterface.createEl('div', { cls: 'gemini-live-controls' });
-
-        this.sessionBtn = new ButtonComponent(controls)
-            .setButtonText(this.isSessionActive ? 'Stop Session' : 'Start Session')
-            .setCta()
-            .onClick(async () => {
-                if (this.isSessionActive) {
-                    await this.stopSession();
-                } else {
-                    await this.startSession();
-                }
-            });
-
+    private async handleStartStop() {
         if (this.isSessionActive) {
-            this.sessionBtn.setWarning();
+            await this.stopSession();
+        } else {
+            await this.startSession();
         }
     }
 
-
-
-    private async evaluateHeaders() {
-        if (!this.plugin) return;
-
-        const activeFile = this.app.workspace.getActiveFile();
-        if (!activeFile || activeFile.extension !== 'md') {
-            showMessage('Please open a markdown file first.');
-            return;
-        }
-
-        showMessage('Starting header evaluation...');
-
-        // Use MetadataService to get or create block IDs is a bit complex since it's inside a Command usually.
-        // We can reuse the GenerateHeaderMetadataCommand logic or move it to a service.
-        // For now, let's look at how to get headers.
-        const cache = this.app.metadataCache.getFileCache(activeFile);
-        if (!cache || !cache.headings) {
-            showMessage('No headings found.');
-            return;
-        }
-
-        const content = await this.app.vault.read(activeFile);
-        const lines = content.split('\n');
-
-        // Helper to extract text between current header and next header
-        // This is a naive implementation; for robust parsing one might need more.
-
-        let processedCount = 0;
-
-        for (let i = 0; i < cache.headings.length; i++) {
-            const heading = cache.headings[i];
-            const startLine = heading.position.start.line;
-            // determine end line (next heading or end of file)
-            let endLine = lines.length;
-            if (i < cache.headings.length - 1) {
-                endLine = cache.headings[i + 1].position.start.line;
-            }
-
-            // Extract content for this section
-            const sectionLines = lines.slice(startLine + 1, endLine); // +1 to skip the heading itself? Or include it?
-            // User said: "envie el contenido de cada titulo (subtitulos incluidos)"
-            // Usually this means the text under the header.
-            // Let's include the header text itself in the prompt context.
-            const sectionText = heading.heading + '\n' + sectionLines.join('\n');
-
-            // Construct Prompt
-            // "al evaluationPrompt, añadele como prompt de sistema, lo necesario para que devuelve un json..."
-            const finalPrompt = `${this.selectedRoleEvaluationPrompt}
-            
-            Analyze the following text section:
-            "${sectionText}"
-            
-            RETURN JSON ONLY:
-            {
-              "difficulty": <integer 1-3> (1=Baja/Facil, 2=Media, 3=Alta/Dificil),
-              "importance": <integer 1-5>
-            }
-            `;
-
-            try {
-                const result = await this.plugin.llm.requestJson({ prompt: finalPrompt });
-                if (result && typeof result.difficulty === 'number' && typeof result.importance === 'number') {
-                    // Update Metadata
-                    // We need the Block ID.
-                    // using MetadataService to ensure ID exists might modify the file lines...
-                    // which invalidates our current 'lines' array and 'cache' positions if we aren't careful.
-                    // SAFEST STRATEGY: Ensure block IDs first for ALL headers, then save file, THEN process.
-
-                    // BUT, to avoid too much refactor, let's just try to read the Block ID if it exists.
-                    // If it doesn't exist, we skip or we default?
-                    // The request implies updating metadata. Metadata is stored by Block ID in the JSON sidecar.
-                    // So we MUST have a block ID.
-
-                    // Let's try to extract ID from the heading line in 'lines' array.
-                    const headingLine = lines[startLine];
-                    const idMatch = headingLine.match(/\^([a-zA-Z0-9-]+)$/);
-                    let blockId = idMatch ? idMatch[1] : null;
-
-                    if (!blockId) {
-                        // If we want to support adding IDs on the fly, we need to modify the file.
-                        // For this first iteration, let's assume `Generate Header Metadata` command was run
-                        // or just Log a warning. 
-                        // Actually, let's try to use the MetadataService if possible, or just generate one and update the file LATER? 
-                        // Updating file shifts lines.
-
-                        console.warn(`Skipping header "${heading.heading}" - No Block ID found. Run 'Generate Header Metadata' first.`);
-                        continue;
-                    }
-
-                    // Update JSON
-                    // Since we don't have direct access to MetadataService instance here easily without newing it up:
-                    const metaService = new MetadataService(this.app);
-                    await metaService.updateBlockMetadata(activeFile, blockId, {
-                        difficulty: result.difficulty,
-                        importance: result.importance
-                    });
-
-                    processedCount++;
-                    showMessage(`Evaluated: ${heading.heading} (d:${result.difficulty}, i:${result.importance})`);
-
-                }
-            } catch (e) {
-                console.error('Error evaluating header', e);
-            }
-        }
-
-        showMessage(`Evaluation complete. Processed ${processedCount} headers.`);
-    }
-
-    private async loadRoles(): Promise<{ name: string, prompt: string, trackLevelAnswer: boolean, evaluationPrompt?: string, liveVoice?: string, liveTemperature?: number }[]> {
-        if (!this.plugin || !this.plugin.settings.geminiRolesFolder) return [];
-
-        const folderPath = this.plugin.settings.geminiRolesFolder;
-        const folder = this.app.vault.getAbstractFileByPath(folderPath);
-
-        if (!folder || !(folder instanceof TFolder)) {
-            return [];
-        }
-
-        const roles: { name: string, prompt: string, trackLevelAnswer: boolean, evaluationPrompt?: string, liveVoice?: string, liveTemperature?: number }[] = [];
-
-        for (const child of folder.children) {
-            if (child instanceof TFile && child.extension === 'md') {
-                const cache = this.app.metadataCache.getFileCache(child);
-                const prompt = cache?.frontmatter?.['!!prompt'];
-                const evaluationPrompt = cache?.frontmatter?.['!!evaluationPrompt'];
-                const trackLevelRaw = cache?.frontmatter?.['!!trackLevelAnswer'];
-                const trackLevel = trackLevelRaw === true || trackLevelRaw === 'true';
-
-                // Read new params
-                const liveVoice = cache?.frontmatter?.['!!liveVoice'];
-                const liveTemperature = cache?.frontmatter?.['!!liveTemperature'];
-
-                if (prompt && typeof prompt === 'string') {
-                    roles.push({
-                        name: child.basename,
-                        prompt: prompt,
-                        trackLevelAnswer: trackLevel,
-                        evaluationPrompt: typeof evaluationPrompt === 'string' ? evaluationPrompt : undefined,
-                        liveVoice: typeof liveVoice === 'string' ? liveVoice : undefined,
-                        liveTemperature: typeof liveTemperature === 'number' ? liveTemperature : undefined
-                    });
-                }
-            }
-        }
-
-        return roles;
-    }
-
-    async onClose() {
+    private async restartSession(reason: string) {
+        showMessage(`Restarting session for ${reason}...`);
         await this.stopSession();
+        await this.startSession();
     }
 
     private async startSession() {
@@ -580,209 +234,63 @@ export class LiveSessionView extends ItemView {
             return;
         }
 
-        this.updateStatus('Connecting...', 'var(--text-normal)');
-
-        // Clear placeholder when starting
-        if (this.transcriptContainer) {
-            const placeholder = this.transcriptContainer.querySelector('.transcript-placeholder');
-            if (placeholder) placeholder.remove();
-
-            // Should we clear previous transcript? Yes, usually a new session.
-            this.transcriptContainer.empty();
-            this.fullTranscript = '';
-        }
+        this.sessionControlsComponent?.updateStatus(false, 'Connecting...', 'var(--text-normal)');
+        this.transcriptComponent?.startSession();
 
         let context = '';
         const activeFile = this.app.workspace.getActiveFile();
         if (activeFile instanceof TFile) {
             try {
                 const mainContent = await this.app.vault.read(activeFile);
-                context = mainContent;
+                context = mainContent; // We might want to just load basics?
+                // Original logic: Load active file + Linked notes
                 showMessage(`Context loaded from: ${activeFile.basename}`);
 
-                // --- Load Linked Notes Content ---
-                const linkedContent = await this.getLinkedFileContent(activeFile);
+                const linkedContent = await this.contextManager.getLinkedFileContent(activeFile);
                 if (linkedContent) {
                     context += `\n\n--- CONTENIDO DE NOTAS RELACIONADAS ---\n${linkedContent}`;
                     showMessage(`Loaded content from linked notes.`);
                 }
-
             } catch (e) {
                 console.error('Failed to read active file', e);
             }
         }
 
-        // Check if current selected role has tracking enabled
-        const roles = await this.loadRoles();
-        const currentRole = roles.find(r => r.prompt === this.selectedRolePrompt);
+        // Role config
+        const currentRole = this.availableRoles.find(r => r.prompt === this.selectedRolePrompt);
         const enableScoreTracking = currentRole?.trackLevelAnswer || false;
 
         this.adapter = new GoogleGeminiLiveAdapter(
             this.apiKey,
             (text) => {
-                this.handleTranscription(text);
+                this.transcriptComponent?.appendUserText(text);
             },
             async (score) => {
                 console.log('LiveSessionView: Received score:', score);
                 await this.sessionLogger.logScore(score);
                 showMessage(`💡 Nota: ${score}`);
+                this.transcriptComponent?.appendScore(score);
 
-                // --- Update Metadata Logic ---
-                if (this.quizQueue.length > 0) {
-                    const currentItem = this.quizQueue[this.currentQuizIndex];
-                    if (currentItem && currentItem.blockId) {
-                        const activeFile = this.app.workspace.getActiveFile();
-                        if (activeFile instanceof TFile && activeFile.extension === 'md') {
-                            try {
-                                const metaService = new MetadataService(this.app);
-                                const fileMetadata = await metaService.getFileMetadata(activeFile);
-                                const currentMeta = fileMetadata[currentItem.blockId];
-                                const oldScore = currentMeta?.score || 0;
-
-                                let finalScore = score;
-                                if (oldScore > 0) {
-                                    // Average
-                                    finalScore = (oldScore + score) / 2;
-                                    // Round to 1 decimal? User didn't specify, but scores are usually integers 0-10 or floats.
-                                    // Let's keep one decimal if needed.
-                                    finalScore = Math.round(finalScore * 10) / 10;
-                                }
-
-                                await metaService.updateBlockMetadata(activeFile, currentItem.blockId, {
-                                    score: finalScore
-                                });
-                                showMessage(`Score updated: ${oldScore} -> ${finalScore}`);
-
-                                // Refresh the active view to update markers
-                                const view = this.app.workspace.getActiveViewOfType(MarkdownView);
-                                if (view && view.file === activeFile) {
-                                    // Force full rerender for Reading View
-                                    view.previewMode.rerender(true);
-
-                                    // For Live Preview, we might need to trigger an editor update or similar.
-                                    // Sometimes rerender(true) handles both if the view logic is unified.
-                                    // If not, we can try to trigger a metadata update event.
-                                    // this.app.metadataCache.trigger('resolve', activeFile); 
-                                }
-                            } catch (e) {
-                                console.error('Error updating score metadata', e);
-                            }
-                        }
-                    }
-                }
-
-                if (this.transcriptContainer) {
-                    const scoreEl = this.transcriptContainer.createEl('div', {
-                        text: `🌟 Nota: ${score}`,
-                        cls: 'gemini-score-flag'
-                    });
-                    // Force high visibility styles
-                    scoreEl.style.color = 'gold'; // Hardcoded for visibility test
-                    scoreEl.style.backgroundColor = '#333'; // Contrast background
-                    scoreEl.style.fontSize = '1.5em';
-                    scoreEl.style.fontWeight = 'bold';
-                    scoreEl.style.marginTop = '15px';
-                    scoreEl.style.marginBottom = '15px';
-                    scoreEl.style.border = '2px solid gold';
-                    scoreEl.style.padding = '10px';
-                    scoreEl.style.textAlign = 'center';
-                    scoreEl.style.borderRadius = '8px';
-
-                    console.log('LiveSessionView: Appended score element. Container HTML length:', this.transcriptContainer.innerHTML.length);
-
-                    // Auto-scroll
-                    scoreEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
-
-                    // Add score to transcript
-                    this.fullTranscript += `\n\n[SCORE: ${score}]\n\n`;
-                } else {
-                    console.error('LiveSessionView: Transcript container is missing!');
-                }
-
-                // QUIZ AUTO-ADVANCE
-                if (this.quizQueue.length > 0) {
-                    // We just finished this item.
-                    // The requirement: "Cuando Live haya evaluado la respuesta... se busca el siguiente titulo"
-                    // this.currentQuizIndex++;
-
-                    // Small delay to let the user see the score? 
-                    // Or instant? Let's do instant or 2 seconds.
-                    // setTimeout(() => {
-                    //     this.askNextHeader();
-                    // }, 2000);
-                }
+                // Update Metadata
+                await this.handleScoreUpdate(score);
             }
         );
 
-        // const activeNoteContext = `Contexto de la nota activa:\n${this.cleanContext(context)}`;
-        // Prepend role prompt if selected
         const systemInstruction = this.selectedRolePrompt;
-        //? `${this.selectedRolePrompt}\n\n${activeNoteContext}`
-        //: activeNoteContext;
-
         const success = await this.adapter.connect(systemInstruction, enableScoreTracking, this.selectedVoice, this.selectedTemperature);
 
         if (success) {
             this.isSessionActive = true;
             this.sessionStartTime = new Date();
             await this.sessionLogger.logStart(this.sessionStartTime);
-            this.updateStatus('🔴 Live - Listening', 'var(--color-red)');
-
-            if (this.sessionBtn) {
-                this.sessionBtn.setButtonText('Stop Session');
-                this.sessionBtn.removeCta();
-                this.sessionBtn.setWarning();
-            }
+            this.sessionControlsComponent?.updateStatus(true);
 
             showMessage('Live Connected');
-            if (enableScoreTracking) {
-                showMessage('Answer scoring enabled.');
-            }
-
-            /* Subscribe to active leaf changes
-            this.activeLeafEvent = this.app.workspace.on('active-leaf-change', async (leaf) => {
-                if (!this.isSessionActive || !this.adapter) return;
-
-                const file = this.app.workspace.getActiveFile();
-                if (file instanceof TFile && file.extension === 'md') {
-                    try {
-                        const newContext = await this.app.vault.read(file);
-                        this.adapter.sendContextUpdate(file.basename, this.cleanContext(newContext));
-                        showMessage(`Context updated: ${file.basename}`);
-                    } catch (e) {
-                        console.error('Error reading file for context update', e);
-                    }
-                }
-            });
-            this.registerEvent(this.activeLeafEvent);
-            */
+            if (enableScoreTracking) showMessage('Answer scoring enabled.');
         } else {
-            this.updateStatus('Connection Failed', 'var(--text-error)');
+            this.sessionControlsComponent?.updateStatus(false, 'Connection Failed', 'var(--text-error)');
             this.adapter = null;
         }
-    }
-
-    private cleanContext(text: string): string {
-        // Removes Obsidian block IDs (e.g., ^exiezi) from the end of lines
-        return text.replace(/\s+\^[a-zA-Z0-9-]+$/gm, '');
-    }
-
-    private handleTranscription(text: string) {
-        if (!this.transcriptContainer) return;
-
-        // Simple append for now. Could be fancier with roles but Live usually just streams text chunks.
-        // We might want to deduplicate or handle markdown, but simple text streaming is a good start.
-        // To make it look like "streaming", we just append span or text node.
-
-        // Check if we need to add a newline? The chunks might be partial words.
-        // Just appending as text node preserves flow.
-        this.transcriptContainer.createSpan({ text: text });
-
-        // Auto-scroll
-        this.transcriptContainer.scrollTop = this.transcriptContainer.scrollHeight;
-
-        // Accumulate full transcript
-        this.fullTranscript += text;
     }
 
     private async stopSession() {
@@ -793,368 +301,168 @@ export class LiveSessionView extends ItemView {
             this.sessionStartTime = null;
         }
 
-        if (this.activeLeafEvent) {
-            this.app.workspace.offref(this.activeLeafEvent);
-            this.activeLeafEvent = null;
-        }
-
         if (this.adapter) {
             this.adapter.disconnect();
             this.adapter = null;
         }
         this.isSessionActive = false;
-        this.updateStatus('Session Ended', 'var(--text-muted)');
-
-        if (this.sessionBtn) {
-            this.sessionBtn.setButtonText('Start Session');
-            this.sessionBtn.buttonEl.removeClass('mod-warning');
-            this.sessionBtn.setCta();
-        }
+        this.sessionControlsComponent?.updateStatus(false, 'Session Ended', 'var(--text-muted)');
     }
 
-    private updateStatus(text: string, color: string) {
-        if (this.statusEl) {
-            this.statusEl.textContent = text;
-            this.statusEl.style.color = color;
-        }
-    }
+    // --- Quiz Logic Integration ---
 
-    private async getLinkedFileContent(sourceFile: TFile, range?: { start: number, end: number }): Promise<string> {
-        const cache = this.app.metadataCache.getFileCache(sourceFile);
-        if (!cache) return '';
-
-        let linksToProcess: (LinkCache | FrontmatterLinkCache)[] = [];
-
-        if (range) {
-            // If range is specified, only include links within that range.
-            if (cache.links) {
-                linksToProcess = cache.links.filter(l =>
-                    l.position.start.line >= range.start &&
-                    l.position.start.line < range.end
-                );
-            }
-        } else {
-            // No range? Include everything.
-            if (cache.links) linksToProcess.push(...cache.links);
-            if (cache.frontmatterLinks) linksToProcess.push(...cache.frontmatterLinks);
-        }
-
-        if (linksToProcess.length === 0) return '';
-
-        console.log(`LiveSessionView: Found ${linksToProcess.length} links in ${sourceFile.basename}`);
-
-        let linkedContext = '';
-        const processedFiles = new Set<string>();
-
-        for (const link of linksToProcess) {
-            const fullLinkPath = link.link;
-
-            // Generate clean path part by removing #header or ^blockId
-            let linkPathPart = fullLinkPath;
-            let headerName: string | undefined = undefined;
-
-            // Check for anchors
-            const hashIndex = fullLinkPath.indexOf('#');
-            const caretIndex = fullLinkPath.indexOf('^');
-
-            // We only care about file path and potentially the header (#).
-            // We do not currently support extracting specific blocks (^).
-            // If ^ is present, we resolve the file and read the whole file (or header if mixed).
-
-            if (hashIndex !== -1) {
-                // Has header
-                linkPathPart = fullLinkPath.substring(0, hashIndex);
-                // Extract header (handling edge case if ^ follows #)
-                const endOfHeader = caretIndex > hashIndex ? caretIndex : fullLinkPath.length;
-                headerName = fullLinkPath.substring(hashIndex + 1, endOfHeader);
-            } else if (caretIndex !== -1) {
-                // Has block ID only
-                linkPathPart = fullLinkPath.substring(0, caretIndex);
-            }
-
-            // Resolve file from the path part
-            const linkFile = this.app.metadataCache.getFirstLinkpathDest(linkPathPart, sourceFile.path);
-
-            if (linkFile instanceof TFile && linkFile.extension === 'md') {
-                // Create a unique key for "File + Header" to allow linking different sections
-                const uniqueKey = linkFile.path + (headerName ? `:${headerName}` : '');
-
-                if (!processedFiles.has(uniqueKey)) {
-                    processedFiles.add(uniqueKey);
-                    try {
-                        let content = '';
-                        let displayTitle = linkFile.basename;
-
-                        if (headerName) {
-                            // Extract specific header content
-                            content = await this.getSectionContent(linkFile, headerName);
-                            displayTitle += ` > ${headerName}`;
-                        } else {
-                            // Default: read entire file
-                            content = await this.app.vault.read(linkFile);
-                        }
-
-                        if (content) {
-                            console.log(`LiveSessionView: Added content from ${displayTitle}`);
-                            linkedContext += `\n\n--- Nota Vinculada: [[${displayTitle}]] ---\n${this.cleanContext(content)}`;
-                        }
-                    } catch (e) {
-                        console.error(`Failed to read linked file: ${linkFile.path}`, e);
-                    }
-                }
-            } else {
-                console.warn(`LiveSessionView: Could not resolve link: ${fullLinkPath} (PathPart: ${linkPathPart})`);
-            }
-        }
-
-        return linkedContext;
-    }
-
-    private async getSectionContent(file: TFile, headerName: string): Promise<string> {
-        const cache = this.app.metadataCache.getFileCache(file);
-        if (!cache || !cache.headings) return '';
-
-        const targetHeading = cache.headings.find(h => h.heading === headerName);
-        if (!targetHeading) return '';
-
-        const content = await this.app.vault.read(file);
-        const lines = content.split('\n');
-
-        const startLine = targetHeading.position.start.line;
-        let endLine = lines.length;
-
-        // Find the next heading that is at the same level or higher (numerically lower level)
-        for (let i = cache.headings.indexOf(targetHeading) + 1; i < cache.headings.length; i++) {
-            const h = cache.headings[i];
-            if (h.level <= targetHeading.level) {
-                endLine = h.position.start.line;
-                break;
-            }
-        }
-
-        return lines.slice(startLine, endLine).join('\n');
-    }
-
-    // --- Quiz Logic ---
-
-    private async buildQuizQueue(): Promise<boolean> {
-        const activeFile = this.app.workspace.getActiveFile();
-        if (!activeFile || activeFile.extension !== 'md') {
-            showMessage('Open a markdown file to start quiz.');
-            return false;
-        }
-
-        const content = await this.app.vault.read(activeFile);
-        const lines = content.split('\n');
-
-        // Use MetadataService to get sidecar data
-        const metaService = new MetadataService(this.app);
-        const metadata = await metaService.getFileMetadata(activeFile);
-
-        const queue: { heading: string, blockId: string, text: string, range: { start: number, end: number } }[] = [];
-        const requiredLevel = parseInt(this.selectedStarLevel) || 1;
-
-        // Naive header parsing similar to evaluateHeaders
-        // Iterate lines
-        for (let i = 0; i < lines.length; i++) {
-            const line = lines[i];
-            const headerMatch = line.match(/^(#{1,6})\s+(.*)/);
-            if (headerMatch) {
-                const headingText = headerMatch[2].trim(); // Raw text often contains block ID? 
-                // Actually regex above captures everything. 
-                // We should separate blockId if present
-
-                // Check block ID
-                const idMatch = line.match(/\^([a-zA-Z0-9-]+)$/);
-                const blockId = idMatch ? idMatch[1] : null;
-
-                if (blockId && metadata[blockId]) {
-                    const importance = metadata[blockId].importance;
-                    if (typeof importance === 'number' && ScoreUtils.normalizeImportance(importance) >= requiredLevel) {
-
-                        // Check for children if "onlyTitlesWithoutSubtitles" is enabled
-                        const currentHeaderLevelMatch = line.match(/^(#{1,6})\s+/);
-                        const currentHeaderLevel = currentHeaderLevelMatch ? currentHeaderLevelMatch[1].length : 0;
-                        let hasChildren = false;
-
-                        // Peek at following lines to see if there is a header with higher level (more #'s) immediately following logic
-                        // (until the next header of same or lower level)
-                        // Actually, we just need to see if the NEXT header in the file is a child.
-                        // We are iterating lines. 
-
-                        let endLine = lines.length;
-                        for (let j = i + 1; j < lines.length; j++) {
-                            const nextHeaderMatch = lines[j].match(/^(#{1,6})\s+/);
-                            if (nextHeaderMatch) {
-                                const nextHeaderLevel = nextHeaderMatch[1].length;
-                                if (nextHeaderLevel > currentHeaderLevel) {
-                                    hasChildren = true;
-                                }
-                                // If we find a header, that's the end of THIS section regardless of level (unless it is a child, but we just want the text range)
-                                // Actually, `endLine` for section text usually stops at ANY next header.
-                                endLine = j;
-                                break;
-                            }
-                        }
-
-                        if (this.onlyTitlesWithoutSubtitles && hasChildren) {
-                            continue; // Skip this header
-                        }
-
-                        const sectionContent = lines.slice(i, endLine).join('\n');
-                        queue.push({
-                            heading: headingText.replace(/\^([a-zA-Z0-9-]+)$/, '').trim(),
-                            blockId: blockId,
-                            text: sectionContent,
-                            range: { start: i, end: endLine }
-                        });
-                    }
-                }
-            }
-        }
-
-
-        this.quizQueue = queue;
-        this.currentQuizIndex = 0;
-
-        this.renderQuizQueue();
-
-        if (this.quizQueue.length === 0) {
-            showMessage(`No headers found with Importance >= ${requiredLevel}`);
-            this.updateQuizStatus('No matching headers found.');
-            return false;
-        }
-
-        showMessage(`Quiz Queue: ${this.quizQueue.length} headers found.`);
-        this.updateQuizStatus(`Lista actualizada: ${this.quizQueue.length} temas.`);
-        return true;
-    }
-
-    private renderQuizQueue() {
-        if (!this.quizListContainer) return;
-
-        this.quizListContainer.empty();
-
-        if (this.quizQueue.length === 0) {
-            this.quizListContainer.style.display = 'none';
-            return;
-        }
-
-        this.quizListContainer.style.display = 'block';
-
-        this.quizQueue.forEach((item, index) => {
-            const itemEl = this.quizListContainer!.createDiv({ cls: 'gemini-quiz-item' });
-            itemEl.style.padding = '6px';
-            itemEl.style.cursor = 'pointer';
-            itemEl.style.borderBottom = '1px solid var(--background-modifier-border)';
-            itemEl.style.display = 'flex';
-            itemEl.style.justifyContent = 'space-between';
-            itemEl.style.alignItems = 'center';
-            itemEl.style.fontSize = '0.9em';
-
-            if (index === this.currentQuizIndex) {
-                itemEl.style.backgroundColor = 'var(--interactive-accent)';
-                itemEl.style.color = 'var(--text-on-accent)';
-            } else {
-                itemEl.addEventListener('mouseenter', () => {
-                    itemEl.style.backgroundColor = 'var(--background-modifier-hover)';
-                });
-                itemEl.addEventListener('mouseleave', () => {
-                    itemEl.style.backgroundColor = 'transparent';
-                });
-            }
-
-            const textEl = itemEl.createSpan({ text: `${index + 1}. ${item.heading}` });
-            textEl.style.overflow = 'hidden';
-            textEl.style.textOverflow = 'ellipsis';
-            textEl.style.whiteSpace = 'nowrap';
-            textEl.style.flex = '1';
-
-            itemEl.addEventListener('click', async () => {
-                this.currentQuizIndex = index;
-                this.renderQuizQueue(); // Re-render to update highlight
-                await this.askNextHeader();
-            });
-        });
-    }
-
-    private async askNextHeader() {
+    private async handleAskNext() {
         if (!this.isSessionActive) {
             showMessage('Starting session...');
             await this.startSession();
-            // Wait a small moment for connection? startSession is async so it should be connected if it returns.
-            if (!this.isSessionActive) return; // Connection failed
+            if (!this.isSessionActive) return;
         }
 
         // If queue empty or finished, try to build/rebuild
-        if (this.quizQueue.length === 0 || this.currentQuizIndex >= this.quizQueue.length) {
-            // Only rebuild if empty. If finished, maybe reset?
-            if (this.currentQuizIndex > 0 && this.currentQuizIndex >= this.quizQueue.length) {
-                // Already finished
-                this.updateQuizStatus('Nivel completado 🎉');
+        if (this.quizManager.queue.length === 0 || !this.quizManager.hasNext()) {
+            // Try to build
+            // If manual "Next" clicked when finished, maybe reset index?
+            if (this.quizManager.queue.length > 0 && !this.quizManager.hasNext()) {
+                this.quizComponent?.setStatusText('Nivel completado 🎉');
                 return;
             }
 
-            const success = await this.buildQuizQueue();
+            const success = await this.quizManager.buildQuizQueue();
             if (!success) return;
+            this.quizComponent?.refreshList(this.quizManager, (i) => this.onQuizSelect(i));
         }
 
-        // Check again (paranoia)
-        if (this.currentQuizIndex >= this.quizQueue.length) {
-            this.updateQuizStatus('Nivel completado 🎉');
+        if (!this.quizManager.hasNext()) {
+            this.quizComponent?.setStatusText('Nivel completado 🎉');
             return;
         }
 
-        const item = this.quizQueue[this.currentQuizIndex];
+        const item = this.quizManager.getCurrentItem();
+        if (!item) return;
 
         await this.sessionLogger.logQuestion(item.heading);
 
-        const statusText = `Examinando: ${item.heading} (${this.currentQuizIndex + 1}/${this.quizQueue.length})`;
-        this.updateQuizStatus(statusText);
+        const statusText = `Examinando: ${item.heading} (${this.quizManager.currentIndex + 1}/${this.quizManager.queue.length})`;
+        this.quizComponent?.setStatusText(statusText);
+        this.quizComponent?.refreshList(this.quizManager, (i) => this.onQuizSelect(i)); // Highlights current
 
-        // Refresh list highlight
-        this.renderQuizQueue();
-
-        // LOG TO VIDEO-STYLE TRANSCRIPT FOR VISIBILITY
-        if (this.transcriptContainer) {
-            const topicEl = this.transcriptContainer.createEl('div', {
-                text: `📝 PREGUNTA: ${item.heading}`,
-                cls: 'gemini-quiz-topic'
-            });
-            topicEl.style.backgroundColor = 'var(--interactive-accent)';
-            topicEl.style.color = 'var(--text-on-accent)';
-            topicEl.style.padding = '10px';
-            topicEl.style.borderRadius = '8px';
-            topicEl.style.marginTop = '15px';
-            topicEl.style.marginBottom = '15px';
-            topicEl.style.textAlign = 'center';
-            topicEl.style.fontWeight = 'bold';
-
-            topicEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            // Add score to transcript text buffer so it's saved
-            this.fullTranscript += `\n\n[PREGUNTA: ${item.heading}]\n\n`;
-        }
+        this.transcriptComponent?.appendTopic(item.heading);
 
         // Fetch linked content specifically for this section
         const activeFile = this.app.workspace.getActiveFile();
         let sectionLinkedContent = '';
         if (activeFile instanceof TFile) {
-            sectionLinkedContent = await this.getLinkedFileContent(activeFile, item.range);
+            sectionLinkedContent = await this.contextManager.getLinkedFileContent(activeFile, item.range);
         }
 
-        const prompt = `Por favor examina al usuario sobre el siguiente contenido:\n\n${item.text}\n\n${sectionLinkedContent ? `--- INFO ADICIONAL (NOTAS VINCULADAS) ---\n${sectionLinkedContent}` : ''}`;
-
+        const prompt = `Examina al usuario sobre el siguiente contenido:\n\n${item.text}\n\n${sectionLinkedContent ? `--- Temas ---\n${sectionLinkedContent}` : ''}`;
         this.adapter?.sendContextUpdate('Quiz Content', prompt);
-
-        showMessage(`Sent: ${item.heading} (+ ${sectionLinkedContent ? 'links' : 'no links'})`);
 
         showMessage(`Sent: ${item.heading}`);
     }
 
-    private updateQuizStatus(text: string) {
-        this.currentQuizStatusText = text; // Persist
-        if (this.quizStatusEl) {
-            this.quizStatusEl.textContent = text;
+    private async onQuizSelect(index: number) {
+        this.quizManager.currentIndex = index;
+        this.quizComponent?.refreshList(this.quizManager, (i) => this.onQuizSelect(i));
+        await this.handleAskNext();
+    }
+
+    private async handleScoreUpdate(score: number) {
+        // Logic to update metadata if in Quiz Mode
+        const currentItem = this.quizManager.getCurrentItem();
+        if (currentItem && currentItem.blockId) {
+            const activeFile = this.app.workspace.getActiveFile();
+            if (activeFile instanceof TFile && activeFile.extension === 'md') {
+                const metaService = new MetadataService(this.app);
+                const fileMetadata = await metaService.getFileMetadata(activeFile);
+                const currentMeta = fileMetadata[currentItem.blockId];
+                const oldScore = currentMeta?.score || 0;
+
+                let finalScore = score;
+                if (oldScore > 0) {
+                    finalScore = (oldScore + score) / 2;
+                    finalScore = Math.round(finalScore * 10) / 10;
+                }
+
+                await metaService.updateBlockMetadata(activeFile, currentItem.blockId, {
+                    score: finalScore
+                });
+                showMessage(`Score updated: ${oldScore} -> ${finalScore}`);
+
+                // Refresh view using MarkdownView rerender if possible
+                const view = this.app.workspace.getActiveViewOfType(MarkdownView);
+                if (view && view.file === activeFile) {
+                    view.previewMode.rerender(true);
+                }
+            }
         }
+
+        // Advance quiz
+        // "Cuando Live haya evaluado la respuesta... se busca el siguiente titulo"
+        // Original logic was commented out or delayed.
+        // Let's increment index.
+        if (this.quizManager.hasNext()) {
+            // Wait? or just prep for next? 
+            // Ideally we wait for user to say "Next".
+            // But let's move index forward so "Next" button knows where we are.
+            this.quizManager.next();
+            this.quizComponent?.refreshList(this.quizManager, (i) => this.onQuizSelect(i));
+        }
+    }
+
+    private async evaluateHeaders() {
+        if (!this.plugin) return;
+        if (!this.selectedRoleEvaluationPrompt) {
+            showMessage('Current role has no !!evaluationPrompt defined.');
+            return;
+        }
+
+        const activeFile = this.app.workspace.getActiveFile();
+        if (!activeFile || activeFile.extension !== 'md') return;
+
+        showMessage('Starting header evaluation...');
+        const cache = this.app.metadataCache.getFileCache(activeFile);
+        if (!cache || !cache.headings) return;
+
+        const content = await this.app.vault.read(activeFile);
+        const lines = content.split('\n');
+        let processedCount = 0;
+
+        for (let i = 0; i < cache.headings.length; i++) {
+            const heading = cache.headings[i];
+            const startLine = heading.position.start.line;
+            let endLine = lines.length;
+            if (i < cache.headings.length - 1) endLine = cache.headings[i + 1].position.start.line;
+
+            const sectionText = heading.heading + '\n' + lines.slice(startLine + 1, endLine).join('\n');
+            const finalPrompt = `${this.selectedRoleEvaluationPrompt}\nAnalyze:\n"${sectionText}"\nRETURN JSON ONLY: { "difficulty": 1-3, "importance": 1-5 }`;
+
+            try {
+                const result = await this.plugin.llm.requestJson({ prompt: finalPrompt });
+                if (result && typeof result.difficulty === 'number' && typeof result.importance === 'number') {
+                    const idMatch = lines[startLine].match(/\^([a-zA-Z0-9-]+)$/);
+                    let blockId = idMatch ? idMatch[1] : null;
+
+                    if (blockId) {
+                        const metaService = new MetadataService(this.app);
+                        await metaService.updateBlockMetadata(activeFile, blockId, {
+                            difficulty: result.difficulty,
+                            importance: result.importance
+                        });
+                        processedCount++;
+                        showMessage(`Evaluated: ${heading.heading}`);
+                    } else {
+                        console.warn(`Skipping ${heading.heading} - No block ID.`);
+                    }
+                }
+            } catch (e) {
+                console.error('Error evaluating header', e);
+            }
+        }
+        showMessage(`Evaluation complete. Processed ${processedCount} headers.`);
+    }
+
+    async onClose() {
+        await this.stopSession();
     }
 }
