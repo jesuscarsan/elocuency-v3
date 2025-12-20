@@ -112,12 +112,8 @@ export class GoogleGeminiLiveAdapter {
             },
         };
 
-        // Add output_audio_transcription to generation_config manually to ensure typing checks don't block if interface is strict (though using 'any' above helps)
-        // Correct placement for BidiGenerateContentSetup seems to be in the config or tools area? 
-        // Based on Python SDK it usually goes into generation_config.
-        if (setupMsg.setup.generation_config) {
-            (setupMsg.setup.generation_config as any).output_audio_transcription = {};
-        }
+        // Add output_audio_transcription to BidiGenerateContentSetup directly
+        (setupMsg.setup as any).output_audio_transcription = {};
 
         if (enableScoreTracking) {
             console.log("Enabling Score Tracking Tool in Setup");
@@ -229,7 +225,14 @@ export class GoogleGeminiLiveAdapter {
             return;
         }
 
+        // Handle output transcription (subtitles) independently of modelTurn
+        if (serverContent.outputTranscription && serverContent.outputTranscription.text) {
+            console.log("Received Transcription:", serverContent.outputTranscription.text);
+            this.onTextReceived(serverContent.outputTranscription.text);
+        }
+
         const modelTurn = serverContent.modelTurn;
+
         // console.log("Model Turn:", modelTurn);
         if (!modelTurn || !modelTurn.parts) {
             console.log("No modelTurn or parts in message", serverContent);
