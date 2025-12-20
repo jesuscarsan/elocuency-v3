@@ -166,7 +166,7 @@ export class GoogleGeminiLiveAdapter {
                 turn_complete: true
             }
         };
-
+        console.log("Sending Context Update Msg:", JSON.stringify(msg, null, 2));
         this.ws.send(JSON.stringify(msg));
     }
 

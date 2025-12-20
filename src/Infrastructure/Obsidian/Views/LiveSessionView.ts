@@ -76,8 +76,13 @@ export class LiveSessionView extends ItemView {
 
         // Refresh view when it becomes active to pick up setting changes
         this.registerEvent(this.app.workspace.on('active-leaf-change', async (leaf) => {
-            if (leaf && leaf.view.getViewType() === LIVE_SESSION_VIEW_TYPE && leaf.view === this) {
-                await this.renderContent();
+            if (leaf) {
+                if (leaf.view.getViewType() === LIVE_SESSION_VIEW_TYPE && leaf.view === this) {
+                    await this.renderContent();
+                } else if (leaf.view instanceof MarkdownView) {
+                    // When switching to a markdown file, refresh header list based on current filter
+                    await this.buildQuizQueue();
+                }
             }
         }));
     }
@@ -318,10 +323,10 @@ export class LiveSessionView extends ItemView {
 
         // Star Level Dropdown
         quizControls.createSpan({ text: 'Relevancia:' });
-        const starDropdown = new DropdownComponent(quizControls);
-        ['1', '2', '3', '4', '5'].forEach(level => starDropdown.addOption(level, `⭐`.repeat(Number(level))));
-        starDropdown.setValue(this.selectedStarLevel);
-        starDropdown.onChange(async (val) => {
+        const importanceDropdown = new DropdownComponent(quizControls);
+        ['1', '2', '3', '4', '5'].forEach(level => importanceDropdown.addOption(level, `⭐`.repeat(Number(level))));
+        importanceDropdown.setValue(this.selectedStarLevel);
+        importanceDropdown.onChange(async (val) => {
             this.selectedStarLevel = val;
             console.log('Selected Star Level:', this.selectedStarLevel);
             // Rebuild queue immediately to show list
