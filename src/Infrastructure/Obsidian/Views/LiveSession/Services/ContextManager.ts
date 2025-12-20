@@ -12,7 +12,10 @@ export class ContextManager {
         const cache = this.app.metadataCache.getFileCache(file);
         if (!cache || !cache.headings) return '';
 
-        const targetHeading = cache.headings.find(h => h.heading === headerName);
+        const targetHeading = cache.headings.find(h => {
+            const cleanHeading = h.heading.replace(/\s+\^[a-zA-Z0-9-]+$/, '');
+            return cleanHeading === headerName;
+        });
         if (!targetHeading) return '';
 
         const content = await this.app.vault.read(file);

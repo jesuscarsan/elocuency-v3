@@ -100,17 +100,24 @@ export class GoogleGeminiLiveAdapter {
                 model: 'models/gemini-2.0-flash-exp',
                 generation_config: {
                     response_modalities: ["AUDIO"],
-                    temperature: temperature,
                     speech_config: {
                         voice_config: {
                             prebuilt_voice_config: {
                                 voice_name: voice
                             }
                         }
-                    }
+                    },
+                    temperature: temperature,
                 },
             },
         };
+
+        // Add output_audio_transcription to generation_config manually to ensure typing checks don't block if interface is strict (though using 'any' above helps)
+        // Correct placement for BidiGenerateContentSetup seems to be in the config or tools area? 
+        // Based on Python SDK it usually goes into generation_config.
+        if (setupMsg.setup.generation_config) {
+            (setupMsg.setup.generation_config as any).output_audio_transcription = {};
+        }
 
         if (enableScoreTracking) {
             console.log("Enabling Score Tracking Tool in Setup");
@@ -161,7 +168,7 @@ export class GoogleGeminiLiveAdapter {
             client_content: {
                 turns: [{
                     role: 'user',
-                    parts: [{ text: `SYSTEM UPDATE: User switched focus to note '${fileName}'. New content:\n${content}` }]
+                    parts: [{ text: `SYSTEM UPDATE: \n${content}` }]
                 }],
                 turn_complete: true
             }
