@@ -709,11 +709,11 @@ export class LiveSessionView extends ItemView {
             }
         );
 
-        const activeNoteContext = `Contexto de la nota activa:\n${this.cleanContext(context)}`;
+        // const activeNoteContext = `Contexto de la nota activa:\n${this.cleanContext(context)}`;
         // Prepend role prompt if selected
-        const systemInstruction = this.selectedRolePrompt
-            ? `${this.selectedRolePrompt}\n\n${activeNoteContext}`
-            : activeNoteContext;
+        const systemInstruction = this.selectedRolePrompt;
+        //? `${this.selectedRolePrompt}\n\n${activeNoteContext}`
+        //: activeNoteContext;
 
         const success = await this.adapter.connect(systemInstruction, enableScoreTracking, this.selectedVoice, this.selectedTemperature);
 
@@ -805,34 +805,6 @@ export class LiveSessionView extends ItemView {
             this.sessionBtn.buttonEl.removeClass('mod-warning');
             this.sessionBtn.setCta();
         }
-
-        // Optional: add a separator to transcript
-        if (this.transcriptContainer) {
-            this.transcriptContainer.createEl('hr');
-        }
-
-        // Save transcript to file
-        if (this.fullTranscript && this.fullTranscript.trim().length > 0) {
-            await this.saveTranscript();
-        }
-    }
-
-    private async saveTranscript() {
-        const date = new Date();
-        const timestamp = `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}-${date.getDate().toString().padStart(2, '0')} ${date.getHours().toString().padStart(2, '0')}-${date.getMinutes().toString().padStart(2, '0')}-${date.getSeconds().toString().padStart(2, '0')}`;
-        const filename = `Live Session ${timestamp}.md`;
-
-        try {
-            const content = `# Live Session - ${timestamp}\n\n${this.fullTranscript}`;
-            await this.app.vault.create(filename, content);
-            showMessage(`Transcript saved to: ${filename}`);
-        } catch (e) {
-            console.error('Error saving transcript', e);
-            showMessage('Error saving transcript file.');
-        }
-
-        // Reset
-        this.fullTranscript = '';
     }
 
     private updateStatus(text: string, color: string) {
