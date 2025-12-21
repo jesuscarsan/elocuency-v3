@@ -93,7 +93,7 @@ export class GoogleGeminiLiveAdapter {
     disconnect(): void {
         this.isConnected = false;
         this.audioRecorder.stop();
-        this.audioPlayer.clearQueue();
+        this.audioPlayer.close(); // Ensure AudioContext is closed
 
         if (this.ws) {
             this.ws.close();

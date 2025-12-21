@@ -7,8 +7,9 @@ export class AudioPlayer {
 
     constructor(onStateChange?: (isPlaying: boolean) => void) {
         this.onStateChange = onStateChange || (() => { });
-        // Gemini output typically defaults to 24000Hz
-        this.audioContext = new AudioContext({ sampleRate: 24000 });
+        // Gemini output typically defaults to 24000Hz, but we let the system decide the context rate
+        // and handle resampling via createBuffer parameters.
+        this.audioContext = new AudioContext({ latencyHint: 'interactive' });
     }
 
     async resume(): Promise<void> {
@@ -26,6 +27,11 @@ export class AudioPlayer {
     private scheduleNextBuffer(): void {
         if (this.queue.length === 0) return;
 
+        // Safety check: ensure context is running if we have data to play
+        if (this.audioContext.state === 'suspended') {
+            this.audioContext.resume();
+        }
+
         if (!this.isPlaying) {
             this.isPlaying = true;
             this.onStateChange(true);
@@ -39,6 +45,7 @@ export class AudioPlayer {
     }
 
     private playBuffer(arrayBuffer: ArrayBuffer): void {
+        console.log(`AudioPlayer: Playing buffer. CtxState: ${this.audioContext.state}`);
         // Assuming 16-bit PCM, 1 channel, 24kHz (default Gemini output)
         const int16Array = new Int16Array(arrayBuffer);
         const float32Array = new Float32Array(int16Array.length);
@@ -74,13 +81,21 @@ export class AudioPlayer {
         };
     }
 
+    async close(): Promise<void> {
+        this.queue = [];
+        this.isPlaying = false;
+        this.onStateChange(false);
+        if (this.audioContext.state !== 'closed') {
+            await this.audioContext.close();
+        }
+    }
+
     clearQueue(): void {
         this.queue = [];
         this.isPlaying = false;
         this.onStateChange(false);
-        // Note: cannot easily stop currently playing buffer nodes without tracking them all.
-        // For now, simple clear. In "interrupt" scenarios, we might want to suspend context.
-        this.audioContext.suspend().then(() => this.audioContext.resume());
+        // Do not suspend here, as it might interfere with reuse or cleanup. 
+        // We rely on 'close()' for final cleanup.
     }
 
     private base64ToArrayBuffer(base64: string): ArrayBuffer {

@@ -262,7 +262,15 @@ export class LiveSessionView extends ItemView {
             return;
         }
 
+        // Ensure we disconnect any existing adapter/audioContext before creating a new one
+        if (this.adapter) {
+            console.log('LiveSessionView: Disconnecting existing adapter before restart...');
+            this.adapter.disconnect();
+            this.adapter = null;
+        }
+
         // Initialize adapter synchronously to capture user gesture for AudioContext
+        console.log('LiveSessionView: Instantiating adapter...');
         this.adapter = new GoogleGeminiLiveAdapter(
             this.apiKey,
             (text) => {
@@ -280,7 +288,9 @@ export class LiveSessionView extends ItemView {
         );
 
         // Explicitly resume audio context (important for iOS)
+        console.log('LiveSessionView: Resuming audio...');
         await this.adapter.resumeAudio();
+        console.log('LiveSessionView: Audio resumed.');
 
         this.sessionControlsComponent?.updateStatus(false, 'Connecting...', 'var(--text-normal)');
         this.transcriptComponent?.startSession();
@@ -318,6 +328,7 @@ export class LiveSessionView extends ItemView {
             this.sessionControlsComponent?.updateStatus(true, '', '', this.usePTT);
 
             showMessage('Live Connected');
+
             if (enableScoreTracking) showMessage('Answer scoring enabled.');
         } else {
             this.sessionControlsComponent?.updateStatus(false, 'Connection Failed', 'var(--text-error)');
