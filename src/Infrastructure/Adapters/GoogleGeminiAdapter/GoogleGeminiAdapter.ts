@@ -1,6 +1,6 @@
 import { GoogleGenAI } from '@google/genai';
 import type { GenerateContentResponse } from '@google/genai';
-import { showMessage } from 'src/Application/Utils/Messages';
+import { showMessage } from 'src/Infrastructure/Obsidian/Utils/Messages';
 import type {
   LlmResponse,
   LlmPort,

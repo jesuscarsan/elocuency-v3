@@ -1,5 +1,5 @@
 import { requestUrl, App, FuzzySuggestModal } from 'obsidian';
-import { showMessage } from 'src/Application/Utils/Messages';
+import { showMessage } from 'src/Infrastructure/Obsidian/Utils/Messages';
 import type {
   GeocodingResponse,
   GeocodingPort,

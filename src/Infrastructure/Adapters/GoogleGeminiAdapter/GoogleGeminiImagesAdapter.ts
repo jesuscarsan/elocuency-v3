@@ -1,5 +1,5 @@
 import { GoogleGenAI } from '@google/genai';
-import { showMessage } from 'src/Application/Utils/Messages';
+import { showMessage } from 'src/Infrastructure/Obsidian/Utils/Messages';
 
 const GEMINI_MODEL_NAME = 'gemini-2.0-flash-exp'; // Using flash-exp for better vision capabilities, or fallback to 1.5-flash if needed. User mentioned "Gemini" generic.
 // NOTE: User requested Schema Enforcement.

@@ -1,4 +1,5 @@
 import { requestUrl, RequestUrlParam } from 'obsidian';
+import { MusicProviderPort, MusicTrack, MusicPlaylist, MusicArtist } from '../../../Domain/Ports/MusicProviderPort';
 
 export interface SpotifyTrack {
     uri: string;
@@ -7,13 +8,9 @@ export interface SpotifyTrack {
     album: string;
 }
 
-export interface SpotifyArtist {
-    uri: string;
-    name: string;
-    popularity: number;
-    genres: string[];
-    images: { url: string; height: number; width: number }[];
-}
+// Local interface can be removed if strictly using MusicArtist, or kept if needed for internal specific fields not in MusicArtist.
+// But since MusicArtist covers it, let's just use MusicArtist.
+// We'll remove SpotifyArtist definition and usage.
 
 export interface SpotifyPlaylist {
     uri: string;
@@ -24,7 +21,7 @@ export interface SpotifyPlaylist {
     };
 }
 
-export class SpotifyAdapter {
+export class SpotifyAdapter implements MusicProviderPort {
     private clientId: string;
     private accessToken: string;
     private refreshToken: string;
@@ -113,8 +110,8 @@ export class SpotifyAdapter {
         }
     }
 
-    public getAuthUrl(redirectUri: string, challenge: string): string {
-        const scopes = 'user-read-private user-read-email playlist-read-private playlist-read-collaborative';
+    getAuthUrl(redirectUri: string, challenge: string): string {
+        const scopes = 'user-read-private user-read-email playlist-read-private user-library-read';
         const params = new URLSearchParams({
             client_id: this.clientId,
             response_type: 'code',
@@ -125,6 +122,11 @@ export class SpotifyAdapter {
             show_dialog: 'true'
         });
         return `https://accounts.spotify.com/authorize?${params.toString()}`;
+    }
+
+    async generateAuthUrl(redirectUri: string, options?: any): Promise<string> {
+        const challenge = options?.challenge || '';
+        return this.getAuthUrl(redirectUri, challenge);
     }
 
     public async exchangeCode(code: string, redirectUri: string, verifier: string): Promise<{ accessToken: string, refreshToken: string, expiresIn: number }> {
@@ -221,11 +223,12 @@ export class SpotifyAdapter {
         }
     }
 
-    public async searchTracks(query: string): Promise<SpotifyTrack[]> {
+    public async searchTracks(query: string): Promise<MusicTrack[]> {
         const url = `https://api.spotify.com/v1/search?q=${encodeURIComponent(query)}&type=track&limit=10`;
         const response = await this.request<any>(url);
 
         return response.tracks.items.map((item: any) => ({
+            id: item.id,
             uri: item.uri,
             name: item.name,
             artists: item.artists.map((artist: any) => artist.name),
@@ -233,7 +236,7 @@ export class SpotifyAdapter {
         }));
     }
 
-    public async getUserPlaylists(): Promise<SpotifyPlaylist[]> {
+    public async getUserPlaylists(): Promise<MusicPlaylist[]> {
         const url = 'https://api.spotify.com/v1/me/playlists?limit=50';
         const response = await this.request<any>(url);
 
@@ -241,17 +244,16 @@ export class SpotifyAdapter {
             uri: item.uri,
             name: item.name,
             id: item.id,
-            tracks: {
-                total: item.tracks.total
-            }
+            totalTracks: item.tracks.total
         }));
     }
 
-    public async getPlaylistTracks(playlistId: string): Promise<SpotifyTrack[]> {
+    public async getPlaylistTracks(playlistId: string): Promise<MusicTrack[]> {
         const url = `https://api.spotify.com/v1/playlists/${playlistId}/tracks?limit=100`;
         const response = await this.request<any>(url);
 
         return response.items.map((item: any) => ({
+            id: item.track.id,
             uri: item.track.uri,
             name: item.track.name,
             artists: item.track.artists.map((artist: any) => artist.name),
@@ -259,7 +261,7 @@ export class SpotifyAdapter {
         }));
     }
 
-    public async searchArtists(query: string): Promise<SpotifyArtist[]> {
+    public async searchArtists(query: string): Promise<MusicArtist[]> {
         const url = `https://api.spotify.com/v1/search?q=${encodeURIComponent(query)}&type=artist&limit=5`;
         const response = await this.request<any>(url);
 

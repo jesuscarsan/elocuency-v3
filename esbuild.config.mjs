@@ -19,16 +19,24 @@ const copyPlugin = {
           fs.mkdirSync(dir, { recursive: true });
         }
 
-        const files = ['main.js', 'styles.css', 'manifest.json', '.hotreload'];
+        const files = [
+          { src: 'src/Infrastructure/Obsidian/styles.css', dest: 'styles.css' },
+          'main.js',
+          'manifest.json',
+          '.hotreload'
+        ];
         if (watch) {
           files.push('main.js.map');
         }
 
         files.forEach((file) => {
-          if (fs.existsSync(file)) {
-            const dest = path.join(dir, file);
-            fs.copyFileSync(file, dest);
-            console.log(`Copied ${file} to ${dest}`);
+          const src = typeof file === 'string' ? file : file.src;
+          const destName = typeof file === 'string' ? file : file.dest;
+          
+          if (fs.existsSync(src)) {
+            const dest = path.join(dir, destName);
+            fs.copyFileSync(src, dest);
+            console.log(`Copied ${src} to ${dest}`);
           }
         });
       });
@@ -37,7 +45,7 @@ const copyPlugin = {
 };
 
 const buildOptions = {
-  entryPoints: ['src/main.ts'],
+  entryPoints: ['src/Infrastructure/Obsidian/main.ts'],
   outfile: 'main.js',
   bundle: true,
   platform: 'browser',

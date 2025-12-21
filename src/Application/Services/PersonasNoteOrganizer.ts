@@ -1,10 +1,10 @@
-import { App, TFile, normalizePath } from 'obsidian';
-import { showMessage } from 'src/Application/Utils/Messages';
+import { NoteManagerPort, NoteItem } from '../../Domain/Ports/NoteManagerPort';
+import { showMessage } from '../../Infrastructure/Obsidian/Utils/Messages'; // This is technically infrastructure, maybe should be abstracted too? Left for now as it's Utils.
 
 export class PersonasNoteOrganizer {
-    constructor(private readonly app: App) { }
+    constructor(private noteManager: NoteManagerPort) { }
 
-    async organize(file: TFile, frontmatter: Record<string, unknown>): Promise<void> {
+    async organize(file: NoteItem, frontmatter: Record<string, unknown>): Promise<void> {
         // Check if the file is in a 'personas' folder (or subfolder)
         // We look for 'personas' directory in the path.
         const pathParts = file.path.split('/');
@@ -45,15 +45,15 @@ export class PersonasNoteOrganizer {
         }
         newPathParts.push(file.name);
 
-        const newPath = normalizePath(newPathParts.join('/'));
+        const newPath = this.noteManager.normalizePath(newPathParts.join('/'));
 
         if (newPath === file.path) {
             return;
         }
 
         try {
-            await this.ensureFolderExists(newPath);
-            await this.app.fileManager.renameFile(file, newPath);
+            await this.noteManager.ensureFolderExists(newPath);
+            await this.noteManager.renameFile(file, newPath);
             showMessage(`Nota movida a: ${newPath}`);
         } catch (error) {
             console.error('Error moving persona note:', error);
@@ -78,20 +78,5 @@ export class PersonasNoteOrganizer {
         }
 
         return null;
-    }
-
-    private async ensureFolderExists(filePath: string): Promise<void> {
-        const folders = filePath.split('/').slice(0, -1);
-        if (folders.length === 0) return;
-
-        let currentPath = '';
-        for (const folder of folders) {
-            currentPath = currentPath === '' ? folder : `${currentPath}/${folder}`;
-            const normalizedPath = normalizePath(currentPath);
-            const exists = this.app.vault.getAbstractFileByPath(normalizedPath);
-            if (!exists) {
-                await this.app.vault.createFolder(normalizedPath);
-            }
-        }
     }
 }

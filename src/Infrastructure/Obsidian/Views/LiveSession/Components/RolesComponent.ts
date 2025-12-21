@@ -1,5 +1,5 @@
 import { ButtonComponent, DropdownComponent, setIcon } from 'obsidian';
-import { Role } from '../Services/RolesManager';
+import { Role } from '../../../../../Application/Services/RolesService';
 
 export interface RolesComponentProps {
     roles: Role[];

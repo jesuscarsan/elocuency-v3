@@ -1,6 +1,6 @@
 import { requestUrl } from 'obsidian';
 import type { ImageSearchPort } from 'src/Domain/Ports/ImageSearchPort';
-import { showMessage } from 'src/Application/Utils/Messages';
+import { showMessage } from 'src/Infrastructure/Obsidian/Utils/Messages';
 
 const LOG_PREFIX = '[GoogleImageSearchAdapter]';
 

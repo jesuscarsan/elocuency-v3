@@ -1,10 +1,10 @@
 import { DropdownComponent, ButtonComponent } from 'obsidian';
-import { QuizManager, QuizItem } from '../Services/QuizManager';
+import { QuizService, QuizItem } from '../../../../../Application/Services/QuizService';
 
 // Props handling manual reactivity since we don't have a reactivity system
 // We pass the manager to read state, and callbacks to trigger actions/refreshes
 export interface QuizComponentProps {
-    quizManager: QuizManager;
+    quizService: QuizService;
     onStarLevelChange: (level: string) => void;
     onAskNext: () => void;
     onFilterChange: (onlyTitles: boolean) => void;
@@ -36,7 +36,7 @@ export class QuizComponent {
         quizControls.createSpan({ text: 'Relevancia:' });
         const importanceDropdown = new DropdownComponent(quizControls);
         ['1', '2', '3', '4', '5'].forEach(level => importanceDropdown.addOption(level, `⭐`.repeat(Number(level))));
-        importanceDropdown.setValue(props.quizManager.selectedStarLevel);
+        importanceDropdown.setValue(props.quizService.selectedStarLevel);
         importanceDropdown.onChange((val) => props.onStarLevelChange(val));
 
         // "Ask Next" Button
@@ -53,7 +53,7 @@ export class QuizComponent {
 
         const filterCheckbox = document.createElement('input');
         filterCheckbox.type = 'checkbox';
-        filterCheckbox.checked = props.quizManager.onlyTitlesWithoutSubtitles;
+        filterCheckbox.checked = props.quizService.onlyTitlesWithoutSubtitles;
         filterCheckbox.id = 'only-titles-no-subtitles';
         filterCheckbox.addEventListener('change', (e) => {
             props.onFilterChange((e.target as HTMLInputElement).checked);
@@ -89,7 +89,7 @@ export class QuizComponent {
         this.quizListContainer.style.display = 'none';
 
         // Initial render of list if queue exists
-        this.refreshList(props.quizManager);
+        this.refreshList(props.quizService);
     }
 
     setStatusText(text: string) {
@@ -98,19 +98,19 @@ export class QuizComponent {
         }
     }
 
-    refreshList(quizManager: QuizManager, onSelect?: (index: number) => void) {
+    refreshList(quizService: QuizService, onSelect?: (index: number) => void) {
         if (!this.quizListContainer) return;
 
         this.quizListContainer.empty();
 
-        if (quizManager.queue.length === 0) {
+        if (quizService.queue.length === 0) {
             this.quizListContainer.style.display = 'none';
             return;
         }
 
         this.quizListContainer.style.display = 'block';
 
-        quizManager.queue.forEach((item, index) => {
+        quizService.queue.forEach((item, index) => {
             const itemEl = this.quizListContainer!.createDiv({ cls: 'gemini-quiz-item' });
             itemEl.style.padding = '6px';
             itemEl.style.cursor = 'pointer';
@@ -120,7 +120,7 @@ export class QuizComponent {
             itemEl.style.alignItems = 'center';
             itemEl.style.fontSize = '0.9em';
 
-            if (index === quizManager.currentIndex) {
+            if (index === quizService.currentIndex) {
                 itemEl.style.backgroundColor = 'var(--interactive-accent)';
                 itemEl.style.color = 'var(--text-on-accent)';
             } else {

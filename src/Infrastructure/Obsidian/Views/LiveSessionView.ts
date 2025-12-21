@@ -1,16 +1,20 @@
 
 import { ItemView, WorkspaceLeaf, Notice, TFile, MarkdownView } from 'obsidian';
+import { ObsidianRoleRepository } from '../../Adapters/ObsidianRoleRepository';
+import { ObsidianSettingsAdapter } from '../../Adapters/ObsidianSettingsAdapter';
+import { ObsidianNoteManager } from '../../Adapters/ObsidianNoteManager';
 import { GoogleGeminiLiveAdapter } from '../../Adapters/GoogleGeminiLiveAdapter/GoogleGeminiLiveAdapter';
-import { MetadataService } from '../../Services/MetadataService';
-import { SessionLogger } from '../../Services/SessionLogger';
-import ObsidianExtension from 'src/main';
-import { GenerateHeaderMetadataCommand } from '../../../Application/Commands/GenerateHeaderMetadataCommand';
-import { showMessage } from 'src/Application/Utils/Messages';
+import ObsidianExtension from '../main';
+import { GenerateHeaderMetadataCommand } from '../Commands/GenerateHeaderMetadataCommand';
+import { showMessage } from 'src/Infrastructure/Obsidian/Utils/Messages';
 
 // Services
-import { RolesManager, Role } from './LiveSession/Services/RolesManager';
-import { ContextManager } from './LiveSession/Services/ContextManager';
-import { QuizManager } from './LiveSession/Services/QuizManager';
+import { MetadataService } from '../../Services/MetadataService';
+import { SessionLogger } from '../../Services/SessionLogger';
+import { HeaderEvaluationService } from '../../../Application/Services/HeaderEvaluationService';
+import { RolesService, Role } from '../../../Application/Services/RolesService';
+import { ContextService } from '../../Services/ContextService';
+import { QuizService } from '../../../Application/Services/QuizService';
 
 // Components
 import { RolesComponent } from './LiveSession/Components/RolesComponent';
@@ -27,9 +31,10 @@ export class LiveSessionView extends ItemView {
 
     // Services
     private sessionLogger: SessionLogger;
-    private rolesManager!: RolesManager;
-    private contextManager!: ContextManager;
-    private quizManager!: QuizManager;
+    private rolesService!: RolesService;
+    private contextService!: ContextService;
+    private quizService!: QuizService;
+    private headerEvaluationService!: HeaderEvaluationService;
     private adapter: GoogleGeminiLiveAdapter | null = null;
 
     // Component References
@@ -58,16 +63,31 @@ export class LiveSessionView extends ItemView {
     constructor(leaf: WorkspaceLeaf) {
         super(leaf);
         this.sessionLogger = new SessionLogger(this.app);
-        this.contextManager = new ContextManager(this.app);
-        this.quizManager = new QuizManager(this.app);
+        this.contextService = new ContextService(this.app);
+        const noteManager = new ObsidianNoteManager(this.app);
+        const metadataService = new MetadataService(this.app);
+        this.quizService = new QuizService(noteManager, this.contextService, metadataService);
     }
 
     setPlugin(plugin: ObsidianExtension) {
         this.plugin = plugin;
         this.apiKey = plugin.settings.geminiApiKey;
         this.usePTT = plugin.settings.geminiLivePTT ?? false; // Load from settings
-        this.rolesManager = new RolesManager(this.app, this.plugin);
+
+        const settingsAdapter = new ObsidianSettingsAdapter(this.plugin);
+        const roleRepo = new ObsidianRoleRepository(this.app, settingsAdapter);
+        this.rolesService = new RolesService(roleRepo);
+
+        // QuizService needs NoteManager and ContextProvider and MetadataPort
+        const noteManager = new ObsidianNoteManager(this.app);
+        const metadataService = new MetadataService(this.app);
+        this.quizService = new QuizService(noteManager, this.contextService, metadataService);
+        // HeaderEvaluationService
+        this.headerEvaluationService = new HeaderEvaluationService(this.plugin.llm, noteManager);
     }
+
+    // ...
+
 
     setApiKey(key: string) {
         this.apiKey = key;
@@ -95,11 +115,11 @@ export class LiveSessionView extends ItemView {
                     await this.renderContent();
                 } else if (leaf.view instanceof MarkdownView) {
                     // Refresh Quiz Queue silently if using quiz mode
-                    if (this.quizManager.queue.length > 0 || this.quizManager.selectedStarLevel !== '1') {
+                    if (this.quizService.queue.length > 0 || this.quizService.selectedStarLevel !== '1') {
                         // Check if we should auto-refresh or just wait for user interaction?
                         // Original code did buildQuizQueue().
-                        await this.quizManager.buildQuizQueue();
-                        this.quizComponent?.refreshList(this.quizManager, (i) => this.onQuizSelect(i));
+                        await this.quizService.buildQuizQueue();
+                        this.quizComponent?.refreshList(this.quizService, (i) => this.onQuizSelect(i));
                     }
                 }
             }
@@ -114,8 +134,8 @@ export class LiveSessionView extends ItemView {
         this.contentContainer.createEl('h2', { text: 'Live Session' });
 
         // Load Roles
-        if (this.rolesManager) {
-            this.availableRoles = await this.rolesManager.loadRoles();
+        if (this.rolesService) {
+            this.availableRoles = await this.rolesService.loadRoles();
         }
 
         // Initialize Defaults if needed
@@ -192,16 +212,16 @@ export class LiveSessionView extends ItemView {
         // 3. Quiz Component
         this.quizComponent = new QuizComponent(mainInterface);
         this.quizComponent.render({
-            quizManager: this.quizManager,
+            quizService: this.quizService,
             onStarLevelChange: async (val) => {
-                this.quizManager.selectedStarLevel = val;
-                await this.quizManager.buildQuizQueue();
-                this.quizComponent?.refreshList(this.quizManager, (i) => this.onQuizSelect(i));
+                this.quizService.selectedStarLevel = val;
+                await this.quizService.buildQuizQueue();
+                this.quizComponent?.refreshList(this.quizService, (i) => this.onQuizSelect(i));
             },
             onFilterChange: async (val) => {
-                this.quizManager.onlyTitlesWithoutSubtitles = val;
-                await this.quizManager.buildQuizQueue();
-                this.quizComponent?.refreshList(this.quizManager, (i) => this.onQuizSelect(i));
+                this.quizService.onlyTitlesWithoutSubtitles = val;
+                await this.quizService.buildQuizQueue();
+                this.quizComponent?.refreshList(this.quizService, (i) => this.onQuizSelect(i));
             },
             onAskNext: () => this.handleAskNext()
         });
@@ -304,7 +324,7 @@ export class LiveSessionView extends ItemView {
                 // Original logic: Load active file + Linked notes
                 showMessage(`Context loaded from: ${activeFile.basename}`);
 
-                const linkedContent = await this.contextManager.getLinkedFileContent(activeFile);
+                const linkedContent = await this.contextService.getLinkedFileContent(activeFile.path);
                 if (linkedContent) {
                     context += `\n\n--- CONTENIDO DE NOTAS RELACIONADAS ---\n${linkedContent}`;
                     showMessage(`Loaded content from linked notes.`);
@@ -375,99 +395,80 @@ export class LiveSessionView extends ItemView {
         }
 
         // If queue empty or finished, try to build/rebuild
-        if (this.quizManager.queue.length === 0 || !this.quizManager.hasNext()) {
+        if (this.quizService.queue.length === 0 || !this.quizService.hasNext()) {
             // Try to build
             // If manual "Next" clicked when finished, maybe reset index?
-            if (this.quizManager.queue.length > 0 && !this.quizManager.hasNext()) {
+            if (this.quizService.queue.length > 0 && !this.quizService.hasNext()) {
                 this.quizComponent?.setStatusText('Nivel completado 🎉');
                 return;
             }
 
-            const success = await this.quizManager.buildQuizQueue();
+            const success = await this.quizService.buildQuizQueue();
             if (!success) return;
-            this.quizComponent?.refreshList(this.quizManager, (i) => this.onQuizSelect(i));
+            this.quizComponent?.refreshList(this.quizService, (i) => this.onQuizSelect(i));
         }
 
-        if (!this.quizManager.hasNext()) {
+        if (!this.quizService.hasNext()) {
             this.quizComponent?.setStatusText('Nivel completado 🎉');
             return;
         }
 
-        const item = this.quizManager.getCurrentItem();
+        const item = this.quizService.getCurrentItem();
         if (!item) return;
 
         await this.sessionLogger.logQuestion(item.heading);
 
-        const statusText = `Examinando: ${item.heading} (${this.quizManager.currentIndex + 1}/${this.quizManager.queue.length})`;
+        const statusText = `Examinando: ${item.heading} (${this.quizService.currentIndex + 1}/${this.quizService.queue.length})`;
         this.quizComponent?.setStatusText(statusText);
-        this.quizComponent?.refreshList(this.quizManager, (i) => this.onQuizSelect(i)); // Highlights current
+        this.quizComponent?.refreshList(this.quizService, (i) => this.onQuizSelect(i)); // Highlights current
 
         this.transcriptComponent?.appendTopic(item.heading);
 
-        // Fetch linked content specifically for this section
-        const activeFile = this.app.workspace.getActiveFile();
-        let sectionLinkedContent = '';
-        if (activeFile instanceof TFile) {
-            sectionLinkedContent = await this.contextManager.getLinkedFileContent(activeFile, item.range);
-        }
+        const prompt = await this.quizService.generateQuestionPrompt();
+        if (!prompt) return;
 
-        const prompt = `Examina al usuario sobre el siguiente contenido:\n\n${item.text}\n\n${sectionLinkedContent ? `--- Temas ---\n${sectionLinkedContent}` : ''}`;
         this.adapter?.sendContextUpdate('Quiz Content', prompt);
 
         showMessage(`Sent: ${item.heading}`);
     }
 
     private async onQuizSelect(index: number) {
-        this.quizManager.currentIndex = index;
-        this.quizComponent?.refreshList(this.quizManager, (i) => this.onQuizSelect(i));
+        this.quizService.currentIndex = index;
+        this.quizComponent?.refreshList(this.quizService, (i) => this.onQuizSelect(i));
         await this.handleAskNext();
     }
 
     private async handleScoreUpdate(score: number) {
         // Logic to update metadata if in Quiz Mode
-        const currentItem = this.quizManager.getCurrentItem();
-        if (currentItem && currentItem.blockId) {
-            const activeFile = this.app.workspace.getActiveFile();
-            if (activeFile instanceof TFile && activeFile.extension === 'md') {
-                const metaService = new MetadataService(this.app);
-                const fileMetadata = await metaService.getFileMetadata(activeFile);
-                const currentMeta = fileMetadata[currentItem.blockId];
-                const oldScore = currentMeta?.score || 0;
+        const currentItem = this.quizService.getCurrentItem();
+        if (!currentItem) return;
 
-                let finalScore = score;
-                if (oldScore > 0) {
-                    finalScore = (oldScore + score) / 2;
-                    finalScore = Math.round(finalScore * 10) / 10;
-                }
+        const oldScore = await this.quizService.recordBlockScore(currentItem, score);
+        if (oldScore !== null) {
+            showMessage(`Score updated: ${oldScore}`);
+            // Ideally we want to show old -> new, but recordBlockScore returns final.
+            // That is sufficient.
+        }
 
-                await metaService.updateBlockMetadata(activeFile, currentItem.blockId, {
-                    score: finalScore
-                });
-                showMessage(`Score updated: ${oldScore} -> ${finalScore}`);
-
-                // Refresh view using MarkdownView rerender if possible
-                const view = this.app.workspace.getActiveViewOfType(MarkdownView);
-                if (view && view.file === activeFile) {
-                    view.previewMode.rerender(true);
-                }
-            }
+        // Refresh view using MarkdownView rerender if possible
+        const activeFile = this.app.workspace.getActiveFile();
+        const view = this.app.workspace.getActiveViewOfType(MarkdownView);
+        if (view && view.file === activeFile) {
+            // view.previewMode.rerender(true); // Preview mode
+            // For live preview, we might not need to force rerender if metadata is sidecar
+            // But if we want to show it in the Note... Sidecar updates don't trigger View updates automatically usually.
         }
 
         // Advance quiz
-        // "Cuando Live haya evaluado la respuesta... se busca el siguiente titulo"
-        // Original logic was commented out or delayed.
-        // Let's increment index.
-        if (this.quizManager.hasNext()) {
-            // Wait? or just prep for next? 
-            // Ideally we wait for user to say "Next".
-            // But let's move index forward so "Next" button knows where we are.
-            this.quizManager.next();
-            this.quizComponent?.refreshList(this.quizManager, (i) => this.onQuizSelect(i));
+        if (this.quizService.hasNext()) {
+            this.quizService.next();
+            this.quizComponent?.refreshList(this.quizService, (i) => this.onQuizSelect(i));
         }
     }
 
+
     private async evaluateHeaders() {
-        if (!this.plugin) return;
+        if (!this.headerEvaluationService) return;
         if (!this.selectedRoleEvaluationPrompt) {
             showMessage('Current role has no !!evaluationPrompt defined.');
             return;
@@ -477,45 +478,13 @@ export class LiveSessionView extends ItemView {
         if (!activeFile || activeFile.extension !== 'md') return;
 
         showMessage('Starting header evaluation...');
-        const cache = this.app.metadataCache.getFileCache(activeFile);
-        if (!cache || !cache.headings) return;
-
-        const content = await this.app.vault.read(activeFile);
-        const lines = content.split('\n');
-        let processedCount = 0;
-
-        for (let i = 0; i < cache.headings.length; i++) {
-            const heading = cache.headings[i];
-            const startLine = heading.position.start.line;
-            let endLine = lines.length;
-            if (i < cache.headings.length - 1) endLine = cache.headings[i + 1].position.start.line;
-
-            const sectionText = heading.heading + '\n' + lines.slice(startLine + 1, endLine).join('\n');
-            const finalPrompt = `${this.selectedRoleEvaluationPrompt}\nAnalyze:\n"${sectionText}"\nRETURN JSON ONLY: { "difficulty": 1-3, "importance": 1-5 }`;
-
-            try {
-                const result = await this.plugin.llm.requestJson({ prompt: finalPrompt });
-                if (result && typeof result.difficulty === 'number' && typeof result.importance === 'number') {
-                    const idMatch = lines[startLine].match(/\^([a-zA-Z0-9-]+)$/);
-                    let blockId = idMatch ? idMatch[1] : null;
-
-                    if (blockId) {
-                        const metaService = new MetadataService(this.app);
-                        await metaService.updateBlockMetadata(activeFile, blockId, {
-                            difficulty: result.difficulty,
-                            importance: result.importance
-                        });
-                        processedCount++;
-                        showMessage(`Evaluated: ${heading.heading}`);
-                    } else {
-                        console.warn(`Skipping ${heading.heading} - No block ID.`);
-                    }
-                }
-            } catch (e) {
-                console.error('Error evaluating header', e);
-            }
+        try {
+            const result = await this.headerEvaluationService.evaluateHeaders(activeFile.path, this.selectedRoleEvaluationPrompt);
+            showMessage(`Evaluation complete. Processed ${result.processed} headers.`);
+        } catch (e) {
+            console.error('Error evaluating headers:', e);
+            showMessage(`Error during evaluation: ${e}`);
         }
-        showMessage(`Evaluation complete. Processed ${processedCount} headers.`);
     }
 
     async onClose() {

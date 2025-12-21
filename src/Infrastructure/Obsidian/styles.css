@@ -1,0 +1,77 @@
+/* Header Progress Bar Styles */
+.header-progress-container {
+    display: inline-flex;
+    align-items: center;
+    margin-left: 10px;
+    vertical-align: middle;
+}
+
+.header-progress-bar {
+    width: 60px;
+    height: 8px;
+    border-radius: 4px;
+    -webkit-appearance: none;
+    appearance: none;
+    overflow: hidden;
+}
+
+.header-progress-bar::-webkit-progress-bar {
+    background-color: var(--background-modifier-border);
+    border-radius: 4px;
+}
+
+.header-progress-bar::-webkit-progress-value {
+    background-color: var(--interactive-accent);
+    border-radius: 4px;
+    transition: width 0.3s ease;
+}
+
+.header-progress-label {
+    font-size: 0.7em;
+    color: var(--text-muted);
+    margin-left: 5px;
+    font-weight: normal;
+}
+
+/* Header Metadata Container */
+.header-metadata-container {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    margin-left: 12px; 
+    opacity: 0.8;
+    transition: opacity 0.2s ease-in-out;
+    vertical-align: middle;
+    font-size: 1rem;
+}
+
+.header-metadata-container:hover {
+    opacity: 1;
+}
+
+/* Individual Items */
+.hm-item {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 4px;
+    background-color: transparent;
+    border: none; 
+    cursor: help;
+    line-height: normal; /* Important for alignment */
+}
+
+/* Importance (Stars) */
+.hm-importance {
+    /* Color handled inline for robustness */
+    font-size: 0.9em;
+    letter-spacing: 0px;
+    line-height: 1;
+}
+
+/* SVG Wrappers */
+.hm-score-svg {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}

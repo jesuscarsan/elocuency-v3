@@ -2,25 +2,15 @@ import { App, MarkdownPostProcessor, MarkdownPostProcessorContext, TFile } from 
 import { HeaderMetadataKeys } from "../../../Domain/Constants/HeaderMetadataRegistry";
 import { ScoreUtils } from "../../../Domain/Utils/ScoreUtils";
 
-export const createHeaderMetadataRenderer = (app: App): MarkdownPostProcessor => {
+import { HeaderDataService } from "../../../Application/Services/HeaderDataService";
+
+export const createHeaderMetadataRenderer = (app: App, service: HeaderDataService): MarkdownPostProcessor => {
     return async (el: HTMLElement, ctx: MarkdownPostProcessorContext) => {
         const sourcePath = ctx.sourcePath;
         if (!sourcePath) return;
 
-        // Path for sidecar JSON
-        const jsonPath = sourcePath.replace(/\.md$/, '.json');
-
-        // 1. Read Metadata
-        // 1. Read Metadata
-        let metadataMap: Record<string, any> = {};
-        if (await app.vault.adapter.exists(jsonPath)) {
-            try {
-                const content = await app.vault.adapter.read(jsonPath);
-                metadataMap = JSON.parse(content);
-            } catch (e) {
-                console.warn(`[HeaderMetadata] Failed to parse JSON at ${jsonPath}`);
-            }
-        }
+        // 1. Read Metadata via Service
+        const metadataMap = await service.getHeaderData(sourcePath);
 
 
         // 2. Identify Headers in this block
