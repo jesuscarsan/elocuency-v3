@@ -50,6 +50,8 @@ export class LiveSessionView extends ItemView {
     private selectedVoice: string = 'Aoede';
     private selectedTemperature: number = 1;
 
+    private usePTT: boolean = false;
+
     // Data
     private availableRoles: Role[] = [];
 
@@ -63,6 +65,7 @@ export class LiveSessionView extends ItemView {
     setPlugin(plugin: ObsidianExtension) {
         this.plugin = plugin;
         this.apiKey = plugin.settings.geminiApiKey;
+        this.usePTT = plugin.settings.geminiLivePTT ?? false; // Load from settings
         this.rolesManager = new RolesManager(this.app, this.plugin);
     }
 
@@ -142,7 +145,27 @@ export class LiveSessionView extends ItemView {
                 if (this.isSessionActive) await this.restartSession('temperature update');
             },
             onEvalHeaders: () => this.evaluateHeaders(),
-            onGenerateMetadata: () => new GenerateHeaderMetadataCommand(this.app).execute()
+            onGenerateMetadata: () => new GenerateHeaderMetadataCommand(this.app).execute(),
+            usePTT: this.usePTT,
+            onPTTChange: async (val) => {
+                this.usePTT = val;
+                this.plugin.settings.geminiLivePTT = val;
+                await this.plugin.saveSettings();
+
+                // Do NOT call renderContent() here as it clears the transcript.
+                // Just update the components that need to change.
+
+                // Update Roles Component checkbox if needed (though it likely triggered this)
+                // But definitely update Controls Component to show/hide PTT button
+                this.sessionControlsComponent?.updateStatus(
+                    this.isSessionActive,
+                    '',
+                    '',
+                    this.usePTT
+                );
+
+                showMessage(`Push-to-Talk Mode: ${val ? 'ON' : 'OFF'}`);
+            }
         });
 
         // Toggle visibility of main interface based on role selection
@@ -158,8 +181,13 @@ export class LiveSessionView extends ItemView {
 
         // 2. Status & Controls Component
         // We put status first
-        this.sessionControlsComponent = new SessionControlsComponent(mainInterface, () => this.handleStartStop());
-        this.sessionControlsComponent.updateStatus(this.isSessionActive);
+        this.sessionControlsComponent = new SessionControlsComponent(
+            mainInterface,
+            () => this.handleStartStop(),
+            () => this.onMicDown(),
+            () => this.onMicUp()
+        );
+        this.sessionControlsComponent.updateStatus(this.isSessionActive, '', '', this.usePTT);
 
         // 3. Quiz Component
         this.quizComponent = new QuizComponent(mainInterface);
@@ -234,6 +262,26 @@ export class LiveSessionView extends ItemView {
             return;
         }
 
+        // Initialize adapter synchronously to capture user gesture for AudioContext
+        this.adapter = new GoogleGeminiLiveAdapter(
+            this.apiKey,
+            (text) => {
+                this.transcriptComponent?.appendUserText(text);
+            },
+            async (score) => {
+                console.log('LiveSessionView: Received score:', score);
+                await this.sessionLogger.logScore(score);
+                showMessage(`💡 Nota: ${score}`);
+                this.transcriptComponent?.appendScore(score);
+
+                // Update Metadata
+                await this.handleScoreUpdate(score);
+            }
+        );
+
+        // Explicitly resume audio context (important for iOS)
+        await this.adapter.resumeAudio();
+
         this.sessionControlsComponent?.updateStatus(false, 'Connecting...', 'var(--text-normal)');
         this.transcriptComponent?.startSession();
 
@@ -260,30 +308,14 @@ export class LiveSessionView extends ItemView {
         const currentRole = this.availableRoles.find(r => r.prompt === this.selectedRolePrompt);
         const enableScoreTracking = currentRole?.trackLevelAnswer || false;
 
-        this.adapter = new GoogleGeminiLiveAdapter(
-            this.apiKey,
-            (text) => {
-                this.transcriptComponent?.appendUserText(text);
-            },
-            async (score) => {
-                console.log('LiveSessionView: Received score:', score);
-                await this.sessionLogger.logScore(score);
-                showMessage(`💡 Nota: ${score}`);
-                this.transcriptComponent?.appendScore(score);
-
-                // Update Metadata
-                await this.handleScoreUpdate(score);
-            }
-        );
-
         const systemInstruction = this.selectedRolePrompt;
-        const success = await this.adapter.connect(systemInstruction, enableScoreTracking, this.selectedVoice, this.selectedTemperature);
+        const success = await this.adapter.connect(systemInstruction, enableScoreTracking, this.selectedVoice, this.selectedTemperature, this.usePTT);
 
         if (success) {
             this.isSessionActive = true;
             this.sessionStartTime = new Date();
             await this.sessionLogger.logStart(this.sessionStartTime);
-            this.sessionControlsComponent?.updateStatus(true);
+            this.sessionControlsComponent?.updateStatus(true, '', '', this.usePTT);
 
             showMessage('Live Connected');
             if (enableScoreTracking) showMessage('Answer scoring enabled.');
@@ -306,7 +338,20 @@ export class LiveSessionView extends ItemView {
             this.adapter = null;
         }
         this.isSessionActive = false;
-        this.sessionControlsComponent?.updateStatus(false, 'Session Ended', 'var(--text-muted)');
+        this.sessionControlsComponent?.updateStatus(false, 'Session Ended', 'var(--text-muted)', this.usePTT);
+    }
+
+    private onMicDown() {
+        if (this.adapter && this.usePTT) {
+            this.adapter.setMicState(false); // Unmute
+        }
+    }
+
+    private onMicUp() {
+        if (this.adapter && this.usePTT) {
+            this.adapter.setMicState(true); // Mute
+            this.adapter.sendTurnComplete();
+        }
     }
 
     // --- Quiz Logic Integration ---

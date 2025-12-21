@@ -12,6 +12,8 @@ export interface RolesComponentProps {
     onTemperatureChange: (temp: number) => void;
     onEvalHeaders: () => void;
     onGenerateMetadata: () => void;
+    usePTT: boolean;
+    onPTTChange: (val: boolean) => void;
 }
 
 export class RolesComponent {
@@ -78,6 +80,21 @@ export class RolesComponent {
         configRow.style.alignItems = 'center';
         configRow.style.gap = '15px';
         configRow.style.flexWrap = 'wrap';
+
+        configRow.style.flexWrap = 'wrap';
+
+        // PTT Toggle
+        const pttContainer = advancedContent.createDiv();
+        pttContainer.style.display = 'flex';
+        pttContainer.style.alignItems = 'center';
+        pttContainer.style.gap = '5px';
+        const pttCheckbox = pttContainer.createEl('input', { type: 'checkbox' });
+        pttCheckbox.checked = props.usePTT;
+        pttCheckbox.addEventListener('change', (e) => {
+            props.onPTTChange((e.target as HTMLInputElement).checked);
+        });
+        pttContainer.createSpan({ text: 'Modo Push-to-Talk' });
+
 
         // Voice Dropdown
         configRow.createSpan({ text: 'Voz:' });

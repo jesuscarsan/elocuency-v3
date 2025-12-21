@@ -11,6 +11,12 @@ export class AudioPlayer {
         this.audioContext = new AudioContext({ sampleRate: 24000 });
     }
 
+    async resume(): Promise<void> {
+        if (this.audioContext.state === 'suspended') {
+            await this.audioContext.resume();
+        }
+    }
+
     addPcmData(base64Data: string): void {
         const pcmData = this.base64ToArrayBuffer(base64Data);
         this.queue.push(pcmData);

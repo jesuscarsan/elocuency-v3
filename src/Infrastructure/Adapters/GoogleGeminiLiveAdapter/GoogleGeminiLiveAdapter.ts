@@ -13,6 +13,8 @@ export class GoogleGeminiLiveAdapter {
     private isConnected: boolean = false;
     private systemInstruction: string = '';
     private isAiSpeaking: boolean = false;
+    private usePTT: boolean = false;
+    private isMicMuted: boolean = false;
 
     private onTextReceived: (text: string) => void;
     private onScoreReceived: (score: number) => void;
@@ -29,8 +31,15 @@ export class GoogleGeminiLiveAdapter {
         });
     }
 
-    async connect(systemInstruction: string = '', enableScoreTracking: boolean = false, voice: string = 'Aoede', temperature: number = 0.5): Promise<boolean> {
+    async resumeAudio(): Promise<void> {
+        await this.audioPlayer.resume();
+    }
+
+    async connect(systemInstruction: string = '', enableScoreTracking: boolean = false, voice: string = 'Aoede', temperature: number = 0.5, usePTT: boolean = false): Promise<boolean> {
         this.systemInstruction = systemInstruction;
+        this.usePTT = usePTT;
+        // If PTT is on, start muted
+        this.isMicMuted = usePTT;
         if (!this.apiKey) {
             new Notice('Falta la API Key de Gemini');
             return false;
@@ -52,7 +61,7 @@ export class GoogleGeminiLiveAdapter {
             this.ws.onopen = async () => {
                 console.log('Gemini Live WS Connected');
                 this.isConnected = true;
-                this.sendSetupMessage(enableScoreTracking, voice, temperature);
+                this.sendSetupMessage(enableScoreTracking, voice, temperature, this.usePTT);
 
                 // Start recording immediately upon connection (or can be manual)
                 const micStarted = await this.audioRecorder.start();
@@ -92,7 +101,7 @@ export class GoogleGeminiLiveAdapter {
         }
     }
 
-    private sendSetupMessage(enableScoreTracking: boolean, voice: string, temperature: number): void {
+    private sendSetupMessage(enableScoreTracking: boolean, voice: string, temperature: number, usePTT: boolean): void {
         if (!this.ws) return;
 
         const setupMsg: any = {
@@ -111,6 +120,13 @@ export class GoogleGeminiLiveAdapter {
                 },
             },
         };
+
+        // NOTE: Server-side VAD disablement via 'voice_activity_detection' config 
+        // seems to cause connection issues (socket close) on some models/environments.
+        // We will rely on Client-Side muting (sending silence or no chunks) for PTT.
+        // if (usePTT) {
+        //    // Attempting to disable server VAD is removed to restore stability.
+        // }
 
         // Add output_audio_transcription to BidiGenerateContentSetup directly
         (setupMsg.setup as any).output_audio_transcription = {};
@@ -173,10 +189,28 @@ export class GoogleGeminiLiveAdapter {
         this.ws.send(JSON.stringify(msg));
     }
 
+    setMicState(muted: boolean) {
+        this.isMicMuted = muted;
+    }
+
+    sendTurnComplete() {
+        if (!this.ws || !this.isConnected) return;
+
+        const msg = {
+            client_content: {
+                turn_complete: true
+            }
+        };
+        console.log("Sending Turn Complete (PTT Release)");
+        this.ws.send(JSON.stringify(msg));
+    }
+
     private chunkCount = 0;
 
     private sendAudioChunk(base64Audio: string): void {
         if (!this.ws || !this.isConnected || this.isAiSpeaking) return;
+        if (this.ws.readyState !== WebSocket.OPEN) return; // Prevent sending to closed socket
+        if (this.usePTT && this.isMicMuted) return; // Don't send audio if muted in PTT mode
 
         const msg = {
             realtime_input: {
