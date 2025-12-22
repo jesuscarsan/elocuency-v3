@@ -45,7 +45,7 @@ export class AudioPlayer {
     }
 
     private playBuffer(arrayBuffer: ArrayBuffer): void {
-        console.log(`AudioPlayer: Playing buffer. CtxState: ${this.audioContext.state}`);
+        // console.log(`AudioPlayer: Playing buffer. CtxState: ${this.audioContext.state}`);
         // Assuming 16-bit PCM, 1 channel, 24kHz (default Gemini output)
         const int16Array = new Int16Array(arrayBuffer);
         const float32Array = new Float32Array(int16Array.length);

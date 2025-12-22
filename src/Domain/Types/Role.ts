@@ -5,4 +5,5 @@ export interface Role {
     evaluationPrompt?: string;
     liveVoice?: string;
     liveTemperature?: number;
+    vocabularyList?: string[];
 }

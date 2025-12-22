@@ -1,26 +1,27 @@
 
 import { ItemView, WorkspaceLeaf, Notice, TFile, MarkdownView } from 'obsidian';
-import { ObsidianRoleRepository } from '../../Adapters/ObsidianRoleRepository';
-import { ObsidianSettingsAdapter } from '../../Adapters/ObsidianSettingsAdapter';
-import { ObsidianNoteManager } from '../../Adapters/ObsidianNoteManager';
-import { GoogleGeminiLiveAdapter } from '../../Adapters/GoogleGeminiLiveAdapter/GoogleGeminiLiveAdapter';
-import ObsidianExtension from '../main';
-import { GenerateHeaderMetadataCommand } from '../Commands/GenerateHeaderMetadataCommand';
+import { ObsidianRoleRepository } from '../../../Adapters/ObsidianRoleRepository';
+import { ObsidianSettingsAdapter } from '../../../Adapters/ObsidianSettingsAdapter';
+import { ObsidianNoteManager } from '../../../Adapters/ObsidianNoteManager';
+import { GoogleGeminiLiveAdapter } from '../../../Adapters/GoogleGeminiLiveAdapter/GoogleGeminiLiveAdapter';
+import ObsidianExtension from '../../main';
+import { GenerateHeaderMetadataCommand } from '../../Commands/GenerateHeaderMetadataCommand';
 import { showMessage } from 'src/Infrastructure/Obsidian/Utils/Messages';
 
 // Services
-import { MetadataService } from '../../Services/MetadataService';
-import { SessionLogger } from '../../Services/SessionLogger';
-import { HeaderEvaluationService } from '../../../Application/Services/HeaderEvaluationService';
-import { RolesService, Role } from '../../../Application/Services/RolesService';
-import { ContextService } from '../../Services/ContextService';
-import { QuizService } from '../../../Application/Services/QuizService';
+import { MetadataService } from '../../../Services/MetadataService';
+import { SessionLogger } from '../../../Services/SessionLogger';
+import { HeaderEvaluationService } from '../../../../Application/Services/HeaderEvaluationService';
+import { RolesService, Role } from '../../../../Application/Services/RolesService';
+import { ContextService } from '../../../Services/ContextService';
+import { QuizService } from '../../../../Application/Services/QuizService';
 
 // Components
-import { RolesComponent } from './LiveSession/Components/RolesComponent';
-import { QuizComponent } from './LiveSession/Components/QuizComponent';
-import { TranscriptComponent } from './LiveSession/Components/TranscriptComponent';
-import { SessionControlsComponent } from './LiveSession/Components/SessionControlsComponent';
+import { RolesComponent } from '../LiveSession/Components/RolesComponent';
+import { QuizComponent } from '../LiveSession/Components/QuizComponent';
+import { TranscriptComponent } from '../LiveSession/Components/TranscriptComponent';
+import { SessionControlsComponent } from '../LiveSession/Components/SessionControlsComponent';
+import { VocabularyComponent } from '../LiveSession/Components/VocabularyComponent';
 
 export const LIVE_SESSION_VIEW_TYPE = 'gemini-live-session-view';
 
@@ -59,6 +60,12 @@ export class LiveSessionView extends ItemView {
 
     // Data
     private availableRoles: Role[] = [];
+    private selectedVocabularyItems: Set<string> = new Set();
+
+    // UI State Persistence
+    private savedTranscriptHtml: string = '';
+    private aiTranscriptBuffer: string = '';
+    private userTranscriptBuffer: string = '';
 
     constructor(leaf: WorkspaceLeaf) {
         super(leaf);
@@ -115,23 +122,24 @@ export class LiveSessionView extends ItemView {
                     await this.renderContent();
                 } else if (leaf.view instanceof MarkdownView) {
                     // Refresh Quiz Queue silently if using quiz mode
-                    if (this.quizService.queue.length > 0 || this.quizService.selectedStarLevel !== '1') {
-                        // Check if we should auto-refresh or just wait for user interaction?
-                        // Original code did buildQuizQueue().
-                        await this.quizService.buildQuizQueue();
-                        this.quizComponent?.refreshList(this.quizService, (i) => this.onQuizSelect(i));
-                    }
+                    // Always try to refresh when switching to a markdown file
+                    await this.quizService.buildQuizQueue();
+                    this.quizComponent?.refreshList(this.quizService, (i) => this.onQuizSelect(i));
+
                 }
             }
         }));
     }
 
     async renderContent() {
+        // Save transcript state if it exists
+        if (this.transcriptComponent) {
+            this.savedTranscriptHtml = this.transcriptComponent.getHtml();
+        }
+
         const container = this.contentContainer || this.containerEl.children[1] as HTMLElement;
         container.empty();
         this.contentContainer = container;
-
-        this.contentContainer.createEl('h2', { text: 'Live Session' });
 
         // Load Roles
         if (this.rolesService) {
@@ -140,15 +148,15 @@ export class LiveSessionView extends ItemView {
 
         // Initialize Defaults if needed
         if (this.availableRoles.length > 0 && !this.selectedRolePrompt) {
-            // Only auto-select if no selection (e.g. first load)
             const firstRole = this.availableRoles[0];
             this.applyRoleSettings(firstRole);
         }
 
         const mainInterface = this.contentContainer.createDiv();
 
-        // 1. Roles Component
-        this.rolesComponent = new RolesComponent(this.contentContainer);
+        // 1. Configuration (Roles) Component
+        // Collapsed configuration panel
+        this.rolesComponent = new RolesComponent(mainInterface);
         this.rolesComponent.render({
             roles: this.availableRoles,
             selectedRolePrompt: this.selectedRolePrompt,
@@ -171,45 +179,17 @@ export class LiveSessionView extends ItemView {
                 this.usePTT = val;
                 this.plugin.settings.geminiLivePTT = val;
                 await this.plugin.saveSettings();
-
-                // Do NOT call renderContent() here as it clears the transcript.
-                // Just update the components that need to change.
-
-                // Update Roles Component checkbox if needed (though it likely triggered this)
-                // But definitely update Controls Component to show/hide PTT button
                 this.sessionControlsComponent?.updateStatus(
                     this.isSessionActive,
                     '',
                     '',
                     this.usePTT
                 );
-
                 showMessage(`Push-to-Talk Mode: ${val ? 'ON' : 'OFF'}`);
             }
         });
 
-        // Toggle visibility of main interface based on role selection
-        if (!this.selectedRolePrompt && this.availableRoles.length > 0) {
-            // If we have roles but none selected, maybe hide? 
-            // Logic in original: "Main Interface (Hidden if no role)"
-            // But we just rendered RolesComponent, which IS inside contentContainer.
-            // But the REST should be hidden.
-            // Let's hide mainInterface.
-        } else if (this.availableRoles.length > 0 && !this.selectedRolePrompt) {
-            mainInterface.style.display = 'none';
-        }
-
-        // 2. Status & Controls Component
-        // We put status first
-        this.sessionControlsComponent = new SessionControlsComponent(
-            mainInterface,
-            () => this.handleStartStop(),
-            () => this.onMicDown(),
-            () => this.onMicUp()
-        );
-        this.sessionControlsComponent.updateStatus(this.isSessionActive, '', '', this.usePTT);
-
-        // 3. Quiz Component
+        // 2. Quiz Component (Header Selector)
         this.quizComponent = new QuizComponent(mainInterface);
         this.quizComponent.render({
             quizService: this.quizService,
@@ -223,16 +203,59 @@ export class LiveSessionView extends ItemView {
                 await this.quizService.buildQuizQueue();
                 this.quizComponent?.refreshList(this.quizService, (i) => this.onQuizSelect(i));
             },
-            onAskNext: () => this.handleAskNext()
+            onAskNext: () => this.handleAskNext(),
+            onTopicSelect: (i) => this.onQuizSelect(i)
         });
 
-        // 4. Transcript Component
+        // 3. Vocabulary Component
+        const vocabComponent = new VocabularyComponent(mainInterface);
+        const currentRole = this.availableRoles.find(r => r.prompt === this.selectedRolePrompt);
+        if (currentRole && currentRole.vocabularyList) {
+            vocabComponent.render(
+                currentRole.vocabularyList,
+                this.selectedVocabularyItems,
+                (item) => this.toggleVocabularyItem(item)
+            );
+        }
+
+        // 4. Session Controls (Button)
+        const controlsContainer = mainInterface.createDiv();
+        controlsContainer.style.marginTop = '20px';
+        controlsContainer.style.marginBottom = '20px';
+        controlsContainer.style.display = 'flex';
+        controlsContainer.style.justifyContent = 'center';
+
+        this.sessionControlsComponent = new SessionControlsComponent(
+            controlsContainer,
+            mainInterface, // PTT container
+            () => this.handleStartStop(),
+            () => this.onMicDown(),
+            () => this.onMicUp()
+        );
+        this.sessionControlsComponent.updateStatus(this.isSessionActive, '', '', this.usePTT);
+
+        // 5. Transcript Component
         this.transcriptComponent = new TranscriptComponent(mainInterface);
-        // If we have history? We don't persist it for now across renders unless we store it.
-        // LiveSessionView::fullTranscript logic.
+        if (this.savedTranscriptHtml) {
+            this.transcriptComponent.setHtml(this.savedTranscriptHtml);
+        }
     }
 
     // --- Logic Handlers ---
+
+    private toggleVocabularyItem(item: string) {
+        if (this.selectedVocabularyItems.has(item)) {
+            this.selectedVocabularyItems.delete(item);
+        } else {
+            this.selectedVocabularyItems.add(item);
+        }
+        // Re-render only this component effectively, or full re-render. 
+        // For simplicity, full renderContent call, but verify if it resets other state.
+        // renderContent re-creates everything. It preserves state variables like transcript html buffer.
+        // It might be jerky. Ideally we just update the component.
+        // But since we didn't save the component reference properly (local variable), let's just re-render.
+        this.renderContent();
+    }
 
     private applyRoleSettings(role: Role) {
         this.selectedRolePrompt = role.prompt;
@@ -266,7 +289,12 @@ export class LiveSessionView extends ItemView {
         if (this.isSessionActive) {
             await this.stopSession();
         } else {
-            await this.startSession();
+            // If we have a selected item in the quiz, we start by asking that.
+            if (this.quizService.getCurrentItem()) {
+                await this.handleAskNext('', true);
+            } else {
+                await this.startSession();
+            }
         }
     }
 
@@ -294,7 +322,35 @@ export class LiveSessionView extends ItemView {
         this.adapter = new GoogleGeminiLiveAdapter(
             this.apiKey,
             (text) => {
-                this.transcriptComponent?.appendUserText(text);
+                this.transcriptComponent?.appendAiText(text);
+
+                // Buffer and log only when sentence completes
+                this.aiTranscriptBuffer += text;
+                const setenceEndRegex = /([.?!])\s+/;
+                const parts = this.aiTranscriptBuffer.split(setenceEndRegex);
+
+                if (parts.length > 1) {
+                    // We have at least one complete sentence
+                    // split keeps separators. 
+                    // E.g. "Hello. How are you" -> ["Hello", ".", "How are you"]
+
+                    // Actually, simpler approach: Check if we have endings.
+                    // Let's iterate and extract.
+                    // Or just use a simpler heuristic: if text ends with space, and we have punctuation before.
+
+                    let processBuffer = true;
+                    while (processBuffer) {
+                        const match = this.aiTranscriptBuffer.match(/([^.?!]+[.?!])\s+/);
+                        if (match) {
+                            const sentence = match[1]; // "Hello."
+                            const fullMatch = match[0]; // "Hello. "
+                            this.sessionLogger.logTranscript('AI', sentence);
+                            this.aiTranscriptBuffer = this.aiTranscriptBuffer.substring(fullMatch.length);
+                        } else {
+                            processBuffer = false;
+                        }
+                    }
+                }
             },
             async (score) => {
                 console.log('LiveSessionView: Received score:', score);
@@ -304,6 +360,31 @@ export class LiveSessionView extends ItemView {
 
                 // Update Metadata
                 await this.handleScoreUpdate(score);
+            },
+            (text) => {
+                this.transcriptComponent?.appendUserText(text);
+
+                // Buffer and log only when sentence completes (User text usually comes as whole phrasing but better safe)
+                this.userTranscriptBuffer += text;
+                let processBuffer = true;
+                while (processBuffer) {
+                    const match = this.userTranscriptBuffer.match(/([^.?!]+[.?!])\s*/);
+                    if (match) {
+                        const sentence = match[1];
+                        const fullMatch = match[0];
+                        this.sessionLogger.logTranscript('User', sentence);
+                        this.userTranscriptBuffer = this.userTranscriptBuffer.substring(fullMatch.length);
+                    } else {
+                        // For user, sometimes it doesn't end with punctuation if it is a short command.
+                        // Ideally we flush on turn complete. 
+                        // But for now, let's just log if it's long enough or has pause?
+                        // Actually, user transcript from Google usually comes as a 'transcript' blob, possibly full?
+                        // If it comes as chunks, same logic applies.
+                        // If it doesn't have punctuation, we might lose it?
+                        // Let's add a timeout or just wait.
+                        processBuffer = false;
+                    }
+                }
             }
         );
 
@@ -326,7 +407,7 @@ export class LiveSessionView extends ItemView {
 
                 const linkedContent = await this.contextService.getLinkedFileContent(activeFile.path);
                 if (linkedContent) {
-                    context += `\n\n--- CONTENIDO DE NOTAS RELACIONADAS ---\n${linkedContent}`;
+                    context += `\n\n--- NOTAS RELACIONADAS ---\n${linkedContent}`;
                     showMessage(`Loaded content from linked notes.`);
                 }
             } catch (e) {
@@ -338,7 +419,11 @@ export class LiveSessionView extends ItemView {
         const currentRole = this.availableRoles.find(r => r.prompt === this.selectedRolePrompt);
         const enableScoreTracking = currentRole?.trackLevelAnswer || false;
 
-        const systemInstruction = this.selectedRolePrompt;
+        let systemInstruction = this.selectedRolePrompt;
+
+        // Inject Vocabulary Context
+
+
         const success = await this.adapter.connect(systemInstruction, enableScoreTracking, this.selectedVoice, this.selectedTemperature, this.usePTT);
 
         if (success) {
@@ -385,32 +470,72 @@ export class LiveSessionView extends ItemView {
         }
     }
 
+    // --- Vocabulary Logic ---
+
+    private async getVocabularyContext(): Promise<string> {
+        if (this.selectedVocabularyItems.size === 0) return '';
+
+        let vocabContext = '';
+        console.log('LiveSessionView: Injecting vocabulary context...', this.selectedVocabularyItems);
+
+        const activeFile = this.app.workspace.getActiveFile();
+        const resolvedPath = activeFile?.path || '';
+
+        for (const item of this.selectedVocabularyItems) {
+            // Clean item string (remove [[ ]])
+            const cleanItem = item.replace(/^\[\[|\]\]$/g, '');
+
+            // Try to find file by name
+            let file = this.app.metadataCache.getFirstLinkpathDest(cleanItem, resolvedPath);
+
+            // Fallback: Try from root if not found relative
+            if (!file) {
+                file = this.app.metadataCache.getFirstLinkpathDest(cleanItem, '');
+            }
+
+            // Fallback: fuzzy match basename if still not found
+            if (!file) {
+                file = this.app.vault.getFiles().find(f => f.basename === cleanItem) || null;
+            }
+
+            console.log(`LiveSessionView: Resolving "${item}" (clean: "${cleanItem}") -> found:`, file);
+
+            if (file && file instanceof TFile && file.extension === 'md') {
+                try {
+                    const content = await this.app.vault.read(file);
+                    vocabContext += `\n-- VOCABULARIO que debes utilizar en la pregunta: ---- \n${cleanItem}\n${content}\n`;
+                } catch (e) {
+                    console.warn(`Failed to read vocabulary note: ${cleanItem}`, e);
+                }
+            } else {
+                console.warn(`LiveSessionView: Could not find note for vocabulary item: "${item}"`);
+                showMessage(`Warning: Could not find note "${cleanItem}"`);
+            }
+        }
+
+        return vocabContext;
+    }
+
     // --- Quiz Logic Integration ---
 
-    private async handleAskNext() {
-        if (!this.isSessionActive) {
-            showMessage('Starting session...');
-            await this.startSession();
-            if (!this.isSessionActive) return;
+    private async handleAskNext(message: string = '', forceStart: boolean = false) {
+        if (!this.isSessionActive || forceStart) {
+            if (!this.isSessionActive) {
+                showMessage('Starting session...');
+                await this.startSession();
+                if (!this.isSessionActive) return;
+            }
         }
 
         // If queue empty or finished, try to build/rebuild
-        if (this.quizService.queue.length === 0 || !this.quizService.hasNext()) {
-            // Try to build
-            // If manual "Next" clicked when finished, maybe reset index?
-            if (this.quizService.queue.length > 0 && !this.quizService.hasNext()) {
-                this.quizComponent?.setStatusText('Nivel completado 🎉');
+        // If we are selecting a specific index (via onQuizSelect), we assume it's valid.
+        if (this.quizService.queue.length === 0) {
+            const success = await this.quizService.buildQuizQueue();
+            if (!success) {
+                this.quizComponent?.setStatusText('No hay temas para preguntar.');
                 return;
             }
-
-            const success = await this.quizService.buildQuizQueue();
-            if (!success) return;
             this.quizComponent?.refreshList(this.quizService, (i) => this.onQuizSelect(i));
-        }
-
-        if (!this.quizService.hasNext()) {
-            this.quizComponent?.setStatusText('Nivel completado 🎉');
-            return;
         }
 
         const item = this.quizService.getCurrentItem();
@@ -418,15 +543,24 @@ export class LiveSessionView extends ItemView {
 
         await this.sessionLogger.logQuestion(item.heading);
 
-        const statusText = `Examinando: ${item.heading} (${this.quizService.currentIndex + 1}/${this.quizService.queue.length})`;
+        const statusText = `Examinando: ${item.heading}`;
         this.quizComponent?.setStatusText(statusText);
-        this.quizComponent?.refreshList(this.quizService, (i) => this.onQuizSelect(i)); // Highlights current
+        // Refresh list to highlight current
+        this.quizComponent?.refreshList(this.quizService, (i) => this.onQuizSelect(i));
 
         this.transcriptComponent?.appendTopic(item.heading);
 
-        const prompt = await this.quizService.generateQuestionPrompt();
+        let prompt = await this.quizService.generateQuestionPrompt();
         if (!prompt) return;
 
+        // Inject Vocabulary
+        const vocabContext = await this.getVocabularyContext();
+        if (vocabContext) {
+            prompt += `\n\n# Contextual Knowledge\n${vocabContext}`;
+            showMessage(`Injected context from ${this.selectedVocabularyItems.size} vocabulary notes.`);
+        }
+
+        // Ensure we send context update
         this.adapter?.sendContextUpdate('Quiz Content', prompt);
 
         showMessage(`Sent: ${item.heading}`);
@@ -435,7 +569,6 @@ export class LiveSessionView extends ItemView {
     private async onQuizSelect(index: number) {
         this.quizService.currentIndex = index;
         this.quizComponent?.refreshList(this.quizService, (i) => this.onQuizSelect(i));
-        await this.handleAskNext();
     }
 
     private async handleScoreUpdate(score: number) {

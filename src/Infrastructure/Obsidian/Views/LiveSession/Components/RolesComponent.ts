@@ -24,20 +24,27 @@ export class RolesComponent {
     constructor(private container: HTMLElement) { }
 
     render(props: RolesComponentProps) {
-        // We assume container is already cleared or we are appending to a specific div.
-        // But usually components manage their own wrapper.
-        const wrapper = this.container.createDiv({ cls: 'gemini-roles-container' });
-        wrapper.style.marginTop = '20px';
-        wrapper.style.marginBottom = '20px';
-        wrapper.style.display = 'flex';
-        wrapper.style.flexDirection = 'column';
-        wrapper.style.gap = '10px';
-        wrapper.style.border = '1px solid var(--background-modifier-border)';
-        wrapper.style.padding = '10px';
-        wrapper.style.borderRadius = '4px';
+        // Main Container is now a details element
+        const details = this.container.createEl('details');
+        details.style.marginBottom = '20px';
+        details.style.border = '1px solid var(--background-modifier-border)';
+        details.style.borderRadius = '4px';
+        details.style.overflow = 'hidden';
+
+        const summary = details.createEl('summary', { text: 'Configuración' });
+        summary.style.padding = '10px';
+        summary.style.cursor = 'pointer';
+        summary.style.backgroundColor = 'var(--background-secondary)';
+        summary.style.fontWeight = 'bold';
+
+        const content = details.createDiv();
+        content.style.padding = '15px';
+        content.style.display = 'flex';
+        content.style.flexDirection = 'column';
+        content.style.gap = '15px';
 
         // Role Selector Row
-        const roleRow = wrapper.createDiv();
+        const roleRow = content.createDiv();
         roleRow.style.display = 'flex';
         roleRow.style.alignItems = 'center';
         roleRow.style.gap = '10px';
@@ -54,37 +61,15 @@ export class RolesComponent {
             dropdown.onChange((val) => props.onRoleChange(val));
         }
 
-        // --- Advanced Section ---
-        const advancedDetails = wrapper.createEl('details');
-        advancedDetails.style.marginTop = '10px';
-        advancedDetails.style.borderTop = '1px solid var(--background-modifier-border)';
-        advancedDetails.style.paddingTop = '10px';
-
-        const advancedSummary = advancedDetails.createEl('summary', { text: 'Avanzado' });
-        advancedSummary.style.cursor = 'pointer';
-        advancedSummary.style.marginBottom = '10px';
-        advancedSummary.style.fontWeight = 'bold';
-        advancedSummary.style.color = 'var(--text-muted)';
-
-        const advancedContent = advancedDetails.createDiv();
-        advancedContent.style.display = 'flex';
-        advancedContent.style.flexDirection = 'column';
-        advancedContent.style.gap = '10px';
-        advancedContent.style.paddingLeft = '10px';
-        advancedDetails.appendChild(advancedSummary);
-        advancedDetails.appendChild(advancedContent);
-
         // --- Voice & Temp Config Row ---
-        const configRow = advancedContent.createDiv();
+        const configRow = content.createDiv();
         configRow.style.display = 'flex';
         configRow.style.alignItems = 'center';
         configRow.style.gap = '15px';
         configRow.style.flexWrap = 'wrap';
 
-        configRow.style.flexWrap = 'wrap';
-
         // PTT Toggle
-        const pttContainer = advancedContent.createDiv();
+        const pttContainer = content.createDiv();
         pttContainer.style.display = 'flex';
         pttContainer.style.alignItems = 'center';
         pttContainer.style.gap = '5px';
@@ -136,7 +121,10 @@ export class RolesComponent {
 
         // Buttons
         if (props.roles.length > 0) {
-            const buttonContainer = advancedContent.createDiv();
+            const buttonContainer = content.createDiv();
+            buttonContainer.style.display = 'flex';
+            buttonContainer.style.gap = '10px';
+
             new ButtonComponent(buttonContainer)
                 .setButtonText('Eval Headers')
                 .setTooltip('Batchevaluation of headers')

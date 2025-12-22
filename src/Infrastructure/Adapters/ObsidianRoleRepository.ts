@@ -32,6 +32,7 @@ export class ObsidianRoleRepository implements RoleRepositoryPort {
                 // Read new params
                 const liveVoice = cache?.frontmatter?.['!!liveVoice'];
                 const liveTemperature = cache?.frontmatter?.['!!liveTemperature'];
+                const vocabularyList = cache?.frontmatter?.['!!vocabularyList'];
 
                 if (prompt && typeof prompt === 'string') {
                     roles.push({
@@ -40,7 +41,8 @@ export class ObsidianRoleRepository implements RoleRepositoryPort {
                         trackLevelAnswer: trackLevel,
                         evaluationPrompt: typeof evaluationPrompt === 'string' ? evaluationPrompt : undefined,
                         liveVoice: typeof liveVoice === 'string' ? liveVoice : undefined,
-                        liveTemperature: typeof liveTemperature === 'number' ? liveTemperature : undefined
+                        liveTemperature: typeof liveTemperature === 'number' ? liveTemperature : undefined,
+                        vocabularyList: Array.isArray(vocabularyList) ? vocabularyList : undefined
                     });
                 }
             }

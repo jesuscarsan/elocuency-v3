@@ -79,4 +79,10 @@ export class SessionLogger {
         const date = new Date();
         await this.appendLine(`[${this.formatTime(date)}] Score: ${score}`);
     }
+
+    async logTranscript(speaker: string, text: string) {
+        const date = new Date();
+        // Format: [10:30] User: Hello
+        await this.appendLine(`[${this.formatTime(date)}] ${speaker}: ${text}`);
+    }
 }

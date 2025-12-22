@@ -33,7 +33,7 @@ import { SearchSpotifyArtistCommand } from './Commands/SearchSpotifyArtistComman
 import { CreateNoteFromImagesCommand } from './Commands/CreateNoteFromImagesCommand';
 import { GoogleGeminiImagesAdapter } from '../Adapters/GoogleGeminiAdapter/GoogleGeminiImagesAdapter';
 import { createHeaderProgressRenderer } from './MarkdownPostProcessors/HeaderProgressRenderer';
-import { LiveSessionView, LIVE_SESSION_VIEW_TYPE } from './Views/LiveSessionView';
+import { LiveSessionView, LIVE_SESSION_VIEW_TYPE } from './Views/LiveSession/LiveSessionView';
 import { GenerateHeaderMetadataCommand } from './Commands/GenerateHeaderMetadataCommand';
 import { MetadataService } from '../Services/MetadataService';
 import { createHeaderMetadataRenderer } from './MarkdownPostProcessors/HeaderMetadataRenderer';

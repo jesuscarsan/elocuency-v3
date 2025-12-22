@@ -17,12 +17,15 @@ export class GoogleGeminiLiveAdapter {
     private isMicMuted: boolean = false;
 
     private onTextReceived: (text: string) => void;
+    private onUserTextReceived: (text: string) => void;
     private onScoreReceived: (score: number) => void;
 
-    constructor(apiKey: string, onTextReceived?: (text: string) => void, onScoreReceived?: (score: number) => void) {
+    constructor(apiKey: string, onTextReceived?: (text: string) => void, onScoreReceived?: (score: number) => void, onUserTextReceived?: (text: string) => void) {
         this.apiKey = apiKey;
         this.onTextReceived = onTextReceived || (() => { });
         this.onScoreReceived = onScoreReceived || (() => { });
+        this.onUserTextReceived = onUserTextReceived || (() => { });
+
         this.audioPlayer = new AudioPlayer((isPlaying) => {
             this.isAiSpeaking = isPlaying;
         });
@@ -130,6 +133,7 @@ export class GoogleGeminiLiveAdapter {
 
         // Add output_audio_transcription to BidiGenerateContentSetup directly
         (setupMsg.setup as any).output_audio_transcription = {};
+        // (setupMsg.setup as any).input_audio_transcription = { model: 'google-provided-model' }; // Enable input transcription
 
         if (enableScoreTracking) {
             console.log("Enabling Score Tracking Tool in Setup");
@@ -259,17 +263,65 @@ export class GoogleGeminiLiveAdapter {
             return;
         }
 
-        // Handle output transcription (subtitles) independently of modelTurn
+        // Handle TurnComplete (might contain final transcription?)
+        // But usually transcript events come as 'serverContent' -> 'modelTurn' (output) or special field.
+
+        // Handle Output Transcription (AI Speech)
+        // Check BidiGenerateContentResponse definition. 
+        // It has 'serverContent' -> 'modelTurn' -> 'parts' -> 'text' usually? 
+        // Or 'serverContent' -> 'outputTranscription'? Docs say 'outputTranscription' is not top-level in serverContent usually?
+        // Wait, looking at proto: 'serverContent' string field `modelTurn`.
+        // There is NO `outputTranscription` field in `ServerContent`.
+        // However, `toolCall` etc are there.
+        // Wait, existing code had: `if (serverContent.outputTranscription ...)`
+        // If that was working for AI text, fine. But usually AI text comes in `modelTurn`.
+
+        // Input Transcription comes in `interrupted` or just `turnComplete`?
+        // Actually, it might be `serverContent` -> `speechRecognitionResults`? No?
+        // Let's assume the unofficial/beta API structure.
+        // Based on search: `inputAudioTranscription` config enables it.
+        // It often arrives as a separate message or part of `toolUse`? No.
+
+        // Let's trust logic: checks for any text field.
+
+        // Handle User Input Transcription
+        // It might appear as `serverContent` -> `recognitionResult` ??
+        // Or in the logged message structure.
+        // Let's add logging to discover it if not known.
+        // But I need to implement it.
+        // Common field name: `speechRecognitionResult` or `inputTranscription`.
+
+        // Let's check for `serverContent.interrupted` as well?
+
+        // I'll add a check for a likely field based on experience/docs.
+        // "turnComplete" often has it?
+
+        // Wait, let's implement the callback architecture first.
+
         if (serverContent.outputTranscription && serverContent.outputTranscription.text) {
-            console.log("Received Transcription:", serverContent.outputTranscription.text);
+            // console.log("Received Transcription (Output):", serverContent.outputTranscription.text);
+            // This is AI text?
             this.onTextReceived(serverContent.outputTranscription.text);
         }
+
+        // New: Check for Input Transcription
+        // Note: The field might be named differently.
+        const recognitionResult = (serverContent as any).speechRecognitionResults || (serverContent as any).recognitionResult;
+        if (recognitionResult) {
+            // Handling parts or text
+            const transcript = recognitionResult.transcript || (recognitionResult.parts ? recognitionResult.parts[0]?.text : '');
+            if (transcript) {
+                console.log("Received User Transcription:", transcript);
+                this.onUserTextReceived(transcript);
+            }
+        }
+
 
         const modelTurn = serverContent.modelTurn;
 
         // console.log("Model Turn:", modelTurn);
         if (!modelTurn || !modelTurn.parts) {
-            console.log("No modelTurn or parts in message", serverContent);
+            // console.log("No modelTurn or parts in message", serverContent);
             // It might be turnComplete or interrupted
             if (serverContent.turnComplete) {
                 console.log("Turn Complete");

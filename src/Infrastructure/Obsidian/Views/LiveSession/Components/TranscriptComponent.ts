@@ -33,17 +33,28 @@ export class TranscriptComponent {
         const placeholder = this.transcriptContainer.querySelector('.transcript-placeholder');
         if (placeholder) placeholder.remove();
 
-        // We might want to keep previous transcript until a new one starts? 
-        // Logic in LiveSessionView was: clear when starting.
-        this.transcriptContainer.empty();
-        this.fullTranscript = '';
+        // Transcript is persistent now ("La transcripción nunca se limpia")
     }
 
-    appendUserText(text: string) {
-        // handleTranscription
+    appendAiText(text: string) {
         this.transcriptContainer.createSpan({ text: text });
         this.autoScroll();
         this.fullTranscript += text;
+    }
+
+    appendUserText(text: string) {
+        const userEl = this.transcriptContainer.createDiv({
+            text: `👤 ${text}`,
+            cls: 'gemini-user-transcript'
+        });
+        userEl.style.color = 'var(--text-accent)';
+        userEl.style.fontStyle = 'italic';
+        userEl.style.marginTop = '10px';
+        userEl.style.marginBottom = '10px';
+        userEl.style.textAlign = 'right';
+
+        this.autoScroll();
+        this.fullTranscript += `\n[User]: ${text}\n`;
     }
 
     appendScore(score: number) {
@@ -86,6 +97,15 @@ export class TranscriptComponent {
 
     private autoScroll() {
         this.transcriptContainer.scrollTop = this.transcriptContainer.scrollHeight;
+    }
+
+    getHtml(): string {
+        return this.transcriptContainer.innerHTML;
+    }
+
+    setHtml(html: string) {
+        this.transcriptContainer.innerHTML = html;
+        this.autoScroll();
     }
 
     getFullTranscript(): string {

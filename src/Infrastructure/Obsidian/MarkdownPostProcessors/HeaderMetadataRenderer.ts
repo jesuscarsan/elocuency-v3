@@ -163,7 +163,7 @@ function renderMetadataPill(container: HTMLElement, data: any) {
         <circle cx="9" cy="9" r="6" fill="${diffColor}" stroke="none" />
     </svg>`;
     diffEl.title = `Dificultad: ${diffText} (${normDiff}/3)`;
-    pill.appendChild(diffEl);
+    // pill.appendChild(diffEl);
 
     // 1. Score (Circular Progress - SVG Donut)
     // Size 18x18
@@ -196,6 +196,18 @@ function renderMetadataPill(container: HTMLElement, data: any) {
         <text x="50%" y="54%" text-anchor="middle" dy="0.3em" fill="var(--text-normal)"
             font-size="9" font-weight="bold" transform="rotate(90 ${center} ${center})">${Math.round(score)}</text>
     </svg>`;
+
+    // 4. Attempts (Count)
+    const attempts = (typeof data[HeaderMetadataKeys.Attempts] === 'number') ? data[HeaderMetadataKeys.Attempts] : 0;
+
+    const attemptsEl = document.createElement('span');
+    attemptsEl.addClass('hm-item');
+    attemptsEl.style.textAlign = 'right';
+    attemptsEl.style.fontSize = '0.8em';
+    attemptsEl.style.color = 'var(--text-muted)';
+    attemptsEl.setText(`${attempts}x`);
+    attemptsEl.title = `Intentos: ${attempts}`;
+    pill.appendChild(attemptsEl);
 
     pill.appendChild(scoreEl);
 

@@ -2,11 +2,11 @@ import { ButtonComponent } from 'obsidian';
 
 export class SessionControlsComponent {
     private sessionBtn: ButtonComponent | null = null;
-    private statusEl: HTMLElement | null = null;
-
     private pttBtn: ButtonComponent | null = null;
 
-    constructor(private container: HTMLElement,
+    constructor(
+        private sessionBtnContainer: HTMLElement,
+        private pttContainer: HTMLElement,
         private onStartStop: () => void,
         private onMicDown?: () => void,
         private onMicUp?: () => void,
@@ -15,30 +15,19 @@ export class SessionControlsComponent {
     }
 
     private render() {
-        // Status
-        this.statusEl = this.container.createEl('div', {
-            text: 'Ready to connect',
-            cls: 'gemini-live-status'
-        });
-        this.statusEl.style.marginBottom = '20px';
-        this.statusEl.style.color = 'var(--text-muted)';
+        // Render Session Button in the header container
+        // Clear previous if any (though usually empty)
+        // this.sessionBtnContainer.empty(); // Careful if we share container? No, dedicated.
 
-        // Controls
-        const controls = this.container.createEl('div', { cls: 'gemini-live-controls' });
-
-        this.sessionBtn = new ButtonComponent(controls)
-            .setButtonText('Start Session')
+        this.sessionBtn = new ButtonComponent(this.sessionBtnContainer)
+            .setButtonText('Preguntar')
             .setCta()
             .onClick(() => this.onStartStop());
     }
 
     updateStatus(isActive: boolean, text: string = '', color: string = '', usePTT: boolean = false) {
-        if (this.statusEl) {
-            this.statusEl.textContent = text || (isActive ? (usePTT ? '🔴 Live - Push to Talk Mode' : '🔴 Live - Listening') : 'Ready to connect');
-            this.statusEl.style.color = color || (isActive ? 'var(--color-red)' : 'var(--text-muted)');
-        }
+        // Status element removed as per user request ("sobra")
 
-        const controlsDiv = this.container.querySelector('.gemini-live-controls') as HTMLElement;
         if (isActive && usePTT) {
             // Show PTT UI
             if (this.sessionBtn) {
@@ -49,13 +38,13 @@ export class SessionControlsComponent {
             }
 
             // Create PTT Btn if not exists
-            if (!this.pttBtn && controlsDiv) {
-                const pttContainer = controlsDiv.createDiv({ cls: 'gemini-ptt-container' });
-                pttContainer.style.marginTop = '15px';
-                pttContainer.style.display = 'flex';
-                pttContainer.style.justifyContent = 'center';
+            if (!this.pttBtn) {
+                const pttWrapper = this.pttContainer.createDiv({ cls: 'gemini-ptt-container' });
+                pttWrapper.style.marginTop = '15px';
+                pttWrapper.style.display = 'flex';
+                pttWrapper.style.justifyContent = 'center';
 
-                this.pttBtn = new ButtonComponent(pttContainer)
+                this.pttBtn = new ButtonComponent(pttWrapper)
                     .setButtonText('MANTENER PARA HABLAR')
                     .setCta();
 
@@ -98,7 +87,7 @@ export class SessionControlsComponent {
                     this.sessionBtn.buttonEl.style.fontSize = '';
                     this.sessionBtn.buttonEl.style.padding = '';
                 } else {
-                    this.sessionBtn.setButtonText('Start Session');
+                    this.sessionBtn.setButtonText('Preguntar');
                     this.sessionBtn.buttonEl.removeClass('mod-warning');
                     this.sessionBtn.setCta();
                     this.sessionBtn.buttonEl.style.fontSize = '';

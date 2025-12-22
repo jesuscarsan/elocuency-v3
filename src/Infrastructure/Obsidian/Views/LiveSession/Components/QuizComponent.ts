@@ -8,6 +8,7 @@ export interface QuizComponentProps {
     onStarLevelChange: (level: string) => void;
     onAskNext: () => void;
     onFilterChange: (onlyTitles: boolean) => void;
+    onTopicSelect: (index: number) => void;
 }
 
 export class QuizComponent {
@@ -35,15 +36,12 @@ export class QuizComponent {
         // Star Level Dropdown
         quizControls.createSpan({ text: 'Relevancia:' });
         const importanceDropdown = new DropdownComponent(quizControls);
+        importanceDropdown.addOption('0', '(Sin filtro)'); // New option
         ['1', '2', '3', '4', '5'].forEach(level => importanceDropdown.addOption(level, `⭐`.repeat(Number(level))));
         importanceDropdown.setValue(props.quizService.selectedStarLevel);
         importanceDropdown.onChange((val) => props.onStarLevelChange(val));
 
-        // "Ask Next" Button
-        new ButtonComponent(quizControls)
-            .setButtonText('Preguntar siguiente')
-            .setTooltip('Start/Continue Quiz for this level')
-            .onClick(() => props.onAskNext());
+        // Removed "Preguntar siguiente" button as per requirements
 
         // "Only titles without subtitles" Checkbox
         const filterContainer = quizControls.createDiv();
@@ -76,7 +74,7 @@ export class QuizComponent {
         this.quizStatusEl.style.fontWeight = 'bold';
         this.quizStatusEl.style.color = 'var(--text-normal)';
         this.quizStatusEl.style.borderLeft = '4px solid var(--text-accent)';
-        this.setStatusText('Presiona "Preguntar siguiente" o selecciona un tema de la lista.');
+        this.setStatusText('Selecciona un tema para comenzar.');
 
         // Quiz List
         this.quizListContainer = quizContainer.createDiv({ cls: 'gemini-quiz-list' });
@@ -89,7 +87,11 @@ export class QuizComponent {
         this.quizListContainer.style.display = 'none';
 
         // Initial render of list if queue exists
-        this.refreshList(props.quizService);
+        this.refreshList(props.quizService, (i) => {
+            if (props.onTopicSelect) {
+                props.onTopicSelect(i);
+            }
+        });
     }
 
     setStatusText(text: string) {
@@ -112,7 +114,7 @@ export class QuizComponent {
 
         quizService.queue.forEach((item, index) => {
             const itemEl = this.quizListContainer!.createDiv({ cls: 'gemini-quiz-item' });
-            itemEl.style.padding = '6px';
+            itemEl.style.padding = '8px'; // Slightly bigger touch target
             itemEl.style.cursor = 'pointer';
             itemEl.style.borderBottom = '1px solid var(--background-modifier-border)';
             itemEl.style.display = 'flex';
