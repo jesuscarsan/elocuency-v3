@@ -23,7 +23,8 @@ export interface UnresolvedLinkGeneratorSettings {
   spotifyTokenExpirationTime: number;
   googleCustomSearchApiKey: string;
   googleCustomSearchEngineId: string;
-  geminiLivePTT: boolean;
+  geminiLiveMode: boolean;
+
 }
 
 export const DEFAULT_TEMPLATE_OPTIONS: TemplateOptionSetting[] = [
@@ -50,7 +51,8 @@ export const DEFAULT_SETTINGS: UnresolvedLinkGeneratorSettings = {
   googleCustomSearchApiKey: '',
   googleCustomSearchEngineId: '',
   templateOptions: DEFAULT_TEMPLATE_OPTIONS.map((option) => ({ ...option })),
-  geminiLivePTT: false,
+  geminiLiveMode: true,
+
 };
 
 export function normalizeTemplateOptions(

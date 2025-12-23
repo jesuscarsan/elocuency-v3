@@ -5,7 +5,9 @@ import { AudioPlayer } from './AudioPlayer';
 const GEMINI_LIVE_URL =
     'wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1alpha.GenerativeService.BidiGenerateContent';
 
-export class GoogleGeminiLiveAdapter {
+import { IGeminiSessionAdapter } from './IGeminiSessionAdapter';
+
+export class GoogleGeminiLiveAdapter implements IGeminiSessionAdapter {
     private ws: WebSocket | null = null;
     private audioRecorder: AudioRecorder;
     private audioPlayer: AudioPlayer;
@@ -13,8 +15,7 @@ export class GoogleGeminiLiveAdapter {
     private isConnected: boolean = false;
     private systemInstruction: string = '';
     private isAiSpeaking: boolean = false;
-    private usePTT: boolean = false;
-    private isMicMuted: boolean = false;
+
 
     private onTextReceived: (text: string) => void;
     private onUserTextReceived: (text: string) => void;
@@ -38,11 +39,8 @@ export class GoogleGeminiLiveAdapter {
         await this.audioPlayer.resume();
     }
 
-    async connect(systemInstruction: string = '', enableScoreTracking: boolean = false, voice: string = 'Aoede', temperature: number = 0.5, usePTT: boolean = false): Promise<boolean> {
+    async connect(systemInstruction: string = '', enableScoreTracking: boolean = false, voice: string = 'Aoede', temperature: number = 0.5): Promise<boolean> {
         this.systemInstruction = systemInstruction;
-        this.usePTT = usePTT;
-        // If PTT is on, start muted
-        this.isMicMuted = usePTT;
         if (!this.apiKey) {
             new Notice('Falta la API Key de Gemini');
             return false;
@@ -64,7 +62,7 @@ export class GoogleGeminiLiveAdapter {
             this.ws.onopen = async () => {
                 console.log('Gemini Live WS Connected');
                 this.isConnected = true;
-                this.sendSetupMessage(enableScoreTracking, voice, temperature, this.usePTT);
+                this.sendSetupMessage(enableScoreTracking, voice, temperature);
 
                 // Start recording immediately upon connection (or can be manual)
                 const micStarted = await this.audioRecorder.start();
@@ -104,7 +102,7 @@ export class GoogleGeminiLiveAdapter {
         }
     }
 
-    private sendSetupMessage(enableScoreTracking: boolean, voice: string, temperature: number, usePTT: boolean): void {
+    private sendSetupMessage(enableScoreTracking: boolean, voice: string, temperature: number): void {
         if (!this.ws) return;
 
         const setupMsg: any = {
@@ -193,19 +191,21 @@ export class GoogleGeminiLiveAdapter {
         this.ws.send(JSON.stringify(msg));
     }
 
-    setMicState(muted: boolean) {
-        this.isMicMuted = muted;
-    }
 
-    sendTurnComplete() {
+
+    sendText(text: string): void {
         if (!this.ws || !this.isConnected) return;
 
         const msg = {
             client_content: {
+                turns: [{
+                    role: 'user',
+                    parts: [{ text: text }]
+                }],
                 turn_complete: true
             }
         };
-        console.log("Sending Turn Complete (PTT Release)");
+        console.log("Sending Text Message:", text);
         this.ws.send(JSON.stringify(msg));
     }
 
@@ -214,7 +214,7 @@ export class GoogleGeminiLiveAdapter {
     private sendAudioChunk(base64Audio: string): void {
         if (!this.ws || !this.isConnected || this.isAiSpeaking) return;
         if (this.ws.readyState !== WebSocket.OPEN) return; // Prevent sending to closed socket
-        if (this.usePTT && this.isMicMuted) return; // Don't send audio if muted in PTT mode
+
 
         const msg = {
             realtime_input: {

@@ -1,9 +1,10 @@
-
 import { ItemView, WorkspaceLeaf, Notice, TFile, MarkdownView } from 'obsidian';
 import { ObsidianRoleRepository } from '../../../Adapters/ObsidianRoleRepository';
 import { ObsidianSettingsAdapter } from '../../../Adapters/ObsidianSettingsAdapter';
 import { ObsidianNoteManager } from '../../../Adapters/ObsidianNoteManager';
 import { GoogleGeminiLiveAdapter } from '../../../Adapters/GoogleGeminiLiveAdapter/GoogleGeminiLiveAdapter';
+import { GoogleGeminiChatAdapter } from '../../../Adapters/GoogleGeminiLiveAdapter/GoogleGeminiChatAdapter';
+import { IGeminiSessionAdapter } from '../../../Adapters/GoogleGeminiLiveAdapter/IGeminiSessionAdapter';
 import ObsidianExtension from '../../main';
 import { GenerateHeaderMetadataCommand } from '../../Commands/GenerateHeaderMetadataCommand';
 import { showMessage } from 'src/Infrastructure/Obsidian/Utils/Messages';
@@ -22,50 +23,70 @@ import { QuizComponent } from '../LiveSession/Components/QuizComponent';
 import { TranscriptComponent } from '../LiveSession/Components/TranscriptComponent';
 import { SessionControlsComponent } from '../LiveSession/Components/SessionControlsComponent';
 import { VocabularyComponent } from '../LiveSession/Components/VocabularyComponent';
+import { ChatInputComponent } from '../LiveSession/Components/ChatInputComponent';
 
 export const LIVE_SESSION_VIEW_TYPE = 'gemini-live-session-view';
 
 export class LiveSessionView extends ItemView {
-    // Config State
+    // =========================================================================================
+    // Properties
+    // =========================================================================================
+
+    // --- Configuration State ---
     private plugin!: ObsidianExtension;
     private apiKey: string = '';
 
-    // Services
+
+    private useSpokenChat: boolean = true; // Default to voice (Live)
+
+    // --- Services ---
     private sessionLogger: SessionLogger;
     private rolesService!: RolesService;
     private contextService!: ContextService;
     private quizService!: QuizService;
     private headerEvaluationService!: HeaderEvaluationService;
-    private adapter: GoogleGeminiLiveAdapter | null = null;
 
-    // Component References
+    private adapter: IGeminiSessionAdapter | null = null;
+
+    // --- Components ---
     private transcriptComponent: TranscriptComponent | null = null;
     private rolesComponent: RolesComponent | null = null;
     private quizComponent: QuizComponent | null = null;
     private sessionControlsComponent: SessionControlsComponent | null = null;
+    private chatInputComponent: ChatInputComponent | null = null;
 
+    // --- UI Elements ---
     private contentContainer: HTMLElement | null = null;
+    private configTabBtn: HTMLElement | null = null;
+    private chatTabBtn: HTMLElement | null = null;
+    private configContentDiv: HTMLElement | null = null;
+    private chatContentDiv: HTMLElement | null = null;
+    private chatStopButton: HTMLElement | null = null;
 
-    // Active Session State
+    // --- State ---
+    private activeTab: 'config' | 'chat' = 'config';
     private isSessionActive: boolean = false;
     private sessionStartTime: Date | null = null;
+    private originalSidebarSize: number | null = null;
 
-    // User Selections (State)
+    // User Selections
     private selectedRolePrompt: string = '';
     private selectedRoleEvaluationPrompt: string = '';
     private selectedVoice: string = 'Aoede';
     private selectedTemperature: number = 1;
 
-    private usePTT: boolean = false;
-
     // Data
     private availableRoles: Role[] = [];
     private selectedVocabularyItems: Set<string> = new Set();
 
-    // UI State Persistence
+    // UI Persistence
     private savedTranscriptHtml: string = '';
     private aiTranscriptBuffer: string = '';
     private userTranscriptBuffer: string = '';
+
+    // =========================================================================================
+    // Lifecycle
+    // =========================================================================================
 
     constructor(leaf: WorkspaceLeaf) {
         super(leaf);
@@ -79,22 +100,17 @@ export class LiveSessionView extends ItemView {
     setPlugin(plugin: ObsidianExtension) {
         this.plugin = plugin;
         this.apiKey = plugin.settings.geminiApiKey;
-        this.usePTT = plugin.settings.geminiLivePTT ?? false; // Load from settings
+
+        this.useSpokenChat = plugin.settings.geminiLiveMode ?? true;
 
         const settingsAdapter = new ObsidianSettingsAdapter(this.plugin);
         const roleRepo = new ObsidianRoleRepository(this.app, settingsAdapter);
         this.rolesService = new RolesService(roleRepo);
 
-        // QuizService needs NoteManager and ContextProvider and MetadataPort
+        // Re-init services that depend on full app/plugin if needed (normally constructor is fine)
         const noteManager = new ObsidianNoteManager(this.app);
-        const metadataService = new MetadataService(this.app);
-        this.quizService = new QuizService(noteManager, this.contextService, metadataService);
-        // HeaderEvaluationService
         this.headerEvaluationService = new HeaderEvaluationService(this.plugin.llm, noteManager);
     }
-
-    // ...
-
 
     setApiKey(key: string) {
         this.apiKey = key;
@@ -121,23 +137,30 @@ export class LiveSessionView extends ItemView {
                 if (leaf.view.getViewType() === LIVE_SESSION_VIEW_TYPE && leaf.view === this) {
                     await this.renderContent();
                 } else if (leaf.view instanceof MarkdownView) {
-                    // Refresh Quiz Queue silently if using quiz mode
-                    // Always try to refresh when switching to a markdown file
+                    // Silent Queue Refresh
                     await this.quizService.buildQuizQueue();
                     this.quizComponent?.refreshList(this.quizService, (i) => this.onQuizSelect(i));
-
                 }
             }
         }));
     }
 
+    async onClose() {
+        await this.stopSession();
+        this.toggleMaximize(false);
+    }
+
+    // =========================================================================================
+    // Rendering
+    // =========================================================================================
+
     async renderContent() {
-        // Save transcript state if it exists
+        // Save transcript state
         if (this.transcriptComponent) {
             this.savedTranscriptHtml = this.transcriptComponent.getHtml();
         }
 
-        const container = this.contentContainer || this.containerEl.children[1] as HTMLElement;
+        const container = this.contentContainer || (this.containerEl.children[1] as HTMLElement);
         container.empty();
         this.contentContainer = container;
 
@@ -146,7 +169,7 @@ export class LiveSessionView extends ItemView {
             this.availableRoles = await this.rolesService.loadRoles();
         }
 
-        // Initialize Defaults if needed
+        // Initialize Defaults
         if (this.availableRoles.length > 0 && !this.selectedRolePrompt) {
             const firstRole = this.availableRoles[0];
             this.applyRoleSettings(firstRole);
@@ -154,9 +177,38 @@ export class LiveSessionView extends ItemView {
 
         const mainInterface = this.contentContainer.createDiv();
 
-        // 1. Configuration (Roles) Component
-        // Collapsed configuration panel
-        this.rolesComponent = new RolesComponent(mainInterface);
+        // --- Tabs ---
+        this.renderTabs(mainInterface);
+
+        // --- Content Containers ---
+        this.configContentDiv = mainInterface.createDiv('tab-content');
+        this.chatContentDiv = mainInterface.createDiv('tab-content');
+
+        // Apply initial active state
+        this.updateTabVisibility();
+
+        // --- Tab Contents ---
+        this.renderConfigTab();
+        this.renderChatTab();
+    }
+
+    private renderTabs(container: HTMLElement) {
+        const tabContainer = container.createDiv('live-session-tabs');
+
+        this.configTabBtn = tabContainer.createDiv('live-session-tab');
+        this.configTabBtn.textContent = 'Config';
+        this.configTabBtn.onclick = () => this.switchTab('config');
+
+        this.chatTabBtn = tabContainer.createDiv('live-session-tab');
+        this.chatTabBtn.textContent = 'Chat';
+        this.chatTabBtn.onclick = () => this.switchTab('chat');
+    }
+
+    private renderConfigTab() {
+        if (!this.configContentDiv) return;
+
+        // 1. Configuration (Roles)
+        this.rolesComponent = new RolesComponent(this.configContentDiv);
         this.rolesComponent.render({
             roles: this.availableRoles,
             selectedRolePrompt: this.selectedRolePrompt,
@@ -174,41 +226,29 @@ export class LiveSessionView extends ItemView {
             },
             onEvalHeaders: () => this.evaluateHeaders(),
             onGenerateMetadata: () => new GenerateHeaderMetadataCommand(this.app).execute(),
-            usePTT: this.usePTT,
-            onPTTChange: async (val) => {
-                this.usePTT = val;
-                this.plugin.settings.geminiLivePTT = val;
+
+            useSpokenChat: this.useSpokenChat,
+            onSpokenChatChange: async (val) => {
+                this.useSpokenChat = val;
+                this.plugin.settings.geminiLiveMode = val;
                 await this.plugin.saveSettings();
-                this.sessionControlsComponent?.updateStatus(
-                    this.isSessionActive,
-                    '',
-                    '',
-                    this.usePTT
-                );
-                showMessage(`Push-to-Talk Mode: ${val ? 'ON' : 'OFF'}`);
+                showMessage(`Modo Live (Voz): ${val ? 'ON' : 'OFF'}`);
             }
         });
 
-        // 2. Quiz Component (Header Selector)
-        this.quizComponent = new QuizComponent(mainInterface);
+        // 2. Quiz Component
+        this.quizComponent = new QuizComponent(this.configContentDiv);
         this.quizComponent.render({
             quizService: this.quizService,
-            onStarLevelChange: async (val) => {
-                this.quizService.selectedStarLevel = val;
-                await this.quizService.buildQuizQueue();
-                this.quizComponent?.refreshList(this.quizService, (i) => this.onQuizSelect(i));
-            },
-            onFilterChange: async (val) => {
-                this.quizService.onlyTitlesWithoutSubtitles = val;
-                await this.quizService.buildQuizQueue();
-                this.quizComponent?.refreshList(this.quizService, (i) => this.onQuizSelect(i));
-            },
+            onStarLevelChange: async (val) => this.handleStarLevelChange(val),
+            onFilterChange: async (val) => this.handleFilterChange(val),
             onAskNext: () => this.handleAskNext(),
-            onTopicSelect: (i) => this.onQuizSelect(i)
+            onTopicSelect: (i) => this.onQuizSelect(i),
+            onRefresh: () => this.handleRefresh()
         });
 
         // 3. Vocabulary Component
-        const vocabComponent = new VocabularyComponent(mainInterface);
+        const vocabComponent = new VocabularyComponent(this.configContentDiv);
         const currentRole = this.availableRoles.find(r => r.prompt === this.selectedRolePrompt);
         if (currentRole && currentRole.vocabularyList) {
             vocabComponent.render(
@@ -218,8 +258,8 @@ export class LiveSessionView extends ItemView {
             );
         }
 
-        // 4. Session Controls (Button)
-        const controlsContainer = mainInterface.createDiv();
+        // 4. Session Controls
+        const controlsContainer = this.configContentDiv.createDiv();
         controlsContainer.style.marginTop = '20px';
         controlsContainer.style.marginBottom = '20px';
         controlsContainer.style.display = 'flex';
@@ -227,47 +267,62 @@ export class LiveSessionView extends ItemView {
 
         this.sessionControlsComponent = new SessionControlsComponent(
             controlsContainer,
-            mainInterface, // PTT container
             () => this.handleStartStop(),
-            () => this.onMicDown(),
-            () => this.onMicUp()
         );
-        this.sessionControlsComponent.updateStatus(this.isSessionActive, '', '', this.usePTT);
+        this.sessionControlsComponent.updateStatus(this.isSessionActive, '', '');
+    }
 
-        // 5. Transcript Component
-        this.transcriptComponent = new TranscriptComponent(mainInterface);
+    private renderChatTab() {
+        if (!this.chatContentDiv) return;
+
+        // Toolbar
+        const chatToolbar = this.chatContentDiv.createDiv('chat-toolbar');
+        this.chatStopButton = chatToolbar.createEl('button', { cls: 'chat-stop-btn destructive', text: 'Stop Session' });
+        this.chatStopButton.onclick = async () => await this.stopSession();
+        this.updateChatStopButtonVisibility();
+
+        // Transcript
+        this.transcriptComponent = new TranscriptComponent(this.chatContentDiv, this.app, this);
         if (this.savedTranscriptHtml) {
             this.transcriptComponent.setHtml(this.savedTranscriptHtml);
         }
+
+        // Chat Input
+        const chatContainer = this.chatContentDiv.createDiv();
+        this.chatInputComponent = new ChatInputComponent(chatContainer, (text) => this.handleUserText(text));
+        this.chatInputComponent.render(this.isSessionActive);
     }
 
-    // --- Logic Handlers ---
+    private switchTab(tab: 'config' | 'chat') {
+        this.activeTab = tab;
+        this.updateTabVisibility();
+    }
 
-    private toggleVocabularyItem(item: string) {
-        if (this.selectedVocabularyItems.has(item)) {
-            this.selectedVocabularyItems.delete(item);
-        } else {
-            this.selectedVocabularyItems.add(item);
+    private updateTabVisibility() {
+        if (this.configTabBtn && this.chatTabBtn) {
+            this.configTabBtn.classList.toggle('active', this.activeTab === 'config');
+            this.chatTabBtn.classList.toggle('active', this.activeTab === 'chat');
         }
-        // Re-render only this component effectively, or full re-render. 
-        // For simplicity, full renderContent call, but verify if it resets other state.
-        // renderContent re-creates everything. It preserves state variables like transcript html buffer.
-        // It might be jerky. Ideally we just update the component.
-        // But since we didn't save the component reference properly (local variable), let's just re-render.
-        this.renderContent();
+
+        if (this.configContentDiv && this.chatContentDiv) {
+            this.configContentDiv.classList.toggle('active', this.activeTab === 'config');
+            this.chatContentDiv.classList.toggle('active', this.activeTab === 'chat');
+        }
     }
 
-    private applyRoleSettings(role: Role) {
-        this.selectedRolePrompt = role.prompt;
-        this.selectedRoleEvaluationPrompt = role.evaluationPrompt || '';
-        this.selectedVoice = role.liveVoice || 'Aoede';
-        this.selectedTemperature = role.liveTemperature !== undefined ? role.liveTemperature : 1;
+    private updateChatStopButtonVisibility() {
+        if (this.chatStopButton) {
+            this.chatStopButton.style.display = this.isSessionActive ? 'flex' : 'none';
+        }
     }
+
+    // =========================================================================================
+    // Logic & Handlers
+    // =========================================================================================
 
     private async handleRoleChange(rolePrompt: string) {
         this.selectedRolePrompt = rolePrompt;
         const role = this.availableRoles.find(r => r.prompt === rolePrompt);
-
         let shouldRestart = this.isSessionActive;
 
         if (role) {
@@ -285,17 +340,28 @@ export class LiveSessionView extends ItemView {
         }
     }
 
+    private applyRoleSettings(role: Role) {
+        this.selectedRolePrompt = role.prompt;
+        this.selectedRoleEvaluationPrompt = role.evaluationPrompt || '';
+        this.selectedVoice = role.liveVoice || 'Aoede';
+        this.selectedTemperature = role.liveTemperature !== undefined ? role.liveTemperature : 1;
+    }
+
     private async handleStartStop() {
         if (this.isSessionActive) {
             await this.stopSession();
         } else {
-            // If we have a selected item in the quiz, we start by asking that.
             if (this.quizService.getCurrentItem()) {
                 await this.handleAskNext('', true);
             } else {
                 await this.startSession();
             }
         }
+    }
+
+    private async handleRestartSession(reason: string) {
+        // Redundant alias for consistency, if needed
+        await this.restartSession(reason);
     }
 
     private async restartSession(reason: string) {
@@ -310,85 +376,30 @@ export class LiveSessionView extends ItemView {
             return;
         }
 
-        // Ensure we disconnect any existing adapter/audioContext before creating a new one
         if (this.adapter) {
             console.log('LiveSessionView: Disconnecting existing adapter before restart...');
             this.adapter.disconnect();
             this.adapter = null;
         }
 
-        // Initialize adapter synchronously to capture user gesture for AudioContext
-        console.log('LiveSessionView: Instantiating adapter...');
-        this.adapter = new GoogleGeminiLiveAdapter(
-            this.apiKey,
-            (text) => {
-                this.transcriptComponent?.appendAiText(text);
+        console.log(`LiveSessionView: Instantiating adapter (Voice: ${this.useSpokenChat})...`);
 
-                // Buffer and log only when sentence completes
-                this.aiTranscriptBuffer += text;
-                const setenceEndRegex = /([.?!])\s+/;
-                const parts = this.aiTranscriptBuffer.split(setenceEndRegex);
+        if (this.useSpokenChat) {
+            this.adapter = new GoogleGeminiLiveAdapter(
+                this.apiKey,
+                (text) => this.onAiAudioData(text),
+                async (score) => await this.onScoreUpdate(score),
+                (text) => this.onUserAudioData(text)
+            );
+        } else {
+            this.adapter = new GoogleGeminiChatAdapter(
+                this.apiKey,
+                (text) => this.onAiAudioData(text), // Reuse text handler (it appends to transcript)
+                async (score) => await this.onScoreUpdate(score),
+                (text) => this.onUserAudioData(text) // Chat adapter might not call this often, but needed for type
+            );
+        }
 
-                if (parts.length > 1) {
-                    // We have at least one complete sentence
-                    // split keeps separators. 
-                    // E.g. "Hello. How are you" -> ["Hello", ".", "How are you"]
-
-                    // Actually, simpler approach: Check if we have endings.
-                    // Let's iterate and extract.
-                    // Or just use a simpler heuristic: if text ends with space, and we have punctuation before.
-
-                    let processBuffer = true;
-                    while (processBuffer) {
-                        const match = this.aiTranscriptBuffer.match(/([^.?!]+[.?!])\s+/);
-                        if (match) {
-                            const sentence = match[1]; // "Hello."
-                            const fullMatch = match[0]; // "Hello. "
-                            this.sessionLogger.logTranscript('AI', sentence);
-                            this.aiTranscriptBuffer = this.aiTranscriptBuffer.substring(fullMatch.length);
-                        } else {
-                            processBuffer = false;
-                        }
-                    }
-                }
-            },
-            async (score) => {
-                console.log('LiveSessionView: Received score:', score);
-                await this.sessionLogger.logScore(score);
-                showMessage(`💡 Nota: ${score}`);
-                this.transcriptComponent?.appendScore(score);
-
-                // Update Metadata
-                await this.handleScoreUpdate(score);
-            },
-            (text) => {
-                this.transcriptComponent?.appendUserText(text);
-
-                // Buffer and log only when sentence completes (User text usually comes as whole phrasing but better safe)
-                this.userTranscriptBuffer += text;
-                let processBuffer = true;
-                while (processBuffer) {
-                    const match = this.userTranscriptBuffer.match(/([^.?!]+[.?!])\s*/);
-                    if (match) {
-                        const sentence = match[1];
-                        const fullMatch = match[0];
-                        this.sessionLogger.logTranscript('User', sentence);
-                        this.userTranscriptBuffer = this.userTranscriptBuffer.substring(fullMatch.length);
-                    } else {
-                        // For user, sometimes it doesn't end with punctuation if it is a short command.
-                        // Ideally we flush on turn complete. 
-                        // But for now, let's just log if it's long enough or has pause?
-                        // Actually, user transcript from Google usually comes as a 'transcript' blob, possibly full?
-                        // If it comes as chunks, same logic applies.
-                        // If it doesn't have punctuation, we might lose it?
-                        // Let's add a timeout or just wait.
-                        processBuffer = false;
-                    }
-                }
-            }
-        );
-
-        // Explicitly resume audio context (important for iOS)
         console.log('LiveSessionView: Resuming audio...');
         await this.adapter.resumeAudio();
         console.log('LiveSessionView: Audio resumed.');
@@ -396,44 +407,20 @@ export class LiveSessionView extends ItemView {
         this.sessionControlsComponent?.updateStatus(false, 'Connecting...', 'var(--text-normal)');
         this.transcriptComponent?.startSession();
 
-        let context = '';
-        const activeFile = this.app.workspace.getActiveFile();
-        if (activeFile instanceof TFile) {
-            try {
-                const mainContent = await this.app.vault.read(activeFile);
-                context = mainContent; // We might want to just load basics?
-                // Original logic: Load active file + Linked notes
-                showMessage(`Context loaded from: ${activeFile.basename}`);
-
-                const linkedContent = await this.contextService.getLinkedFileContent(activeFile.path);
-                if (linkedContent) {
-                    context += `\n\n--- NOTAS RELACIONADAS ---\n${linkedContent}`;
-                    showMessage(`Loaded content from linked notes.`);
-                }
-            } catch (e) {
-                console.error('Failed to read active file', e);
-            }
-        }
-
-        // Role config
         const currentRole = this.availableRoles.find(r => r.prompt === this.selectedRolePrompt);
         const enableScoreTracking = currentRole?.trackLevelAnswer || false;
+        const systemInstruction = this.selectedRolePrompt;
 
-        let systemInstruction = this.selectedRolePrompt;
-
-        // Inject Vocabulary Context
-
-
-        const success = await this.adapter.connect(systemInstruction, enableScoreTracking, this.selectedVoice, this.selectedTemperature, this.usePTT);
+        const success = await this.adapter.connect(systemInstruction, enableScoreTracking, this.selectedVoice, this.selectedTemperature);
 
         if (success) {
             this.isSessionActive = true;
             this.sessionStartTime = new Date();
             await this.sessionLogger.logStart(this.sessionStartTime);
-            this.sessionControlsComponent?.updateStatus(true, '', '', this.usePTT);
-
+            this.sessionControlsComponent?.updateStatus(true, '', '');
+            this.chatInputComponent?.render(true);
+            this.updateChatStopButtonVisibility();
             showMessage('Live Connected');
-
             if (enableScoreTracking) showMessage('Answer scoring enabled.');
         } else {
             this.sessionControlsComponent?.updateStatus(false, 'Connection Failed', 'var(--text-error)');
@@ -454,69 +441,58 @@ export class LiveSessionView extends ItemView {
             this.adapter = null;
         }
         this.isSessionActive = false;
-        this.sessionControlsComponent?.updateStatus(false, 'Session Ended', 'var(--text-muted)', this.usePTT);
+        this.sessionControlsComponent?.updateStatus(false, 'Session Ended', 'var(--text-muted)');
+        this.chatInputComponent?.render(false);
+        this.updateChatStopButtonVisibility();
     }
 
-    private onMicDown() {
-        if (this.adapter && this.usePTT) {
-            this.adapter.setMicState(false); // Unmute
-        }
-    }
+    // --- Audio Data Callbacks ---
 
-    private onMicUp() {
-        if (this.adapter && this.usePTT) {
-            this.adapter.setMicState(true); // Mute
-            this.adapter.sendTurnComplete();
-        }
-    }
+    private onAiAudioData(text: string) {
+        this.transcriptComponent?.appendAiText(text);
+        this.aiTranscriptBuffer += text;
 
-    // --- Vocabulary Logic ---
-
-    private async getVocabularyContext(): Promise<string> {
-        if (this.selectedVocabularyItems.size === 0) return '';
-
-        let vocabContext = '';
-        console.log('LiveSessionView: Injecting vocabulary context...', this.selectedVocabularyItems);
-
-        const activeFile = this.app.workspace.getActiveFile();
-        const resolvedPath = activeFile?.path || '';
-
-        for (const item of this.selectedVocabularyItems) {
-            // Clean item string (remove [[ ]])
-            const cleanItem = item.replace(/^\[\[|\]\]$/g, '');
-
-            // Try to find file by name
-            let file = this.app.metadataCache.getFirstLinkpathDest(cleanItem, resolvedPath);
-
-            // Fallback: Try from root if not found relative
-            if (!file) {
-                file = this.app.metadataCache.getFirstLinkpathDest(cleanItem, '');
-            }
-
-            // Fallback: fuzzy match basename if still not found
-            if (!file) {
-                file = this.app.vault.getFiles().find(f => f.basename === cleanItem) || null;
-            }
-
-            console.log(`LiveSessionView: Resolving "${item}" (clean: "${cleanItem}") -> found:`, file);
-
-            if (file && file instanceof TFile && file.extension === 'md') {
-                try {
-                    const content = await this.app.vault.read(file);
-                    vocabContext += `\n-- VOCABULARIO que debes utilizar en la pregunta: ---- \n${cleanItem}\n${content}\n`;
-                } catch (e) {
-                    console.warn(`Failed to read vocabulary note: ${cleanItem}`, e);
-                }
+        let processBuffer = true;
+        while (processBuffer) {
+            const match = this.aiTranscriptBuffer.match(/([^.?!]+[.?!])\s+/);
+            if (match) {
+                const sentence = match[1];
+                const fullMatch = match[0];
+                this.sessionLogger.logTranscript('AI', sentence);
+                this.aiTranscriptBuffer = this.aiTranscriptBuffer.substring(fullMatch.length);
             } else {
-                console.warn(`LiveSessionView: Could not find note for vocabulary item: "${item}"`);
-                showMessage(`Warning: Could not find note "${cleanItem}"`);
+                processBuffer = false;
             }
         }
-
-        return vocabContext;
     }
 
-    // --- Quiz Logic Integration ---
+    private onUserAudioData(text: string) {
+        this.transcriptComponent?.appendUserText(text);
+        this.userTranscriptBuffer += text;
+
+        let processBuffer = true;
+        while (processBuffer) {
+            const match = this.userTranscriptBuffer.match(/([^.?!]+[.?!])\s*/);
+            if (match) {
+                const sentence = match[1];
+                const fullMatch = match[0];
+                this.sessionLogger.logTranscript('User', sentence);
+                this.userTranscriptBuffer = this.userTranscriptBuffer.substring(fullMatch.length);
+            } else {
+                processBuffer = false;
+            }
+        }
+    }
+
+    private async onScoreUpdate(score: number) {
+        console.log('LiveSessionView: Received score:', score);
+        await this.sessionLogger.logScore(score);
+        showMessage(`💡 Nota: ${score}`);
+        this.transcriptComponent?.appendScore(score);
+        await this.handleScoreInMetadata(score);
+    }
+
+    // --- Quiz / Header Logic ---
 
     private async handleAskNext(message: string = '', forceStart: boolean = false) {
         if (!this.isSessionActive || forceStart) {
@@ -527,8 +503,6 @@ export class LiveSessionView extends ItemView {
             }
         }
 
-        // If queue empty or finished, try to build/rebuild
-        // If we are selecting a specific index (via onQuizSelect), we assume it's valid.
         if (this.quizService.queue.length === 0) {
             const success = await this.quizService.buildQuizQueue();
             if (!success) {
@@ -542,28 +516,41 @@ export class LiveSessionView extends ItemView {
         if (!item) return;
 
         await this.sessionLogger.logQuestion(item.heading);
-
         const statusText = `Examinando: ${item.heading}`;
         this.quizComponent?.setStatusText(statusText);
-        // Refresh list to highlight current
         this.quizComponent?.refreshList(this.quizService, (i) => this.onQuizSelect(i));
-
         this.transcriptComponent?.appendTopic(item.heading);
 
         let prompt = await this.quizService.generateQuestionPrompt();
         if (!prompt) return;
 
         // Inject Vocabulary
-        const vocabContext = await this.getVocabularyContext();
+        const vocabContext = await this.contextService.getVocabularyContent(this.selectedVocabularyItems);
         if (vocabContext) {
             prompt += `\n\n# Contextual Knowledge\n${vocabContext}`;
             showMessage(`Injected context from ${this.selectedVocabularyItems.size} vocabulary notes.`);
         }
 
-        // Ensure we send context update
         this.adapter?.sendContextUpdate('Quiz Content', prompt);
-
         showMessage(`Sent: ${item.heading}`);
+
+        this.switchTab('chat');
+        this.chatInputComponent?.focus();
+    }
+
+    private async handleScoreInMetadata(score: number) {
+        const currentItem = this.quizService.getCurrentItem();
+        if (!currentItem) return;
+
+        const oldScore = await this.quizService.recordBlockScore(currentItem, score);
+        if (oldScore !== null) {
+            showMessage(`Score updated: ${oldScore}`);
+        }
+
+        if (this.quizService.hasNext()) {
+            this.quizService.next();
+            this.quizComponent?.refreshList(this.quizService, (i) => this.onQuizSelect(i));
+        }
     }
 
     private async onQuizSelect(index: number) {
@@ -571,34 +558,40 @@ export class LiveSessionView extends ItemView {
         this.quizComponent?.refreshList(this.quizService, (i) => this.onQuizSelect(i));
     }
 
-    private async handleScoreUpdate(score: number) {
-        // Logic to update metadata if in Quiz Mode
-        const currentItem = this.quizService.getCurrentItem();
-        if (!currentItem) return;
-
-        const oldScore = await this.quizService.recordBlockScore(currentItem, score);
-        if (oldScore !== null) {
-            showMessage(`Score updated: ${oldScore}`);
-            // Ideally we want to show old -> new, but recordBlockScore returns final.
-            // That is sufficient.
-        }
-
-        // Refresh view using MarkdownView rerender if possible
-        const activeFile = this.app.workspace.getActiveFile();
-        const view = this.app.workspace.getActiveViewOfType(MarkdownView);
-        if (view && view.file === activeFile) {
-            // view.previewMode.rerender(true); // Preview mode
-            // For live preview, we might not need to force rerender if metadata is sidecar
-            // But if we want to show it in the Note... Sidecar updates don't trigger View updates automatically usually.
-        }
-
-        // Advance quiz
-        if (this.quizService.hasNext()) {
-            this.quizService.next();
-            this.quizComponent?.refreshList(this.quizService, (i) => this.onQuizSelect(i));
-        }
+    private async handleStarLevelChange(level: string) {
+        this.quizService.selectedStarLevel = level;
+        await this.quizService.buildQuizQueue();
+        this.quizComponent?.refreshList(this.quizService, (i) => this.onQuizSelect(i));
     }
 
+    private async handleFilterChange(onlyTitles: boolean) {
+        this.quizService.onlyTitlesWithoutSubtitles = onlyTitles;
+        await this.quizService.buildQuizQueue();
+        this.quizComponent?.refreshList(this.quizService, (i) => this.onQuizSelect(i));
+    }
+
+    private async handleRefresh() {
+        showMessage('Refrescando datos...');
+        if (this.rolesService) {
+            this.availableRoles = await this.rolesService.loadRoles();
+        }
+        await this.quizService.buildQuizQueue();
+        await this.renderContent();
+        showMessage('Datos actualizados.');
+    }
+
+    // --- Vocabulary Helpers ---
+
+    private toggleVocabularyItem(item: string) {
+        if (this.selectedVocabularyItems.has(item)) {
+            this.selectedVocabularyItems.delete(item);
+        } else {
+            this.selectedVocabularyItems.add(item);
+        }
+        this.renderContent();
+    }
+
+    // --- Other Handlers ---
 
     private async evaluateHeaders() {
         if (!this.headerEvaluationService) return;
@@ -620,7 +613,51 @@ export class LiveSessionView extends ItemView {
         }
     }
 
-    async onClose() {
-        await this.stopSession();
+    private async handleUserText(text: string) {
+        if (!this.isSessionActive || !this.adapter) return;
+        this.adapter.sendText(text);
+        this.transcriptComponent?.appendUserText(text);
+        this.sessionLogger.logTranscript('User', text);
+        this.chatInputComponent?.focus();
+    }
+
+
+
+    private toggleMaximize(maximize: boolean) {
+        if (!this.leaf) return;
+
+        // @ts-ignore
+        const parent = this.leaf.parent;
+        // @ts-ignore
+        const isInRightSidebar = this.leaf.parent === this.app.workspace.rightSplit;
+
+        if (isInRightSidebar) {
+            const split = this.app.workspace.rightSplit;
+            if (maximize) {
+                // @ts-ignore
+                this.originalSidebarSize = split.size;
+                // @ts-ignore
+                split.setSize(window.innerWidth - 100);
+            } else {
+                // @ts-ignore
+                if (this.originalSidebarSize) split.setSize(this.originalSidebarSize);
+            }
+            return;
+        }
+
+        // @ts-ignore
+        if (parent && parent.type === 'split') {
+            // @ts-ignore
+            const parentEl = parent.containerEl;
+            if (maximize) {
+                parentEl.classList.add('gemini-live-mode-parent');
+                // @ts-ignore
+                this.leaf.containerEl.classList.add('gemini-live-mode-active-leaf');
+            } else {
+                parentEl.classList.remove('gemini-live-mode-parent');
+                // @ts-ignore
+                this.leaf.containerEl.classList.remove('gemini-live-mode-active-leaf');
+            }
+        }
     }
 }

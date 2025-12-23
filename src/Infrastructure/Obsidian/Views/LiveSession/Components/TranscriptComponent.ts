@@ -1,10 +1,18 @@
+import { App, MarkdownRenderer, Component } from 'obsidian';
 
 export class TranscriptComponent {
     private transcriptContainer: HTMLElement;
     private fullTranscript: string = '';
+    private app: App;
+    private component: Component;
 
-    constructor(private container: HTMLElement) {
-        this.transcriptContainer = this.container.createDiv({ cls: 'gemini-live-transcript' });
+    private currentAiMessageEl: HTMLElement | null = null;
+    private currentAiMessageText: string = '';
+
+    constructor(container: HTMLElement, app: App, component: Component) {
+        this.app = app;
+        this.component = component;
+        this.transcriptContainer = container.createDiv({ cls: 'gemini-live-transcript' });
         this.transcriptContainer.style.height = '300px';
         this.transcriptContainer.style.overflowY = 'auto';
         this.transcriptContainer.style.border = '1px solid var(--background-modifier-border)';
@@ -25,6 +33,8 @@ export class TranscriptComponent {
     clear() {
         this.transcriptContainer.empty();
         this.fullTranscript = '';
+        this.currentAiMessageEl = null;
+        this.currentAiMessageText = '';
         this.renderPlaceholder();
     }
 
@@ -32,17 +42,40 @@ export class TranscriptComponent {
         // Remove placeholder
         const placeholder = this.transcriptContainer.querySelector('.transcript-placeholder');
         if (placeholder) placeholder.remove();
-
-        // Transcript is persistent now ("La transcripción nunca se limpia")
     }
 
-    appendAiText(text: string) {
-        this.transcriptContainer.createSpan({ text: text });
-        this.autoScroll();
+    async appendAiText(text: string) {
+        // If we don't have an active AI message bubble, create one
+        if (!this.currentAiMessageEl) {
+            this.currentAiMessageEl = this.transcriptContainer.createDiv({ cls: 'gemini-ai-message' });
+            this.currentAiMessageEl.style.marginBottom = '10px';
+            this.currentAiMessageText = '';
+        }
+
+        this.currentAiMessageText += text;
         this.fullTranscript += text;
+
+        // Re-render the markdown content
+        this.currentAiMessageEl.empty();
+        await MarkdownRenderer.render(
+            this.app,
+            this.currentAiMessageText,
+            this.currentAiMessageEl,
+            '',
+            this.component
+        );
+
+        this.autoScroll();
+    }
+
+    finalizeMessage() {
+        this.currentAiMessageEl = null;
+        this.currentAiMessageText = '';
     }
 
     appendUserText(text: string) {
+        this.finalizeMessage(); // Close any open AI message
+
         const userEl = this.transcriptContainer.createDiv({
             text: `👤 ${text}`,
             cls: 'gemini-user-transcript'
@@ -58,6 +91,8 @@ export class TranscriptComponent {
     }
 
     appendScore(score: number) {
+        this.finalizeMessage();
+
         const scoreEl = this.transcriptContainer.createEl('div', {
             text: `🌟 Nota: ${score}`,
             cls: 'gemini-score-flag'
@@ -78,6 +113,8 @@ export class TranscriptComponent {
     }
 
     appendTopic(heading: string) {
+        this.finalizeMessage();
+
         const topicEl = this.transcriptContainer.createEl('div', {
             text: `📝 PREGUNTA: ${heading}`,
             cls: 'gemini-quiz-topic'
@@ -106,6 +143,9 @@ export class TranscriptComponent {
     setHtml(html: string) {
         this.transcriptContainer.innerHTML = html;
         this.autoScroll();
+        // Since we are loading raw HTML, we don't restore internal element references.
+        // Future appends will start new blocks, which is fine.
+        this.finalizeMessage();
     }
 
     getFullTranscript(): string {

@@ -9,6 +9,7 @@ export interface QuizComponentProps {
     onAskNext: () => void;
     onFilterChange: (onlyTitles: boolean) => void;
     onTopicSelect: (index: number) => void;
+    onRefresh: () => void;
 }
 
 export class QuizComponent {
@@ -41,6 +42,8 @@ export class QuizComponent {
         importanceDropdown.setValue(props.quizService.selectedStarLevel);
         importanceDropdown.onChange((val) => props.onStarLevelChange(val));
 
+
+
         // Removed "Preguntar siguiente" button as per requirements
 
         // "Only titles without subtitles" Checkbox
@@ -63,6 +66,13 @@ export class QuizComponent {
 
         filterContainer.appendChild(filterCheckbox);
         filterContainer.appendChild(filterLabel);
+
+        // Refresh Button (Moved to end for right alignment)
+        const refreshBtn = new ButtonComponent(quizControls);
+        refreshBtn.setIcon('refresh-cw');
+        refreshBtn.setTooltip('Refrescar Datos');
+        refreshBtn.onClick(() => props.onRefresh());
+        refreshBtn.buttonEl.style.marginLeft = 'auto';
 
         // Quiz Status Label
         this.quizStatusEl = quizContainer.createDiv({ cls: 'gemini-quiz-status' });

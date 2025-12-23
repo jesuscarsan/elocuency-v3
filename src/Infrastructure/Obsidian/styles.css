@@ -75,3 +75,88 @@
     align-items: center;
     justify-content: center;
 }
+
+/* Live Session Tabs */
+.live-session-tabs {
+    display: flex;
+    justify-content: space-around;
+    border-bottom: 2px solid var(--background-modifier-border);
+    margin-bottom: 15px;
+    background-color: var(--background-primary);
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+
+.live-session-tab {
+    flex: 1;
+    text-align: center;
+    padding: 10px;
+    cursor: pointer;
+    font-weight: 600;
+    color: var(--text-muted);
+    transition: all 0.2s ease;
+    border-bottom: 2px solid transparent;
+}
+
+.live-session-tab:hover {
+    color: var(--text-normal);
+    background-color: var(--background-secondary);
+}
+
+.live-session-tab.active {
+    color: var(--interactive-accent);
+    border-bottom: 2px solid var(--interactive-accent);
+    margin-bottom: -2px; /* Overlap border */
+}
+
+.tab-content {
+    display: none;
+    padding-top: 10px;
+}
+
+.tab-content.active {
+    display: block;
+    animation: fade-in 0.2s ease;
+}
+
+/* Chat Toolbar */
+.chat-toolbar {
+    display: flex;
+    justify-content: flex-end;
+    padding: 5px 10px;
+    margin-bottom: 10px;
+    border-bottom: 1px solid var(--background-modifier-border);
+}
+
+.chat-stop-btn {
+    background-color: var(--interactive-accent); /* Or a destructve color like red? */
+    color: var(--text-on-accent);
+    border: none;
+    padding: 4px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.85em;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    transition: background-color 0.2s ease;
+}
+
+.chat-stop-btn:hover {
+    background-color: var(--interactive-accent-hover);
+}
+
+.chat-stop-btn.destructive {
+    background-color: var(--text-error);
+    color: white;
+}
+.chat-stop-btn.destructive:hover {
+    background-color: #c92a2a; /* Darker red */
+}
+
+
+@keyframes fade-in {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}

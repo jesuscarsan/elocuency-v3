@@ -12,8 +12,9 @@ export interface RolesComponentProps {
     onTemperatureChange: (temp: number) => void;
     onEvalHeaders: () => void;
     onGenerateMetadata: () => void;
-    usePTT: boolean;
-    onPTTChange: (val: boolean) => void;
+    onEvaluateHeader?: () => void;
+    useSpokenChat: boolean;
+    onSpokenChatChange: (val: boolean) => void;
 }
 
 export class RolesComponent {
@@ -68,17 +69,20 @@ export class RolesComponent {
         configRow.style.gap = '15px';
         configRow.style.flexWrap = 'wrap';
 
-        // PTT Toggle
-        const pttContainer = content.createDiv();
-        pttContainer.style.display = 'flex';
-        pttContainer.style.alignItems = 'center';
-        pttContainer.style.gap = '5px';
-        const pttCheckbox = pttContainer.createEl('input', { type: 'checkbox' });
-        pttCheckbox.checked = props.usePTT;
-        pttCheckbox.addEventListener('change', (e) => {
-            props.onPTTChange((e.target as HTMLInputElement).checked);
+
+        // Spoken Chat Toggle
+        const spokenContainer = content.createDiv();
+        spokenContainer.style.display = 'flex';
+        spokenContainer.style.alignItems = 'center';
+        spokenContainer.style.gap = '5px';
+        const spokenCheckbox = spokenContainer.createEl('input', { type: 'checkbox' });
+        spokenCheckbox.checked = props.useSpokenChat;
+        spokenCheckbox.addEventListener('change', (e) => {
+            props.onSpokenChatChange((e.target as HTMLInputElement).checked);
         });
-        pttContainer.createSpan({ text: 'Modo Push-to-Talk' });
+        spokenContainer.createSpan({ text: 'Modo Live (Voz Real)' });
+
+
 
 
         // Voice Dropdown

@@ -123,4 +123,42 @@ export class ContextService implements ContextProviderPort {
 
         return linkedContext;
     }
+    async getVocabularyContent(items: Set<string>): Promise<string> {
+        if (items.size === 0) return '';
+
+        let vocabContext = '';
+        const activeFile = this.app.workspace.getActiveFile();
+        const resolvedPath = activeFile?.path || '';
+
+        for (const item of items) {
+            // Clean item string (remove [[ ]])
+            const cleanItem = item.replace(/^\[\[|\]\]$/g, '');
+
+            // Try to find file by name
+            let file = this.app.metadataCache.getFirstLinkpathDest(cleanItem, resolvedPath);
+
+            // Fallback: Try from root if not found relative
+            if (!file) {
+                file = this.app.metadataCache.getFirstLinkpathDest(cleanItem, '');
+            }
+
+            // Fallback: fuzzy match basename if still not found
+            if (!file) {
+                file = this.app.vault.getFiles().find(f => f.basename === cleanItem) || null;
+            }
+
+            if (file && file instanceof TFile && file.extension === 'md') {
+                try {
+                    const content = await this.app.vault.read(file);
+                    vocabContext += `\n-- VOCABULARIO que debes utilizar en la pregunta: ---- \n${cleanItem}\n${content}\n`;
+                } catch (e) {
+                    console.warn(`Failed to read vocabulary note: ${cleanItem}`, e);
+                }
+            } else {
+                console.warn(`ContextService: Could not find note for vocabulary item: "${item}"`);
+            }
+        }
+
+        return vocabContext;
+    }
 }
