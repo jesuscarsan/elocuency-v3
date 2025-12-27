@@ -7,6 +7,7 @@ export interface TemplateConfig {
     commands?: string[];
     path?: string;
     prompt?: string;
+    hasFrontmatter?: boolean; // New field
     [key: string]: any;
 }
 
@@ -37,6 +38,9 @@ function extractConfigFromTemplate(content: string): {
         }
 
         if (modified) {
+            // Check if there are any keys left after removing config keys
+            config.hasFrontmatter = Object.keys(cleanFm).length > 0;
+
             const newFmBlock = Object.keys(cleanFm).length > 0
                 ? formatFrontmatterBlock(cleanFm)
                 : '';
@@ -53,8 +57,21 @@ function extractConfigFromTemplate(content: string): {
             } else {
                 cleanedContent = body;
             }
+        } else {
+            // If no !! keys were found, does the file have frontmatter?
+            // Yes, if cleanFm has keys.
+            // Note: If we are not extracting config, maybe we don't care?
+            // But if we use this valid template for a prompt (via JSON block?? no, JSON block is separate).
+            // Actually, if there are NO !! keys, then `prompt` won't be set from Frontmatter.
+            // But it might be set from JSON block below.
+            // If prompt is set from JSON block, does `hasFrontmatter` matter?
+            // "En buildPrompt si la template no tiene fronmatter"
+            // If prompt comes from JSON block, we should probably check if there is YAML frontmatter too?
+            // Let's assume consistent behavior: We want to know if there is YAML frontmatter.
+            config.hasFrontmatter = Object.keys(cleanFm).length > 0;
         }
     }
+
 
 
     // 2. Extract from JSON Block (Legacy support or mixed usage)
@@ -111,59 +128,7 @@ export interface TemplateMatch {
     templateFile: TFile;
 }
 
-export async function getTemplateConfigsForFolder(
-    app: App,
-    settings: UnresolvedLinkGeneratorSettings,
-    folderPath: string
-): Promise<TemplateMatch[]> {
-    const matchingTemplates = settings.templateOptions.filter((option) =>
-        isFolderMatch(folderPath, option.targetFolder)
-    );
 
-    if (matchingTemplates.length === 0) {
-        return [];
-    }
-
-    const templatesFolder = getTemplatesFolder(app);
-    if (!templatesFolder) {
-        return [];
-    }
-
-    const matches: TemplateMatch[] = [];
-
-    for (const matchingTemplate of matchingTemplates) {
-        let templatePath = normalizePath(
-            `${templatesFolder}/${matchingTemplate.templateFilename}`
-        );
-        let templateFile = app.vault.getAbstractFileByPath(templatePath);
-
-        if (!templateFile && !templatePath.endsWith('.md')) {
-            templatePath = templatePath + '.md';
-            templateFile = app.vault.getAbstractFileByPath(templatePath);
-            if (!templateFile) {
-                console.warn(`Template file not found: ${templatePath}`);
-                continue;
-            }
-        }
-
-        if (templateFile instanceof TFile) {
-            const templateContent = await app.vault.read(templateFile);
-            const { config, cleanedContent } = extractConfigFromTemplate(templateContent);
-            matches.push({ config, cleanedContent, templateFile });
-        }
-    }
-
-    return matches;
-}
-
-export async function getTemplateConfigForFolder(
-    app: App,
-    settings: UnresolvedLinkGeneratorSettings,
-    folderPath: string
-): Promise<TemplateMatch | null> {
-    const matches = await getTemplateConfigsForFolder(app, settings, folderPath);
-    return matches.length > 0 ? matches[0] : null;
-}
 
 export async function getAllTemplateConfigs(
     app: App

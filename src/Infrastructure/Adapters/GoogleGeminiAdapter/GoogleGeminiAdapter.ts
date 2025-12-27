@@ -58,7 +58,7 @@ export class GoogleGeminiAdapter implements LlmPort {
         return null;
       }
 
-      const cleanText = this.stripCodeFence(rawText);
+      const cleanText = this.cleanResponse(rawText);
 
       let parsed: unknown;
       try {
@@ -167,7 +167,7 @@ export class GoogleGeminiAdapter implements LlmPort {
         return null;
       }
 
-      const cleanText = this.stripCodeFence(rawText);
+      const cleanText = this.cleanResponse(rawText);
 
       try {
         return JSON.parse(cleanText);
@@ -260,10 +260,19 @@ export class GoogleGeminiAdapter implements LlmPort {
       .trim();
   }
 
-  private stripCodeFence(text: string): string {
-    const fenceMatch = text.match(/^```(?:json)?\s*([\s\S]*?)\s*```$/i);
+  private cleanResponse(text: string): string {
+    // 1. Try to find standard markdown code fences
+    const fenceMatch = text.match(/```(?:json)?\s*([\s\S]*?)\s*```/i);
     if (fenceMatch) {
       return fenceMatch[1].trim();
+    }
+
+    // 2. Fallback: Find the first '{' and last '}'
+    const startIndex = text.indexOf('{');
+    const endIndex = text.lastIndexOf('}');
+
+    if (startIndex !== -1 && endIndex !== -1 && endIndex > startIndex) {
+      return text.substring(startIndex, endIndex + 1);
     }
 
     return text;

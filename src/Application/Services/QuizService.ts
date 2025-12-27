@@ -152,7 +152,25 @@ export class QuizService {
         }
 
         this.queue = queue;
-        this.currentIndex = -1; // No selection by default
+        this.currentIndex = this.queue.length > 0 ? 0 : -1;
+
+        if (this.queue.length === 0) {
+            // Fallback: If no headers found, use the whole file
+            showMessage('No headers found. Falling back to whole file.');
+
+            queue.push({
+                heading: activeFile.basename,
+                blockId: '__FILE__',
+                text: content,
+                range: { start: 0, end: lines.length }
+            });
+            this.queue = queue;
+        }
+
+        // Set default selection if we have items (either from headers or fallback)
+        if (this.queue.length > 0 && this.currentIndex === -1) {
+            this.currentIndex = 0;
+        }
 
         if (this.queue.length === 0) {
             if (isNoFilter) {
@@ -163,7 +181,7 @@ export class QuizService {
             return false;
         }
 
-        showMessage(`Quiz Queue: ${this.queue.length} headers found.`);
+        showMessage(`Quiz Queue: ${this.queue.length} items ready.`);
         return true;
     }
 

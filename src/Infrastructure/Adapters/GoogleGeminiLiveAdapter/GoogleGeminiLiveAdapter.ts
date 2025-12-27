@@ -333,6 +333,7 @@ export class GoogleGeminiLiveAdapter implements IGeminiSessionAdapter {
         if (parts && Array.isArray(parts)) {
             for (const part of parts) {
                 if (part.inlineData && part.inlineData.mimeType.startsWith('audio/pcm')) {
+                    // console.log(`Received Audio Chunk (${part.inlineData.data.length} chars)`);
                     this.audioPlayer.addPcmData(part.inlineData.data);
                 } else if (part.text) {
                     console.log("Received Text Part:", part.text);

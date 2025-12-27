@@ -7,8 +7,8 @@ import {
   TextComponent,
   TextAreaComponent,
 } from 'obsidian';
-import ObsidianExtension from '../../main';
-import { LocationStrategy } from '../../settings';
+import ObsidianExtension from '@/Infrastructure/Obsidian/main';
+import { LocationStrategy } from '@/Infrastructure/Obsidian/settings';
 
 export class SettingsView extends PluginSettingTab {
   plugin: ObsidianExtension;
@@ -90,7 +90,7 @@ export class SettingsView extends PluginSettingTab {
 
     new Setting(containerEl)
       .setName('Roles Folder')
-      .setDesc('Folder containing notes with roles for Gemini Live (defined by !!prompt frontmatter).')
+      .setDesc('Folder containing notes with roles for Chat Session (defined by !!prompt frontmatter).')
       .addText((text: TextComponent) => {
         text
           .setPlaceholder('Roles')
@@ -202,96 +202,6 @@ export class SettingsView extends PluginSettingTab {
           });
       });
 
-    containerEl.createEl('h3', { text: 'Template presets' });
-    containerEl.createEl('p', {
-      text: 'Configure the options shown when running the "Apply note template" command.',
-    });
 
-    const templateListEl = containerEl.createDiv({
-      cls: 'elo-template-options',
-    });
-    this.renderTemplateOptions(templateListEl);
-  }
-
-  private renderTemplateOptions(containerEl: HTMLElement) {
-    containerEl.empty();
-
-    const options = this.plugin.settings.templateOptions;
-
-    if (options.length === 0) {
-      containerEl.createEl('p', {
-        text: 'No template presets configured yet.',
-      });
-    }
-
-    options.forEach((option, index) => {
-      const optionWrapper = containerEl.createDiv({
-        cls: 'elo-template-option',
-      });
-      const optionHeading = optionWrapper.createEl('h4', {
-        text: option.targetFolder.trim() || `Template ${index + 1}`,
-      });
-
-
-
-      const templateFilenameSetting = new Setting(optionWrapper)
-        .setName('Template filename')
-        .setDesc('File inside the Templates core plugin folder.')
-        .addText((text: TextComponent) => {
-          text
-            .setPlaceholder('Persona.md')
-            .setValue(option.templateFilename)
-            .onChange(async (value: string) => {
-              this.plugin.settings.templateOptions[index].templateFilename =
-                value;
-              await this.plugin.saveSettings();
-            });
-        });
-
-      templateFilenameSetting.addExtraButton((button) => {
-        button
-          .setIcon('trash')
-          .setTooltip('Remove template')
-          .onClick(async () => {
-            this.plugin.settings.templateOptions.splice(index, 1);
-            await this.plugin.saveSettings();
-            this.renderTemplateOptions(containerEl);
-          });
-      });
-
-      new Setting(optionWrapper)
-        .setName('Target folder')
-        .setDesc('Destination folder after applying the template.')
-        .addText((text: TextComponent) => {
-          text
-            .setPlaceholder('Personas')
-            .setValue(option.targetFolder)
-            .onChange(async (value: string) => {
-              this.plugin.settings.templateOptions[index].targetFolder = value;
-              await this.plugin.saveSettings();
-            });
-        });
-
-
-    });
-
-    new Setting(containerEl)
-      .setName('Add template')
-      .setDesc('Create another template preset.')
-      .addButton((button) => {
-        button
-          .setButtonText('Add template')
-          .setCta()
-          .onClick(async () => {
-            this.plugin.settings.templateOptions.push({
-
-              templateFilename: '',
-              targetFolder: '',
-
-            });
-            await this.plugin.saveSettings();
-            this.renderTemplateOptions(containerEl);
-          });
-      });
   }
 }

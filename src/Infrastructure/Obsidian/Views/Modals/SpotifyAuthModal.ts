@@ -1,5 +1,5 @@
 import { App, Modal, Setting, TextComponent, Notice, ButtonComponent } from 'obsidian';
-import { MusicService } from '../../../../Application/Services/MusicService';
+import { MusicService } from '@/Application/Services/MusicService';
 
 export class SpotifyAuthModal extends Modal {
     musicService: MusicService;

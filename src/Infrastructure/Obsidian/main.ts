@@ -2,42 +2,65 @@ import { Plugin, TFile } from 'obsidian';
 import {
   DEFAULT_SETTINGS,
   UnresolvedLinkGeneratorSettings,
-  normalizeTemplateOptions,
 } from './settings';
-import { ApplyTemplateCommand } from './Commands/ApplyTemplateCommand';
-import { ApplyGeocoderCommand } from './Commands/ApplyGeocoderCommand';
-import { UpdatePlaceIdCommand } from './Commands/UpdatePlaceIdCommand';
-import { ApplyStreamBriefCommand } from './Commands/ApplyStreamBriefCommand';
+import {
+  ApplyTemplateCommand,
+  ApplyGeocoderCommand,
+  UpdatePlaceIdCommand,
+  ApplyStreamBriefCommand,
+  GenerateMissingNotesCommand,
+  EnhanceNoteCommand,
+  EnhanceByAiCommand,
+  ApplyPlaceTypeCommand,
+  AddImagesCommand,
+  CreateReciprocityNotesCommand,
+  ReallocateNoteCommand,
+  SearchSpotifyArtistCommand,
+  CreateNoteFromImagesCommand,
+  ApplyTemplateFromImageCommand,
+  GenerateHeaderMetadataCommand
+} from '@/Infrastructure/Obsidian/Commands';
 import { GoogleGeminiAdapter } from '../Adapters/GoogleGeminiAdapter/GoogleGeminiAdapter';
 import { GoogleMapsAdapter } from '../Adapters/GoogleMapsAdapter/GoogleMapsAdapter';
 import { GoogleImageSearchAdapter } from '../Adapters/GoogleImageSearchAdapter/GoogleImageSearchAdapter';
-import { GenerateMissingNotesCommand } from './Commands/GenerateMissingNotesCommand';
-import { SettingsView } from './Views/Settings/SettingsView';
-import { EnhanceNoteCommand } from './Commands/EnhanceNoteCommand';
-import { EnhanceByAiCommand } from './Commands/EnhanceByAiCommand';
-import { ApplyPlaceTypeCommand } from './Commands/ApplyPlaceTypeCommand';
-import { registerSpotifyRenderer } from './Views/Renderers/SpotifyPlayer';
+import {
+  SettingsView,
+} from '@/Infrastructure/Obsidian/Views/Settings/SettingsView';
+import {
+  registerSpotifyRenderer
+} from '@/Infrastructure/Obsidian/Views/Renderers/SpotifyPlayer';
+import {
+  SpotifyModal
+} from '@/Infrastructure/Obsidian/Views/Modals/SpotifyModal';
+import {
+  SpotifyPlaylistModal
+} from '@/Infrastructure/Obsidian/Views/Modals/SpotifyPlaylistModal';
+import {
+  InputModal
+} from '@/Infrastructure/Obsidian/Views/Modals/InputModal';
+import {
+  registerGoogleMapsRenderer
+} from '@/Infrastructure/Obsidian/Views/Renderers/GoogleMapsRenderer';
+import {
+  registerImageGalleryRenderer
+} from '@/Infrastructure/Obsidian/Views/Renderers/ImageGalleryRenderer';
+import {
+  SpotifyAuthModal
+} from '@/Infrastructure/Obsidian/Views/Modals/SpotifyAuthModal';
+import {
+  LiveSessionView,
+  LIVE_SESSION_VIEW_TYPE
+} from '@/Infrastructure/Obsidian/Views/LiveSession/LiveSessionView';
 import { SpotifyAdapter } from '../Adapters/SpotifyAdapter/SpotifyAdapter';
 import { MusicService } from '../../Application/Services/MusicService';
-import { SpotifyModal } from './Views/Modals/SpotifyModal';
-import { SpotifyPlaylistModal } from './Views/Modals/SpotifyPlaylistModal';
-import { InputModal } from './Views/Modals/InputModal';
 import { Notice } from 'obsidian';
-import { registerGoogleMapsRenderer } from './Views/Renderers/GoogleMapsRenderer';
-import { registerImageGalleryRenderer } from './Views/Renderers/ImageGalleryRenderer';
-import { AddImagesCommand } from './Commands/AddImagesCommand';
-import { CreateReciprocityNotesCommand } from './Commands/CreateReciprocityNotesCommand';
-import { ReallocateNoteCommand } from './Commands/ReallocateNoteCommand';
-import { SpotifyAuthModal } from './Views/Modals/SpotifyAuthModal';
-import { SearchSpotifyArtistCommand } from './Commands/SearchSpotifyArtistCommand';
-import { CreateNoteFromImagesCommand } from './Commands/CreateNoteFromImagesCommand';
+
 import { GoogleGeminiImagesAdapter } from '../Adapters/GoogleGeminiAdapter/GoogleGeminiImagesAdapter';
 import { createHeaderProgressRenderer } from './MarkdownPostProcessors/HeaderProgressRenderer';
-import { LiveSessionView, LIVE_SESSION_VIEW_TYPE } from './Views/LiveSession/LiveSessionView';
-import { GenerateHeaderMetadataCommand } from './Commands/GenerateHeaderMetadataCommand';
 import { MetadataService } from '../Services/MetadataService';
 import { createHeaderMetadataRenderer } from './MarkdownPostProcessors/HeaderMetadataRenderer';
 import { ObsidianSettingsAdapter } from '../Adapters/ObsidianSettingsAdapter';
+
 import { ObsidianHeaderDataRepository } from '../Adapters/ObsidianHeaderDataRepository';
 import { HeaderDataService } from '../../Application/Services/HeaderDataService';
 
@@ -265,6 +288,7 @@ export default class ObsidianExtension extends Plugin {
     this.registerMarkdownPostProcessor(createHeaderProgressRenderer(this.app, headerDataService));
     this.registerMarkdownPostProcessor(createHeaderMetadataRenderer(this.app, headerDataService));
 
+
     this.addCommand({
       id: 'CreateNoteFromImagesCommand',
       name: 'Create Note From Images (Gemini)',
@@ -272,6 +296,15 @@ export default class ObsidianExtension extends Plugin {
         new CreateNoteFromImagesCommand(this.app, geminiImages).execute();
       }
     });
+
+    this.addCommand({
+      id: 'ApplyTemplateFromImageCommand',
+      name: 'Apply Template from Image (Gemini)',
+      callback: () => {
+        new ApplyTemplateFromImageCommand(geminiImages, this.app, this.settings).execute();
+      }
+    });
+
 
     this.registerView(
       LIVE_SESSION_VIEW_TYPE,
@@ -283,14 +316,14 @@ export default class ObsidianExtension extends Plugin {
     );
 
     this.addCommand({
-      id: 'open-gemini-live-session',
-      name: 'Open Gemini Live Session',
+      id: 'open-chat-session',
+      name: 'Open Chat Session',
       callback: () => {
         this.activateView();
       }
     });
 
-    this.addRibbonIcon('microphone', 'Gemini Live', () => {
+    this.addRibbonIcon('microphone', 'Chat Session', () => {
       this.activateView();
     });
 
@@ -311,9 +344,7 @@ export default class ObsidianExtension extends Plugin {
   async loadSettings() {
     const data = await this.loadData();
     const merged = Object.assign({}, DEFAULT_SETTINGS, data);
-    merged.templateOptions = normalizeTemplateOptions(
-      data?.templateOptions ?? merged.templateOptions,
-    );
+
     this.settings = merged;
   }
 

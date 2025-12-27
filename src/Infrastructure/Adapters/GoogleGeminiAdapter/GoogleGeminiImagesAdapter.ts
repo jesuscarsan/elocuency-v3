@@ -103,4 +103,81 @@ export class GoogleGeminiImagesAdapter {
             return null;
         }
     }
+
+    async generateEnrichmentFromImages(
+        images: ImageContent[],
+        promptTemplate: string
+    ): Promise<{ body?: string, frontmatter?: Record<string, unknown> } | null> {
+        if (!this.apiKey) {
+            showMessage('Configura tu clave de API de Gemini.');
+            return null;
+        }
+
+        try {
+            const client = this.getClient();
+
+            const prompt = `
+        ${promptTemplate}
+        
+        Analiza las imágenes proporcionadas y utiliza su contenido para cumplir con la solicitud.
+        Genera una respuesta en formato JSON con los siguientes campos opcionales:
+        - "body": El contenido principal de la nota (texto markdown).
+        - "frontmatter": Un objeto con metadatos para la nota.
+        
+        Responde SOLAMENTE con el JSON válido.
+      `;
+
+            // We use a looser schema or just text mode with JSON instruction to allow flexibility in frontmatter
+            // But strict schema is better for reliability.
+            const responseSchema = {
+                type: 'OBJECT',
+                properties: {
+                    body: {
+                        type: 'STRING',
+                        description: "Contenido principal de la nota en Markdown.",
+                    },
+                    frontmatter: {
+                        type: 'OBJECT',
+                        description: "Metadatos Key-Value para el frontmatter.",
+                        nullable: true
+                    },
+                },
+                required: ["body"], // Require at least body, frontmatter optional
+            };
+
+            const contents = [
+                {
+                    role: 'user',
+                    parts: [
+                        { text: prompt },
+                        ...images.map((img) => ({
+                            inlineData: {
+                                data: img.data,
+                                mimeType: img.mimeType,
+                            },
+                        })),
+                    ],
+                },
+            ];
+
+            const response = await client.models.generateContent({
+                model: GEMINI_MODEL_NAME,
+                contents: contents,
+                config: {
+                    responseMimeType: 'application/json',
+                    responseSchema: responseSchema,
+                }
+            });
+
+            const text = response.text;
+            if (!text) return null;
+
+            return JSON.parse(text);
+
+        } catch (error) {
+            console.error('Error calling Gemini Vision Enrichment:', error);
+            showMessage('Error al procesar las imágenes con Gemini.');
+            return null;
+        }
+    }
 }

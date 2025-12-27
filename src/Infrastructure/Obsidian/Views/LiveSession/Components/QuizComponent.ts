@@ -1,5 +1,5 @@
 import { DropdownComponent, ButtonComponent } from 'obsidian';
-import { QuizService, QuizItem } from '../../../../../Application/Services/QuizService';
+import { QuizService, QuizItem } from '@/Application/Services/QuizService';
 
 // Props handling manual reactivity since we don't have a reactivity system
 // We pass the manager to read state, and callbacks to trigger actions/refreshes

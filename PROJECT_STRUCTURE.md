@@ -82,3 +82,18 @@ La dependencia fluye **hacia adentro**. El código del Dominio no conoce nada de
 *   **Mocks**:
     *   Mocks globales (ej. Obsidian) van en `src/__mocks__`.
     *   Mocks locales pueden ir en una carpeta `__tests__` o `__mocks__` al lado del código si es muy específico, pero preferimos mocks en línea o helpers compartidos en `src/Infrastructure/Testing`.
+
+## Normas de Importación y Barrel Files
+
+Para mantener el proyecto limpio y facilitar la refactorización:
+
+1.  **Barrel Files (`index.ts`)**:
+    *   **SOLO** permitidos en los directorios raíz de las capas principales:
+        *   `src/Domain/index.ts`
+        *   `src/Application/index.ts`
+        *   `src/Infrastructure/index.ts`
+    *   ⛔️ **PROHIBIDO** crear archivos `index.ts` en subdirectorios (ej. `src/Domain/Models/index.ts`). Esto evita dependencias circulares y problemas de ‘tree-shaking’.
+
+2.  **Imports con Alias (`@`)**:
+    *   ✅ Usar siempre el alias `@` para imports absolutos en lugar de rutas relativas largas.
+    *   Ejemplo: `import { ... } from '@/Domain/Models/...'` en lugar de `import { ... } from '../../Domain/Models/...'`.

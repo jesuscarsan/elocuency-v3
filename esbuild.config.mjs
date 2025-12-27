@@ -58,6 +58,9 @@ const buildOptions = {
   banner: {
     js: '/* eslint-disable */\n',
   },
+  alias: {
+    '@': './src',
+  },
 };
 
 async function build() {

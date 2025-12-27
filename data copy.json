@@ -1,0 +1,129 @@
+{
+  "locationStrategy": "same-folder",
+  "targetFolder": "",
+  "missingNotesTemplatePath": "# {{title}}\nAQAREGAjemKLeBUZiIechfId782VtiQYRGiCsAs2_3fU4Iuzbot01bvAtxsOZFek-uq2ic6Z3oIRaKEm3z3votoEdLw2THFZkkwaMi0_RhzqVOLg4qwMyV5Y3mZaJXoha5VpfkwOcUS1oPeiWhn6qlBKnafiDCAQA-0WWDMVHLJG6eHM5apBvtXqgtYYyhJtXFAgCEcXi2cgy_j0Baa3ARHtKxQbM4RSJrU1wbTKrWnBJzD1rtyOs9bIuWE9mKev9mHLL4quk8H6zWthvR8g3E_4ip4hXRsck0RcHxKVWyxu311hieUhjK6nqJzanzvXUTuvSL02NQJPgh3SzRDrP14",
+  "geminiApiKey": "AIzaSyAF7pSTEN4pj6W5zDn-uvCmxigtO1HKt5I",
+  "geminiRolesFolder": "!!metadata/live",
+  "googleGeocodingAPIKey": "AIzaSyD4Qk5GKoiUl0Oy5lKPaP2319Nn1NCyPGo",
+  "googleMapsEmbedAPIKey": "AIzaSyBphqZ7DBQaAanChzEbLAWenBiDP1PApd8",
+  "spotifyClientId": "072aca20d79046a09d43b761e5307132",
+  "spotifyAccessToken": "BQA6gohBgoMKc9SMTg0gjT-88jcOjIJoeC4WCFxHc0HDTgPyE73jHwCOOrJY9hNj-2EOW1VdCbsv8eNuhI2M-4Y1kj-DGLZQEKnKdr1IVflSBmdlx-foDccTcexdzkgnaIRACCT0FFxPcv-WI6n2uglblfLV9hgToslawWqn9tsk6Jq3dQJmuH6B-ghR9ESD2bRtBItnfevuAj7THhI_gmEWWIGvSLA7_4P8Pf0tE9CotTz8FeqIuXZs-A7I",
+  "spotifyRedirectUri": "https://google.com",
+  "spotifyPkceVerifier": "",
+  "spotifyRefreshToken": "AQBGwq6Mcs2_LNIIOsosSu9efPt5Q3zN76IJbeX97pWEdo_WtczUPVtijRCVnKcxoaWtUwHjZa4hJm5M6w-oFqsd-7vdxU7L_9_AdBRN338gPEzgyTfFe0X0QRmNVlCOxQ0",
+  "spotifyTokenExpirationTime": 1765756338882,
+  "googleCustomSearchApiKey": "AIzaSyDhmJ95uxfy_1zD7yR9M0OyMhbdn66U_mE",
+  "googleCustomSearchEngineId": "b121e6d17d4e24da6",
+  "templateOptions": [
+    {
+      "templateFilename": "historia.md",
+      "targetFolder": "Historia"
+    },
+    {
+      "templateFilename": "Mi diario.md",
+      "targetFolder": "Mi Diario"
+    },
+    {
+      "templateFilename": "Provincia.md",
+      "targetFolder": "Lugares/"
+    },
+    {
+      "templateFilename": "Ciudad.md",
+      "targetFolder": "Lugares/Ciudad"
+    },
+    {
+      "templateFilename": "Negocio.md",
+      "targetFolder": "Lugares/Negocio"
+    },
+    {
+      "templateFilename": "Pais.md",
+      "targetFolder": "Lugares/Pais"
+    },
+    {
+      "templateFilename": "Eventos (Fiestas, ...).md",
+      "targetFolder": "Lugares/Eventos"
+    },
+    {
+      "templateFilename": "Continente.md",
+      "targetFolder": "Lugares/Continente"
+    },
+    {
+      "templateFilename": "Lugar.md",
+      "targetFolder": "Lugares"
+    },
+    {
+      "templateFilename": "Región.md",
+      "targetFolder": "Lugares"
+    },
+    {
+      "templateFilename": "Negocio.md",
+      "targetFolder": "Orgs"
+    },
+    {
+      "templateFilename": "Sede de Empresa.md",
+      "targetFolder": "Orgs"
+    },
+    {
+      "templateFilename": "Empresa (multi sede) 1.md",
+      "targetFolder": "Orgs"
+    },
+    {
+      "templateFilename": "Empresa (multi sede).md",
+      "targetFolder": "Orgs"
+    },
+    {
+      "templateFilename": "Personas/Personaje público.md",
+      "targetFolder": "Personas/**"
+    },
+    {
+      "templateFilename": "Personas/Persona.md",
+      "targetFolder": "Personas/**"
+    },
+    {
+      "templateFilename": "Tecnología.md",
+      "targetFolder": "Tecnología"
+    },
+    {
+      "templateFilename": "Cuadro.md",
+      "targetFolder": "Obras"
+    },
+    {
+      "templateFilename": "Serie Tv.md",
+      "targetFolder": "Obras"
+    },
+    {
+      "templateFilename": "Obras/Escrita.md",
+      "targetFolder": "Obras/Escritas"
+    },
+    {
+      "templateFilename": "Stream - Canal.md",
+      "targetFolder": "Obras"
+    },
+    {
+      "templateFilename": "Obras/Streamings/Canal.md",
+      "targetFolder": "Obras/Streamings"
+    },
+    {
+      "templateFilename": "Serie Tv - Episodio.md",
+      "targetFolder": "Obras"
+    },
+    {
+      "templateFilename": "Obras/Película.md",
+      "targetFolder": "Obras/Películas"
+    },
+    {
+      "templateFilename": "Obras/Música/Canción.md",
+      "targetFolder": "Obras/Música/Canciones"
+    },
+    {
+      "templateFilename": "Obras/Streamings/Episodio.md",
+      "targetFolder": "Obras/Streamings/**"
+    },
+    {
+      "templateFilename": "Concepto.md",
+      "targetFolder": "-Diccionario/**"
+    }
+  ],
+  "googleMapsApiKey": "AIzaSyBphqZ7DBQaAanChzEbLAWenBiDP1PApd8",
+  "googleMapsMapKey": "AIzaSyBphqZ7DBQaAanChzEbLAWenBiDP1PApd8"
+}

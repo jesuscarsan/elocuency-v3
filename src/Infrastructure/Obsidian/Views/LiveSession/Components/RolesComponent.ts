@@ -1,5 +1,5 @@
 import { ButtonComponent, DropdownComponent, setIcon } from 'obsidian';
-import { Role } from '../../../../../Application/Services/RolesService';
+import { Role } from '@/Application/Services/RolesService';
 
 export interface RolesComponentProps {
     roles: Role[];
@@ -25,27 +25,15 @@ export class RolesComponent {
     constructor(private container: HTMLElement) { }
 
     render(props: RolesComponentProps) {
-        // Main Container is now a details element
-        const details = this.container.createEl('details');
-        details.style.marginBottom = '20px';
-        details.style.border = '1px solid var(--background-modifier-border)';
-        details.style.borderRadius = '4px';
-        details.style.overflow = 'hidden';
-
-        const summary = details.createEl('summary', { text: 'Configuración' });
-        summary.style.padding = '10px';
-        summary.style.cursor = 'pointer';
-        summary.style.backgroundColor = 'var(--background-secondary)';
-        summary.style.fontWeight = 'bold';
-
-        const content = details.createDiv();
-        content.style.padding = '15px';
-        content.style.display = 'flex';
-        content.style.flexDirection = 'column';
-        content.style.gap = '15px';
+        // Primary Container for Top-Level Controls
+        const primaryControls = this.container.createDiv();
+        primaryControls.style.marginBottom = '20px';
+        primaryControls.style.display = 'flex';
+        primaryControls.style.flexDirection = 'column';
+        primaryControls.style.gap = '15px';
 
         // Role Selector Row
-        const roleRow = content.createDiv();
+        const roleRow = primaryControls.createDiv();
         roleRow.style.display = 'flex';
         roleRow.style.alignItems = 'center';
         roleRow.style.gap = '10px';
@@ -56,22 +44,14 @@ export class RolesComponent {
             roleRow.createSpan({ text: '(No roles found in folder)', cls: 'gemini-muted-text' });
         } else {
             const dropdown = new DropdownComponent(roleRow);
-            dropdown.addOption('', 'Default (None)');
+
             props.roles.forEach(role => dropdown.addOption(role.prompt, role.name));
             dropdown.setValue(props.selectedRolePrompt);
             dropdown.onChange((val) => props.onRoleChange(val));
         }
 
-        // --- Voice & Temp Config Row ---
-        const configRow = content.createDiv();
-        configRow.style.display = 'flex';
-        configRow.style.alignItems = 'center';
-        configRow.style.gap = '15px';
-        configRow.style.flexWrap = 'wrap';
-
-
         // Spoken Chat Toggle
-        const spokenContainer = content.createDiv();
+        const spokenContainer = primaryControls.createDiv();
         spokenContainer.style.display = 'flex';
         spokenContainer.style.alignItems = 'center';
         spokenContainer.style.gap = '5px';
@@ -83,7 +63,32 @@ export class RolesComponent {
         spokenContainer.createSpan({ text: 'Modo Live (Voz Real)' });
 
 
+        // Main Container is now a details element (Advanced)
+        const details = this.container.createEl('details');
+        details.style.marginBottom = '20px';
+        details.style.border = '1px solid var(--background-modifier-border)';
+        details.style.borderRadius = '4px';
+        details.style.overflow = 'hidden';
 
+        const summary = details.createEl('summary', { text: 'Avanzada' });
+        summary.style.padding = '10px';
+        summary.style.cursor = 'pointer';
+        summary.style.backgroundColor = 'var(--background-secondary)';
+        summary.style.fontWeight = 'bold';
+
+        const content = details.createDiv();
+        content.style.padding = '15px';
+        content.style.display = 'flex';
+        content.style.flexDirection = 'column';
+        content.style.gap = '15px';
+
+
+        // --- Voice & Temp Config Row ---
+        const configRow = content.createDiv();
+        configRow.style.display = 'flex';
+        configRow.style.alignItems = 'center';
+        configRow.style.gap = '15px';
+        configRow.style.flexWrap = 'wrap';
 
         // Voice Dropdown
         configRow.createSpan({ text: 'Voz:' });

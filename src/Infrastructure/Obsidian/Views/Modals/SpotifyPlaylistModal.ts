@@ -1,6 +1,6 @@
 import { App, Modal, Notice } from 'obsidian';
-import { MusicService } from '../../../../Application/Services/MusicService';
-import { MusicPlaylist } from '../../../../Domain/Ports/MusicProviderPort';
+import { MusicService } from '@/Application/Services/MusicService';
+import { MusicPlaylist } from '@/Domain/Ports/MusicProviderPort';
 
 export class SpotifyPlaylistModal extends Modal {
     private musicService: MusicService;

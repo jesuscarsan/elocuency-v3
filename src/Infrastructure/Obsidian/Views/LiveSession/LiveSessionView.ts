@@ -1,29 +1,29 @@
 import { ItemView, WorkspaceLeaf, Notice, TFile, MarkdownView } from 'obsidian';
-import { ObsidianRoleRepository } from '../../../Adapters/ObsidianRoleRepository';
-import { ObsidianSettingsAdapter } from '../../../Adapters/ObsidianSettingsAdapter';
-import { ObsidianNoteManager } from '../../../Adapters/ObsidianNoteManager';
-import { GoogleGeminiLiveAdapter } from '../../../Adapters/GoogleGeminiLiveAdapter/GoogleGeminiLiveAdapter';
-import { GoogleGeminiChatAdapter } from '../../../Adapters/GoogleGeminiLiveAdapter/GoogleGeminiChatAdapter';
-import { IGeminiSessionAdapter } from '../../../Adapters/GoogleGeminiLiveAdapter/IGeminiSessionAdapter';
-import ObsidianExtension from '../../main';
-import { GenerateHeaderMetadataCommand } from '../../Commands/GenerateHeaderMetadataCommand';
-import { showMessage } from 'src/Infrastructure/Obsidian/Utils/Messages';
+import { ObsidianRoleRepository } from '@/Infrastructure/Adapters/ObsidianRoleRepository';
+import { ObsidianSettingsAdapter } from '@/Infrastructure/Adapters/ObsidianSettingsAdapter';
+import { ObsidianNoteManager } from '@/Infrastructure/Adapters/ObsidianNoteManager';
+import { GoogleGeminiLiveAdapter } from '@/Infrastructure/Adapters/GoogleGeminiLiveAdapter/GoogleGeminiLiveAdapter';
+import { GoogleGeminiChatAdapter } from '@/Infrastructure/Adapters/GoogleGeminiLiveAdapter/GoogleGeminiChatAdapter';
+import { IGeminiSessionAdapter } from '@/Infrastructure/Adapters/GoogleGeminiLiveAdapter/IGeminiSessionAdapter';
+import ObsidianExtension from '@/Infrastructure/Obsidian/main';
+import { GenerateHeaderMetadataCommand } from '@/Infrastructure/Obsidian/Commands';
+import { showMessage } from '@/Infrastructure/Obsidian/Utils/Messages';
 
 // Services
-import { MetadataService } from '../../../Services/MetadataService';
-import { SessionLogger } from '../../../Services/SessionLogger';
-import { HeaderEvaluationService } from '../../../../Application/Services/HeaderEvaluationService';
-import { RolesService, Role } from '../../../../Application/Services/RolesService';
-import { ContextService } from '../../../Services/ContextService';
-import { QuizService } from '../../../../Application/Services/QuizService';
+import { MetadataService } from '@/Infrastructure/Services/MetadataService';
+import { SessionLogger } from '@/Infrastructure/Services/SessionLogger';
+import { HeaderEvaluationService } from '@/Application/Services/HeaderEvaluationService';
+import { RolesService, Role } from '@/Application/Services/RolesService';
+import { ContextService } from '@/Infrastructure/Services/ContextService';
+import { QuizService } from '@/Application/Services/QuizService';
 
 // Components
-import { RolesComponent } from '../LiveSession/Components/RolesComponent';
-import { QuizComponent } from '../LiveSession/Components/QuizComponent';
-import { TranscriptComponent } from '../LiveSession/Components/TranscriptComponent';
-import { SessionControlsComponent } from '../LiveSession/Components/SessionControlsComponent';
-import { VocabularyComponent } from '../LiveSession/Components/VocabularyComponent';
-import { ChatInputComponent } from '../LiveSession/Components/ChatInputComponent';
+import { RolesComponent } from '@/Infrastructure/Obsidian/Views/LiveSession/Components/RolesComponent';
+import { QuizComponent } from '@/Infrastructure/Obsidian/Views/LiveSession/Components/QuizComponent';
+import { TranscriptComponent } from '@/Infrastructure/Obsidian/Views/LiveSession/Components/TranscriptComponent';
+import { SessionControlsComponent } from '@/Infrastructure/Obsidian/Views/LiveSession/Components/SessionControlsComponent';
+import { VocabularyComponent } from '@/Infrastructure/Obsidian/Views/LiveSession/Components/VocabularyComponent';
+import { ChatInputComponent } from '@/Infrastructure/Obsidian/Views/LiveSession/Components/ChatInputComponent';
 
 export const LIVE_SESSION_VIEW_TYPE = 'gemini-live-session-view';
 
@@ -103,6 +103,15 @@ export class LiveSessionView extends ItemView {
 
         this.useSpokenChat = plugin.settings.geminiLiveMode ?? true;
 
+        // Load saved role if not already selected
+        if (!this.selectedRolePrompt && plugin.settings.geminiLiveRole) {
+            // We can't fully validate it against availableRoles yet as they might not be loaded,
+            // but we'll store it in the persistence var or check it in renderContent.
+            // Best place is actually in renderContent where roles are loaded.
+            // But we can preemptively set it here if we want, but let's leave it for renderContent logic
+            // to ensure the role actually exists.
+        }
+
         const settingsAdapter = new ObsidianSettingsAdapter(this.plugin);
         const roleRepo = new ObsidianRoleRepository(this.app, settingsAdapter);
         this.rolesService = new RolesService(roleRepo);
@@ -169,10 +178,32 @@ export class LiveSessionView extends ItemView {
             this.availableRoles = await this.rolesService.loadRoles();
         }
 
-        // Initialize Defaults
-        if (this.availableRoles.length > 0 && !this.selectedRolePrompt) {
-            const firstRole = this.availableRoles[0];
-            this.applyRoleSettings(firstRole);
+        // Initialize Defaults / Restore Selection
+        if (this.availableRoles.length > 0) {
+            // 1. Try to restore from session state (already set)
+            // 2. Try to restore from settings
+            if (!this.selectedRolePrompt && this.plugin.settings.geminiLiveRole) {
+                const savedRole = this.availableRoles.find(r => r.name === this.plugin.settings.geminiLiveRole || r.prompt === this.plugin.settings.geminiLiveRole);
+                // We save the NAME in settings usually for readability, but let's check both or prompt?
+                // Let's decide to save the PROMPT as it's the unique ID for now, or Name if unique.
+                // The previous code used prompt as ID. Let's stick to prompt for internal logic, 
+                // but maybe settings should save prompt too.
+
+                // Let's assume we save the prompt in settings for precision.
+                const roleByPrompt = this.availableRoles.find(r => r.prompt === this.plugin.settings.geminiLiveRole);
+                if (roleByPrompt) {
+                    this.applyRoleSettings(roleByPrompt);
+                }
+            }
+
+            // 3. Fallback to first role if still nothing
+            if (!this.selectedRolePrompt) {
+                const firstRole = this.availableRoles[0];
+                this.applyRoleSettings(firstRole);
+                // Also save this default
+                this.plugin.settings.geminiLiveRole = firstRole.prompt;
+                this.plugin.saveSettings();
+            }
         }
 
         const mainInterface = this.contentContainer.createDiv();
@@ -289,7 +320,7 @@ export class LiveSessionView extends ItemView {
 
         // Chat Input
         const chatContainer = this.chatContentDiv.createDiv();
-        this.chatInputComponent = new ChatInputComponent(chatContainer, (text) => this.handleUserText(text));
+        this.chatInputComponent = new ChatInputComponent(chatContainer, this.apiKey, (text) => this.handleUserText(text));
         this.chatInputComponent.render(this.isSessionActive);
     }
 
@@ -337,6 +368,12 @@ export class LiveSessionView extends ItemView {
             await this.restartSession('role change');
         } else if (role) {
             showMessage(`Role applied: ${role.name}`);
+        }
+
+        // Save to settings
+        if (role) {
+            this.plugin.settings.geminiLiveRole = role.prompt;
+            await this.plugin.saveSettings();
         }
     }
 
@@ -515,6 +552,9 @@ export class LiveSessionView extends ItemView {
         const item = this.quizService.getCurrentItem();
         if (!item) return;
 
+        this.switchTab('chat');
+        this.chatInputComponent?.focus();
+
         await this.sessionLogger.logQuestion(item.heading);
         const statusText = `Examinando: ${item.heading}`;
         this.quizComponent?.setStatusText(statusText);
@@ -533,9 +573,6 @@ export class LiveSessionView extends ItemView {
 
         this.adapter?.sendContextUpdate('Quiz Content', prompt);
         showMessage(`Sent: ${item.heading}`);
-
-        this.switchTab('chat');
-        this.chatInputComponent?.focus();
     }
 
     private async handleScoreInMetadata(score: number) {
