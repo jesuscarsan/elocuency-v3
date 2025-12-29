@@ -1,5 +1,6 @@
 import { App, Modal, Setting, TextComponent, Notice, ButtonComponent } from 'obsidian';
 import { MusicService } from '@/Application/Services/MusicService';
+import { showMessage } from '@/Infrastructure/Obsidian/Utils/Messages';
 
 export class SpotifyAuthModal extends Modal {
     musicService: MusicService;
@@ -47,9 +48,9 @@ export class SpotifyAuthModal extends Modal {
 
                     if (authUrl) {
                         window.open(authUrl);
-                        new Notice('Browser opened. Please login and copy the code.');
+                        showMessage('Browser opened. Please login and copy the code.');
                     } else {
-                        new Notice('Failed to generate auth URL. Check Client ID.');
+                        showMessage('Failed to generate auth URL. Check Client ID.');
                     }
                 }));
 
@@ -73,7 +74,7 @@ export class SpotifyAuthModal extends Modal {
                 .setCta()
                 .onClick(async () => {
                     if (!code) {
-                        new Notice('Please enter the code.');
+                        showMessage('Please enter the code.');
                         return;
                     }
 
@@ -83,14 +84,14 @@ export class SpotifyAuthModal extends Modal {
                         const success = await this.musicService.completeConnection(code, redirectUri);
 
                         if (success) {
-                            new Notice('Spotify Connected Successfully!');
+                            showMessage('Spotify Connected Successfully!');
                             this.close();
                         } else {
-                            new Notice('Failed to verify code.');
+                            showMessage('Failed to verify code.');
                         }
 
                     } catch (error) {
-                        new Notice('Failed to connect. Check console.');
+                        showMessage('Failed to connect. Check console.');
                         console.error(error);
                     }
                 }));

@@ -1,6 +1,7 @@
 import { ButtonComponent, TextComponent, setIcon, Notice, requestUrl } from "obsidian";
 import { AudioRecorder } from "src/Infrastructure/Obsidian/Utils/AudioRecorder";
 import { GeminiTranscriptionAdapter } from "src/Infrastructure/Adapters/GeminiTranscriptionAdapter";
+import { showMessage } from '@/Infrastructure/Obsidian/Utils/Messages';
 
 
 export class ChatInputComponent {
@@ -88,14 +89,14 @@ export class ChatInputComponent {
 
     private async startRecording() {
         if (!this.apiKey) {
-            new Notice('API Key missing. Cannot transcribe.');
+            showMessage('API Key missing. Cannot transcribe.');
             return;
         }
 
         const success = await this.audioRecorder.start();
         if (success) {
             this.updateMicButtonState();
-            new Notice('Recording started...');
+            showMessage('Recording started...');
         }
     }
 
@@ -106,18 +107,18 @@ export class ChatInputComponent {
         this.updateMicButtonState();
 
         if (blob) {
-            new Notice('Transcribing...');
+            showMessage('Transcribing...');
             try {
                 const text = await this.transcriptionAdapter.transcribe(blob);
                 if (text) {
                     const current = this.inputEl?.getValue() || '';
                     const separator = current && !current.endsWith(' ') ? ' ' : '';
                     this.inputEl?.setValue(current + separator + text);
-                    new Notice('Transcription added.');
+                    showMessage('Transcription added.');
                     this.sendMessage();
                 }
             } catch (error) {
-                new Notice('Transcription failed. Check console for details.');
+                showMessage('Transcription failed. Check console for details.');
                 console.error(error);
             }
         }

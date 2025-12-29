@@ -4,6 +4,7 @@ import ObsidianExtension from '@/Infrastructure/Obsidian/main';
 import { AudioRecorder } from '@/Infrastructure/Obsidian/Utils/AudioRecorder';
 import { GeminiTranscriptionAdapter } from '@/Infrastructure/Adapters/GeminiTranscriptionAdapter';
 import { getActiveMarkdownView } from '@/Infrastructure/Obsidian/Utils/ViewMode';
+import { showMessage } from '@/Infrastructure/Obsidian/Utils/Messages';
 
 export const VIEW_TYPE_NOTE_OPERATIONS = 'note-operations-view';
 
@@ -121,14 +122,14 @@ export class NoteOperationsView extends ItemView {
         if (this.audioRecorder.isRecording()) return;
 
         if (!this.plugin.settings.geminiApiKey) {
-            new Notice('Gemini API Key missing. Cannot transcribe.');
+            showMessage('Gemini API Key missing. Cannot transcribe.');
             return;
         }
 
         const success = await this.audioRecorder.start();
         if (success) {
             this.updateMicVisuals(true);
-            new Notice('Escuchando...');
+            showMessage('Escuchando...');
         }
     }
 
@@ -139,7 +140,7 @@ export class NoteOperationsView extends ItemView {
         this.updateMicVisuals(false);
 
         if (blob) {
-            new Notice('Transcribiendo...');
+            showMessage('Transcribiendo...');
             try {
                 // Ensure adapter has latest key
                 this.transcriptionAdapter = new GeminiTranscriptionAdapter(this.plugin.settings.geminiApiKey ?? '');
@@ -147,10 +148,10 @@ export class NoteOperationsView extends ItemView {
                 const text = await this.transcriptionAdapter.transcribe(blob);
                 if (text) {
                     this.insertTextAtCursor(text);
-                    new Notice('Texto insertado.');
+                    showMessage('Texto insertado.');
                 }
             } catch (error) {
-                new Notice('Error en la transcripción.');
+                showMessage('Error en la transcripción.');
                 console.error(error);
             }
         }
@@ -219,13 +220,13 @@ export class NoteOperationsView extends ItemView {
             }
 
         } else {
-            new Notice('No active markdown note to insert text.');
+            showMessage('No active markdown note to insert text.');
         }
     }
 
     private executeSelectedCommand() {
         if (!this.selectedCommandId) {
-            new Notice('No command selected');
+            showMessage('No command selected');
             return;
         }
 
@@ -243,12 +244,12 @@ export class NoteOperationsView extends ItemView {
 
             if (targetFile) {
                 cmd.callback(targetFile);
-                new Notice(`Executed: ${cmd.name}`);
+                showMessage(`Executed: ${cmd.name}`);
             } else {
-                new Notice('No active markdown file to contextually execute command.');
+                showMessage('No active markdown file to contextually execute command.');
             }
         } else {
-            new Notice('Command not found or invalid');
+            showMessage('Command not found or invalid');
         }
     }
 }

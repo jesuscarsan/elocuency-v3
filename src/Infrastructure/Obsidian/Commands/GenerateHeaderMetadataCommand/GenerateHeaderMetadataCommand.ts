@@ -1,6 +1,7 @@
-import { App, Editor, MarkdownView, Notice, TFile } from "obsidian";
+import { App, Editor, MarkdownView, TFile } from "obsidian";
 import { getActiveMarkdownView } from '@/Infrastructure/Obsidian/Utils/ViewMode';
 import { MetadataService } from "@/Infrastructure/Services/MetadataService";
+import { showMessage } from "@/Infrastructure/Obsidian/Utils/Messages";
 
 export class GenerateHeaderMetadataCommand {
     private metadataService: MetadataService;
@@ -12,13 +13,13 @@ export class GenerateHeaderMetadataCommand {
     async execute(targetFile?: TFile): Promise<void> {
         const activeView = getActiveMarkdownView(this.app, targetFile);
         if (!activeView) {
-            new Notice("No active markdown view");
+            showMessage("No active markdown view");
             return;
         }
 
         const file = activeView.file;
         if (!file) {
-            new Notice("No active file");
+            showMessage("No active file");
             return;
         }
 
@@ -28,7 +29,7 @@ export class GenerateHeaderMetadataCommand {
     private async processFile(file: TFile): Promise<void> {
         const cache = this.app.metadataCache.getFileCache(file);
         if (!cache || !cache.headings) {
-            new Notice("No headings found in this file.");
+            showMessage("No headings found in this file.");
             return;
         }
 
@@ -72,11 +73,11 @@ export class GenerateHeaderMetadataCommand {
 
         if (modified) {
             await this.app.vault.modify(file, lines.join("\n"));
-            new Notice("Added missing Block IDs to headers.");
+            showMessage("Added missing Block IDs to headers.");
         }
 
         // Sync to JSON
         await this.metadataService.syncMetadata(file, blockIds);
-        new Notice("Header metadata synced to JSON.");
+        showMessage("Header metadata synced to JSON.");
     }
 }

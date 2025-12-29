@@ -6,7 +6,7 @@ const args = process.argv.slice(2);
 const watch = args.includes('--watch');
 
 const targetDirs = [
-  '/Users/joshua/my-docs/KBs/JACS Live/.obsidian/plugins/elocuency',
+  '/Users/joshua/my-docs/KBs/JACS/.obsidian/plugins/elocuency',
   '/Users/joshua/my-docs/KBs/teo-3-eso-kb/.obsidian/plugins/elocuency',
 ];
 

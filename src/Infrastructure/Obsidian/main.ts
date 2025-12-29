@@ -58,7 +58,7 @@ import {
 } from '@/Infrastructure/Obsidian/Views/NoteOperations/NoteOperationsView';
 import { SpotifyAdapter } from '../Adapters/SpotifyAdapter/SpotifyAdapter';
 import { MusicService } from '../../Application/Services/MusicService';
-import { Notice } from 'obsidian';
+import { showMessage } from '@/Infrastructure/Obsidian/Utils/Messages';
 
 import { GoogleGeminiImagesAdapter } from '../Adapters/GoogleGeminiAdapter/GoogleGeminiImagesAdapter';
 import { createHeaderProgressRenderer } from './MarkdownPostProcessors/HeaderProgressRenderer';
@@ -127,7 +127,7 @@ export default class ObsidianExtension extends Plugin {
         await this.saveSettings();
       },
       () => {
-        new Notice('Spotify token expired. Please re-login.');
+        showMessage('Spotify token expired. Please re-login.');
         new SpotifyAuthModal(this.app, this.musicService).open();
       }
     );

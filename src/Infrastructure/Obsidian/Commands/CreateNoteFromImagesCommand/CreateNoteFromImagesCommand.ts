@@ -95,7 +95,7 @@ export class CreateNoteFromImagesCommand {
                     }
                 } catch (error) {
                     console.error(`Failed to process image ${imageName}`, error);
-                    new Notice(`Error al procesar la imagen ${imageName}`);
+                    showMessage(`Error al procesar la imagen ${imageName}`);
                 }
             }
 
@@ -141,7 +141,7 @@ export class CreateNoteFromImagesCommand {
                 }
             } catch (error) {
                 console.error(`Failed to process image ${file.name}`, error);
-                new Notice(`Error al procesar la imagen ${file.name}`);
+                showMessage(`Error al procesar la imagen ${file.name}`);
             }
         }
 

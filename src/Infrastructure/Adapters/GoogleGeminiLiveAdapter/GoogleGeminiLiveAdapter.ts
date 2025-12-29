@@ -1,4 +1,4 @@
-import { Notice } from 'obsidian';
+import { showMessage } from '@/Infrastructure/Obsidian/Utils/Messages';
 import { AudioRecorder } from './AudioRecorder';
 import { AudioPlayer } from './AudioPlayer';
 
@@ -42,7 +42,7 @@ export class GoogleGeminiLiveAdapter implements IGeminiSessionAdapter {
     async connect(systemInstruction: string = '', enableScoreTracking: boolean = false, voice: string = 'Aoede', temperature: number = 0.5, topP: number = 0.95): Promise<boolean> {
         this.systemInstruction = systemInstruction;
         if (!this.apiKey) {
-            new Notice('Falta la API Key de Gemini');
+            showMessage('Falta la API Key de Gemini');
             return false;
         }
 
@@ -52,7 +52,7 @@ export class GoogleGeminiLiveAdapter implements IGeminiSessionAdapter {
             this.ws = new WebSocket(url);
         } catch (e) {
             console.error("Error creating WebSocket", e);
-            new Notice("Error al crear la conexión WebSocket");
+            showMessage("Error al crear la conexión WebSocket");
             return false;
         }
 
@@ -80,7 +80,7 @@ export class GoogleGeminiLiveAdapter implements IGeminiSessionAdapter {
 
             this.ws.onerror = (error) => {
                 console.error('Gemini Live WS Error:', error);
-                new Notice('Error en la conexión con Gemini Live');
+                showMessage('Error en la conexión con Gemini Live');
                 this.disconnect();
             };
 
@@ -267,7 +267,7 @@ export class GoogleGeminiLiveAdapter implements IGeminiSessionAdapter {
         // Handle Errors (e.g. Quota, Invalid Argument)
         if ((data as any).error) {
             console.error("Gemini Live API Error:", (data as any).error);
-            new Notice(`Gemini Error: ${(data as any).error.message || 'Unknown error'}`);
+            showMessage(`Gemini Error: ${(data as any).error.message || 'Unknown error'}`);
             return;
         }
 

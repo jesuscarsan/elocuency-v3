@@ -97,3 +97,5 @@ Para mantener el proyecto limpio y facilitar la refactorización:
 2.  **Imports con Alias (`@`)**:
     *   ✅ Usar siempre el alias `@` para imports absolutos en lugar de rutas relativas largas.
     *   Ejemplo: `import { ... } from '@/Domain/Models/...'` en lugar de `import { ... } from '../../Domain/Models/...'`.
+
+Para tracear los mesajes utilizar el util "showMessage" en lugar de "new Notice".

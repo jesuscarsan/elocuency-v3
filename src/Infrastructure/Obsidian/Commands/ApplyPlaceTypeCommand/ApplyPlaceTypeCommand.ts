@@ -58,7 +58,7 @@ export class ApplyPlaceTypeCommand extends ApplyGeocoderCommand {
                 // User intervention required
                 selectedTag = await this.askUserForTag();
             } else {
-                new Notice(`Auto-detected: ${selectedTag}`);
+                showMessage(`Auto-detected: ${selectedTag}`);
             }
 
             if (!selectedTag) {

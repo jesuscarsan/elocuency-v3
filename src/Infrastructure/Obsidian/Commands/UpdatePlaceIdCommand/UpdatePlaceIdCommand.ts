@@ -84,7 +84,7 @@ export class UpdatePlaceIdCommand {
                 const finalContent = segments.join('\n\n');
                 if (finalContent !== content) {
                     await this.obsidian.vault.modify(file, finalContent);
-                    new Notice(`Place ID updated for ${file.basename}`);
+                    showMessage(`Place ID updated for ${file.basename}`);
                 } else {
                     showMessage('Place ID was already up to date.');
                 }

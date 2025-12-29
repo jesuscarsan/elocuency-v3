@@ -1,4 +1,5 @@
 import { App, Modal, Setting, Notice } from 'obsidian';
+import { showMessage } from '@/Infrastructure/Obsidian/Utils/Messages';
 
 export type ImageSource =
     | { type: 'path', path: string }
@@ -41,10 +42,10 @@ export class ImageSourceModal extends Modal {
                                     return;
                                 }
                             }
-                            new Notice('No se encontró ninguna imagen en el portapapeles.');
+                            showMessage('No se encontró ninguna imagen en el portapapeles.');
                         } catch (err) {
                             console.error('Error reading clipboard:', err);
-                            new Notice('Error al leer el portapapeles. Asegúrate de dar permisos.');
+                            showMessage('Error al leer el portapapeles. Asegúrate de dar permisos.');
                         }
                     })
             );

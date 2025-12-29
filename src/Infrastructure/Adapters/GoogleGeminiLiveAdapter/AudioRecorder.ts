@@ -1,4 +1,4 @@
-import { Notice } from 'obsidian';
+import { showMessage } from '@/Infrastructure/Obsidian/Utils/Messages';
 
 // Inline AudioWorkletProcessor code to avoid file loading issues in Obsidian
 const WORKLET_CODE = `
@@ -106,7 +106,7 @@ export class AudioRecorder {
             return true;
         } catch (error) {
             console.error('Error starting audio recording:', error);
-            new Notice('No se pudo acceder al micrófono.');
+            showMessage('No se pudo acceder al micrófono.');
             return false;
         }
     }

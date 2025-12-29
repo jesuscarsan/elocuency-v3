@@ -1,5 +1,5 @@
 import { GoogleGenAI } from '@google/genai';
-import { Notice } from 'obsidian';
+import { showMessage } from '@/Infrastructure/Obsidian/Utils/Messages';
 import { IGeminiSessionAdapter } from './IGeminiSessionAdapter';
 
 export class GoogleGeminiChatAdapter implements IGeminiSessionAdapter {
@@ -25,7 +25,7 @@ export class GoogleGeminiChatAdapter implements IGeminiSessionAdapter {
 
     async connect(systemInstruction: string, enableScoreTracking: boolean, voice: string, temperature: number, topP: number): Promise<boolean> {
         if (!this.apiKey) {
-            new Notice('Falta la API Key de Gemini');
+            showMessage('Falta la API Key de Gemini');
             return false;
         }
 
@@ -78,7 +78,7 @@ export class GoogleGeminiChatAdapter implements IGeminiSessionAdapter {
             await this.generateResponse();
         } catch (e) {
             console.error("Error sending text to Gemini Chat", e);
-            new Notice("Error al enviar mensaje (Chat)");
+            showMessage("Error al enviar mensaje (Chat)");
         }
     }
 
@@ -166,7 +166,7 @@ export class GoogleGeminiChatAdapter implements IGeminiSessionAdapter {
 
         } catch (e) {
             console.error("Error generating response", e);
-            new Notice(`Gemini Chat Error: ${e}`);
+            showMessage(`Gemini Chat Error: ${e}`);
         }
     }
 

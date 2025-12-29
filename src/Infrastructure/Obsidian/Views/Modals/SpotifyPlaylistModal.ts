@@ -1,6 +1,7 @@
 import { App, Modal, Notice } from 'obsidian';
 import { MusicService } from '@/Application/Services/MusicService';
 import { MusicPlaylist } from '@/Domain/Ports/MusicProviderPort';
+import { showMessage } from '@/Infrastructure/Obsidian/Utils/Messages';
 
 export class SpotifyPlaylistModal extends Modal {
     private musicService: MusicService;
@@ -92,7 +93,7 @@ export class SpotifyPlaylistModal extends Modal {
             copyAllBtn.addEventListener('click', () => {
                 const text = tracks.map(t => `${t.artists.join(', ')} - ${t.name}`).join('\n');
                 navigator.clipboard.writeText(text);
-                new Notice('Copied all tracks to clipboard');
+                showMessage('Copied all tracks to clipboard');
                 this.close();
             });
 

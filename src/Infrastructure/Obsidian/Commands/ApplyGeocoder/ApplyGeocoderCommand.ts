@@ -88,7 +88,7 @@ export class ApplyGeocoderCommand {
             if (newPath !== file.path) {
                 await ensureFolderExists(this.obsidian, newPath);
                 await this.obsidian.fileManager.renameFile(file, newPath);
-                new Notice(`Moved to ${newPath}`);
+                showMessage(`Moved to ${newPath}`);
             } else {
                 showMessage('Place details applied. Location already correct.');
             }

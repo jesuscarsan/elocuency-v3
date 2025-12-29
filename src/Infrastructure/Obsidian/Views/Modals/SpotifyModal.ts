@@ -1,5 +1,6 @@
 import { App, Modal, Setting, Notice } from 'obsidian';
 import { MusicService } from '@/Application/Services/MusicService';
+import { showMessage } from '@/Infrastructure/Obsidian/Utils/Messages';
 
 export class SpotifyModal extends Modal {
     private musicService: MusicService;
@@ -44,7 +45,7 @@ export class SpotifyModal extends Modal {
 
     async performSearch(query: string, contentEl: HTMLElement) {
         if (!query) {
-            new Notice('Please enter a search query');
+            showMessage('Please enter a search query');
             return;
         }
 
@@ -86,13 +87,13 @@ export class SpotifyModal extends Modal {
                     const copyBtn = item.createEl('button', { text: 'Copy URI' });
                     copyBtn.addEventListener('click', () => {
                         navigator.clipboard.writeText(track.uri);
-                        new Notice(`Copied ${track.uri} to clipboard`);
+                        showMessage(`Copied ${track.uri} to clipboard`);
                         this.close();
                     });
                 });
             }
         } catch (error) {
-            new Notice('Error searching Spotify. Check console and settings.');
+            showMessage('Error searching Spotify. Check console and settings.');
             console.error(error);
             if (resultsContainer) {
                 resultsContainer.empty();

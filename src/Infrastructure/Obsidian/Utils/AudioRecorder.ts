@@ -1,4 +1,4 @@
-import { Notice } from "obsidian";
+import { showMessage } from '@/Infrastructure/Obsidian/Utils/Messages';
 
 export class AudioRecorder {
     private mediaRecorder: MediaRecorder | null = null;
@@ -19,7 +19,7 @@ export class AudioRecorder {
             return true;
         } catch (error) {
             console.error('AudioRecorder: Error starting recording:', error);
-            new Notice('Error accessing microphone.');
+            showMessage('Error accessing microphone.');
             return false;
         }
     }

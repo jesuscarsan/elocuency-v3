@@ -1,6 +1,7 @@
 import { App, Notice, TFile, TFolder, MarkdownView } from 'obsidian';
 import { executeInEditMode, getActiveMarkdownView } from '@/Infrastructure/Obsidian/Utils/ViewMode';
 import { FrontmatterRegistry } from '@/Domain/Constants/FrontmatterRegistry';
+import { showMessage } from '@/Infrastructure/Obsidian/Utils/Messages';
 
 export class ReallocateNoteCommand {
     constructor(private readonly app: App) { }
@@ -8,18 +9,19 @@ export class ReallocateNoteCommand {
     async execute(targetFile?: TFile): Promise<void> {
         const view = getActiveMarkdownView(this.app, targetFile);
         if (!view?.file) {
-            new Notice('No active file');
+            showMessage('No active file');
             return;
         }
 
         await executeInEditMode(view, async () => {
             const activeFile = view.file;
+            console.log('ReallocateNoteCommand: Active file', activeFile?.path);
             // check again
             if (!activeFile) return;
 
             const frontmatter = this.app.metadataCache.getFileCache(activeFile)?.frontmatter;
             if (!frontmatter) {
-                new Notice('No frontmatter found in active file');
+                showMessage('No frontmatter found in active file');
                 return;
             }
 
@@ -28,7 +30,7 @@ export class ReallocateNoteCommand {
             const candidateFields = registryValues.filter(entry => entry.forRealocateNote);
 
             if (candidateFields.length === 0) {
-                new Notice('No field configured for reallocation (forRealocateNote=true) in registry');
+                showMessage('No field configured for reallocation (forRealocateNote=true) in registry');
                 return;
             }
 
@@ -50,7 +52,7 @@ export class ReallocateNoteCommand {
             }
 
             if (!targetFieldInfo || !rawValue) {
-                new Notice('No valid reallocation field found in current note');
+                showMessage('No valid reallocation field found in current note');
                 return;
             }
 
@@ -65,7 +67,7 @@ export class ReallocateNoteCommand {
             }
 
             if (!linkText) {
-                new Notice(`Value in '${targetFieldInfo.key}' is invalid`);
+                showMessage(`Value in '${targetFieldInfo.key}' is invalid`);
                 return;
             }
 
@@ -77,25 +79,28 @@ export class ReallocateNoteCommand {
             const targetFile = this.app.metadataCache.getFirstLinkpathDest(pathOrName, activeFile.path);
 
             if (!targetFile) {
-                new Notice(`Could not resolve link: ${pathOrName}`);
+                showMessage(`Could not resolve link: ${pathOrName}`);
                 return;
             }
 
             if (!(targetFile instanceof TFile)) {
-                new Notice(`Target is not a file: ${pathOrName}`);
+                showMessage(`Target is not a file: ${pathOrName}`);
                 return;
             }
 
             const targetFolder = targetFile.parent;
             if (!targetFolder) {
-                new Notice('Target file has no parent folder (root?)');
+                showMessage('Target file has no parent folder (root?)');
                 // If root, targetFolder.path is "/" or empty?
                 // targetFolder is TFolder.
                 return;
             }
 
+            console.log('ReallocateNoteCommand: activeFile.parent?.path', activeFile.parent?.path);
+            console.log('ReallocateNoteCommand: targetFolder.path', targetFolder.path);
+
             if (activeFile.parent?.path === targetFolder.path) {
-                new Notice('Note is already in the target folder');
+                showMessage('Note is already in the target folder');
                 return;
             }
 
@@ -103,10 +108,10 @@ export class ReallocateNoteCommand {
 
             try {
                 await this.app.fileManager.renameFile(activeFile, newPath);
-                new Notice(`Moved note to ${targetFolder.path}`);
+                showMessage(`Moved note to ${targetFolder.path}`);
             } catch (error) {
                 console.error(error);
-                new Notice(`Failed to move note: ${error}`);
+                showMessage(`Failed to move note: ${error}`);
             }
         });
     }

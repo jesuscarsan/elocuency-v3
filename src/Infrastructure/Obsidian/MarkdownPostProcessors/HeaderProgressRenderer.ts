@@ -1,8 +1,9 @@
 import { App, MarkdownPostProcessor, MarkdownPostProcessorContext, TFile, Notice } from "obsidian";
+import { showMessage } from '@/Infrastructure/Obsidian/Utils/Messages';
+import { HeaderDataService } from "../../../Application/Services/HeaderDataService";
 
 const lastWarningTime: Record<string, number> = {};
 
-import { HeaderDataService } from "../../../Application/Services/HeaderDataService";
 
 export const createHeaderProgressRenderer = (app: App, service: HeaderDataService): MarkdownPostProcessor => {
     return async (el: HTMLElement, ctx: MarkdownPostProcessorContext) => {
@@ -29,7 +30,7 @@ export const createHeaderProgressRenderer = (app: App, service: HeaderDataServic
                 const now = Date.now();
                 if (!lastWarningTime[sourcePath] || (now - lastWarningTime[sourcePath] > 10000)) {
                     lastWarningTime[sourcePath] = now;
-                    new Notice(`⚠️ Header Progress: The following headers in .json are missing in the note:\n${missingKeys.join('\n')}`, 8000);
+                    showMessage(`⚠️ Header Progress: The following headers in .json are missing in the note:\n${missingKeys.join('\n')}`);
                     console.warn(`[HeaderProgress] Missing headers in ${sourcePath}:`, missingKeys);
                 }
             }

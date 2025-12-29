@@ -1,9 +1,8 @@
-import { App, Notice, TFile, normalizePath, MarkdownView } from 'obsidian';
+import { App, TFile, MarkdownView } from 'obsidian';
 import { executeInEditMode } from '@/Infrastructure/Obsidian/Utils/ViewMode';
-import { FrontmatterRegistry, FrontmatterKeys } from '@/Domain/Constants/FrontmatterRegistry';
+import { FrontmatterRegistry } from '@/Domain/Constants/FrontmatterRegistry';
 import { GenericFuzzySuggestModal } from '@/Infrastructure/Obsidian/Views/Modals/GenericFuzzySuggestModal';
-import { TemplateMatch } from '@/Infrastructure/Obsidian/Utils/TemplateConfig';
-import { formatFrontmatterBlock, parseFrontmatter } from '@/Infrastructure/Obsidian/Utils/Frontmatter';
+import { showMessage } from '@/Infrastructure/Obsidian/Utils/Messages';
 
 interface PersonMatch {
     file: TFile | null; // null means "Create New"
@@ -17,7 +16,7 @@ export class CreateReciprocityNotesCommand {
     async execute(): Promise<void> {
         const view = this.app.workspace.getActiveViewOfType(MarkdownView);
         if (!view?.file) {
-            new Notice('No active file');
+            showMessage('No active file');
             return;
         }
 
@@ -185,7 +184,7 @@ export class CreateReciprocityNotesCommand {
         }
 
         if (!templateFile) {
-            new Notice(`Template '${templatePath}' not found.`);
+            showMessage(`Template '${templatePath}' not found.`);
             // Fallback: create empty or simple note
             const newFile = await this.app.vault.create(`${name}.md`, '---\ntags: [Personas]\n---\n');
             return newFile;
@@ -217,7 +216,7 @@ export class CreateReciprocityNotesCommand {
             }
         });
 
-        new Notice(`Created person note: ${newFile.basename}`);
+        showMessage(`Created person note: ${newFile.basename}`);
         return newFile;
     }
 
@@ -275,6 +274,6 @@ export class CreateReciprocityNotesCommand {
                 fm[reciprocityKey] = current;
             }
         });
-        new Notice(`Updated ${reciprocityKey} in ${targetFile.basename}`);
+        showMessage(`Updated ${reciprocityKey} in ${targetFile.basename}`);
     }
 }
