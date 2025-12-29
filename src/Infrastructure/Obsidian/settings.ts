@@ -19,8 +19,10 @@ export interface UnresolvedLinkGeneratorSettings {
   spotifyTokenExpirationTime: number;
   googleCustomSearchApiKey: string;
   googleCustomSearchEngineId: string;
-  geminiLiveMode: boolean;
+  geminiLiveMode: 'gemini_live_voice_text' | 'gemini_live_voice_only' | 'local_voice_text' | 'local_voice_only' | 'text_only';
+  geminiLiveUserMode: 'voice_text' | 'text_only' | 'voice_only';
   geminiLiveRole: string;
+  geminiLiveLocalVoice: string; // URI of the local voice
 }
 
 
@@ -41,8 +43,10 @@ export const DEFAULT_SETTINGS: UnresolvedLinkGeneratorSettings = {
   spotifyTokenExpirationTime: 0,
   googleCustomSearchApiKey: '',
   googleCustomSearchEngineId: '',
-  geminiLiveMode: true,
+  geminiLiveMode: 'gemini_live_voice_text',
+  geminiLiveUserMode: 'voice_text',
   geminiLiveRole: '', // Default to empty string
+  geminiLiveLocalVoice: '',
 };
 
 

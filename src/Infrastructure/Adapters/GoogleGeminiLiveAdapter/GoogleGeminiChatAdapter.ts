@@ -23,7 +23,7 @@ export class GoogleGeminiChatAdapter implements IGeminiSessionAdapter {
         this.client = new GoogleGenAI({ apiKey: this.apiKey });
     }
 
-    async connect(systemInstruction: string, enableScoreTracking: boolean, voice: string, temperature: number): Promise<boolean> {
+    async connect(systemInstruction: string, enableScoreTracking: boolean, voice: string, temperature: number, topP: number): Promise<boolean> {
         if (!this.apiKey) {
             new Notice('Falta la API Key de Gemini');
             return false;
@@ -31,7 +31,8 @@ export class GoogleGeminiChatAdapter implements IGeminiSessionAdapter {
 
         this.history = [];
         this.config = {
-            temperature: temperature
+            temperature: temperature,
+            topP: topP
         };
 
         this.tools = [];

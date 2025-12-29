@@ -13,3 +13,4 @@ export * from './GenerateMissingNotesCommand/GenerateMissingNotesCommand';
 export * from './ReallocateNoteCommand/ReallocateNoteCommand';
 export * from './SearchSpotifyArtistCommand/SearchSpotifyArtistCommand';
 export * from './UpdatePlaceIdCommand/UpdatePlaceIdCommand';
+export * from './AnalyzeAndLinkEntitiesCommand/AnalyzeAndLinkEntitiesCommand';

@@ -1,5 +1,6 @@
 import { DropdownComponent, ButtonComponent } from 'obsidian';
 import { QuizService, QuizItem } from '@/Application/Services/QuizService';
+import { SessionControlsComponent } from './SessionControlsComponent';
 
 // Props handling manual reactivity since we don't have a reactivity system
 // We pass the manager to read state, and callbacks to trigger actions/refreshes
@@ -13,6 +14,7 @@ export interface QuizComponentProps {
 }
 
 export class QuizComponent {
+    private sessionControls: SessionControlsComponent | null = null;
     private quizListContainer: HTMLElement | null = null;
     private quizStatusEl: HTMLElement | null = null;
 
@@ -24,6 +26,9 @@ export class QuizComponent {
         quizContainer.style.padding = '10px';
         quizContainer.style.border = '1px solid var(--background-modifier-border)';
         quizContainer.style.borderRadius = '4px';
+        quizContainer.style.display = 'flex';
+        quizContainer.style.flexDirection = 'column';
+        quizContainer.style.height = '100%';
 
         quizContainer.createEl('h4', { text: 'Quiz Mode' });
         quizContainer.querySelector('h4')!.style.marginTop = '0';
@@ -33,6 +38,7 @@ export class QuizComponent {
         quizControls.style.gap = '10px';
         quizControls.style.alignItems = 'center';
         quizControls.style.flexWrap = 'wrap';
+        quizControls.style.marginBottom = '15px';
 
         // Star Level Dropdown
         quizControls.createSpan({ text: 'Relevancia:' });
@@ -74,6 +80,24 @@ export class QuizComponent {
         refreshBtn.onClick(() => props.onRefresh());
         refreshBtn.buttonEl.style.marginLeft = 'auto';
 
+
+        // Quiz List
+        this.quizListContainer = quizContainer.createDiv({ cls: 'gemini-quiz-list' });
+        this.quizListContainer.style.marginTop = '10px';
+        this.quizListContainer.style.flex = '1';
+        this.quizListContainer.style.minHeight = '200px';
+        this.quizListContainer.style.overflowY = 'auto';
+        this.quizListContainer.style.border = '1px solid var(--background-modifier-border)';
+        this.quizListContainer.style.borderRadius = '4px';
+        this.quizListContainer.style.padding = '5px';
+
+        // Initial render of list if queue exists
+        this.refreshList(props.quizService, (i) => {
+            if (props.onTopicSelect) {
+                props.onTopicSelect(i);
+            }
+        });
+
         // Quiz Status Label
         this.quizStatusEl = quizContainer.createDiv({ cls: 'gemini-quiz-status' });
         this.quizStatusEl.style.marginTop = '15px';
@@ -86,22 +110,17 @@ export class QuizComponent {
         this.quizStatusEl.style.borderLeft = '4px solid var(--text-accent)';
         this.setStatusText('Selecciona un tema para comenzar.');
 
-        // Quiz List
-        this.quizListContainer = quizContainer.createDiv({ cls: 'gemini-quiz-list' });
-        this.quizListContainer.style.marginTop = '10px';
-        this.quizListContainer.style.maxHeight = '200px';
-        this.quizListContainer.style.overflowY = 'auto';
-        this.quizListContainer.style.border = '1px solid var(--background-modifier-border)';
-        this.quizListContainer.style.borderRadius = '4px';
-        this.quizListContainer.style.padding = '5px';
-        this.quizListContainer.style.display = 'none';
+        // Session Controls (Embedded)
+        const controlsContainer = quizContainer.createDiv();
+        controlsContainer.style.marginTop = 'auto';
+        controlsContainer.style.paddingTop = '15px';
+        controlsContainer.style.display = 'flex';
+        controlsContainer.style.justifyContent = 'center';
 
-        // Initial render of list if queue exists
-        this.refreshList(props.quizService, (i) => {
-            if (props.onTopicSelect) {
-                props.onTopicSelect(i);
-            }
-        });
+        this.sessionControls = new SessionControlsComponent(
+            controlsContainer,
+            props.onAskNext // We use the AskNext action which handles session start logic
+        );
     }
 
     setStatusText(text: string) {
@@ -110,13 +129,22 @@ export class QuizComponent {
         }
     }
 
+    updateSessionStatus(isActive: boolean, text: string, color: string) {
+        this.sessionControls?.updateStatus(isActive, text, color);
+    }
+
     refreshList(quizService: QuizService, onSelect?: (index: number) => void) {
         if (!this.quizListContainer) return;
 
         this.quizListContainer.empty();
 
         if (quizService.queue.length === 0) {
-            this.quizListContainer.style.display = 'none';
+            // this.quizListContainer.style.display = 'none'; // Don't hide, just show empty
+            const emptyEl = this.quizListContainer.createDiv();
+            emptyEl.innerText = "No topics found.";
+            emptyEl.style.color = 'var(--text-muted)';
+            emptyEl.style.textAlign = 'center';
+            emptyEl.style.padding = '20px';
             return;
         }
 

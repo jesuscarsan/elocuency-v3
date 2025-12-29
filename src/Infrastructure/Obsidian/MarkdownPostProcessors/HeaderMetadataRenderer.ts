@@ -1,6 +1,6 @@
 import { App, MarkdownPostProcessor, MarkdownPostProcessorContext, TFile } from "obsidian";
 import { HeaderMetadataKeys } from "../../../Domain/Constants/HeaderMetadataRegistry";
-import { ScoreUtils } from "../../../Domain/Utils/ScoreUtils";
+import { normalizeDifficulty, difficultyToColor } from "../../../Domain/Utils/ScoreUtils";
 
 import { HeaderDataService } from "../../../Application/Services/HeaderDataService";
 
@@ -150,8 +150,8 @@ function renderMetadataPill(container: HTMLElement, data: any) {
     pill.appendChild(impEl);
 
     // 3. Difficulty (Dot - SVG) with tooltips: 1: Baja, 2: Media, 3: Alta
-    const normDiff = ScoreUtils.normalizeDifficulty(difficulty);
-    const diffColor = ScoreUtils.difficultyToColor(normDiff);
+    const normDiff = normalizeDifficulty(difficulty);
+    const diffColor = difficultyToColor(normDiff);
     let diffText = 'Baja'; // 1
     if (normDiff === 2) diffText = 'Media';
     if (normDiff === 3) diffText = 'Alta';

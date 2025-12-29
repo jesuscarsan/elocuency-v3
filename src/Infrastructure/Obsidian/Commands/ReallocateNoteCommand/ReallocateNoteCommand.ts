@@ -1,12 +1,12 @@
 import { App, Notice, TFile, TFolder, MarkdownView } from 'obsidian';
-import { executeInEditMode } from '@/Infrastructure/Obsidian/Utils/ViewMode';
+import { executeInEditMode, getActiveMarkdownView } from '@/Infrastructure/Obsidian/Utils/ViewMode';
 import { FrontmatterRegistry } from '@/Domain/Constants/FrontmatterRegistry';
 
 export class ReallocateNoteCommand {
     constructor(private readonly app: App) { }
 
-    async execute(): Promise<void> {
-        const view = this.app.workspace.getActiveViewOfType(MarkdownView);
+    async execute(targetFile?: TFile): Promise<void> {
+        const view = getActiveMarkdownView(this.app, targetFile);
         if (!view?.file) {
             new Notice('No active file');
             return;

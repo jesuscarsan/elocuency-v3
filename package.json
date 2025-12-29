@@ -1,11 +1,11 @@
 {
   "name": "elo-obsidian-ext",
-  "version": "0.1.0",
+  "version": "0.1.34",
   "description": "Obsidian helper extension.",
   "main": "build/main.js",
   "scripts": {
     "build": "npm run typecheck && node esbuild.config.mjs",
-    "dev": "node esbuild.config.mjs --watch",
+    "dev": "node scripts/version-bump.js && node esbuild.config.mjs --watch",
     "typecheck": "tsc --noEmit",
     "lint": "eslint \"src/**/*.{ts,tsx}\"",
     "format": "prettier --write .",

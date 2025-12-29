@@ -11,7 +11,7 @@ import {
 } from '@/Infrastructure/Obsidian/Utils/Frontmatter';
 
 import { FrontmatterKeys, FrontmatterRegistry } from '@/Domain/Constants/FrontmatterRegistry';
-import { executeInEditMode } from '@/Infrastructure/Obsidian/Utils/ViewMode';
+import { executeInEditMode, getActiveMarkdownView } from '@/Infrastructure/Obsidian/Utils/ViewMode';
 import { TemplateContext } from '@/Infrastructure/Obsidian/Utils/TemplateContext';
 
 export class EnhanceByAiCommand {
@@ -21,8 +21,8 @@ export class EnhanceByAiCommand {
         private readonly llm: LlmPort
     ) { }
 
-    async execute() {
-        const view = this.app.workspace.getActiveViewOfType(MarkdownView);
+    async execute(targetFile?: TFile) {
+        const view = getActiveMarkdownView(this.app, targetFile);
         if (!view?.file) {
             showMessage('Open a markdown note to enhance it.');
             return;

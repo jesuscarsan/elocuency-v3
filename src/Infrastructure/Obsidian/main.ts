@@ -1,4 +1,4 @@
-import { Plugin, TFile } from 'obsidian';
+import { Plugin, TFile, MarkdownView } from 'obsidian';
 import {
   DEFAULT_SETTINGS,
   UnresolvedLinkGeneratorSettings,
@@ -15,6 +15,7 @@ import {
   AddImagesCommand,
   CreateReciprocityNotesCommand,
   ReallocateNoteCommand,
+  AnalyzeAndLinkEntitiesCommand,
   SearchSpotifyArtistCommand,
   CreateNoteFromImagesCommand,
   ApplyTemplateFromImageCommand,
@@ -48,9 +49,13 @@ import {
   SpotifyAuthModal
 } from '@/Infrastructure/Obsidian/Views/Modals/SpotifyAuthModal';
 import {
-  LiveSessionView,
-  LIVE_SESSION_VIEW_TYPE
-} from '@/Infrastructure/Obsidian/Views/LiveSession/LiveSessionView';
+  ChatView,
+  VIEW_TYPE_CHAT
+} from '@/Infrastructure/Obsidian/Views/Chat/ChatView';
+import {
+  NoteOperationsView,
+  VIEW_TYPE_NOTE_OPERATIONS
+} from '@/Infrastructure/Obsidian/Views/NoteOperations/NoteOperationsView';
 import { SpotifyAdapter } from '../Adapters/SpotifyAdapter/SpotifyAdapter';
 import { MusicService } from '../../Application/Services/MusicService';
 import { Notice } from 'obsidian';
@@ -70,8 +75,32 @@ export default class ObsidianExtension extends Plugin {
   musicService!: MusicService;
   llm!: GoogleGeminiAdapter;
 
+  // Registry of commands to be shared with NoteOperationsView
+  public noteCommands: { id: string, name: string, callback: (file?: TFile) => any }[] = [];
+
+  private lastActiveMarkdownFile: TFile | null = null;
+
+  public getLastActiveMarkdownFile(): TFile | null {
+    return this.lastActiveMarkdownFile;
+  }
+
   async onload() {
-    console.log('Elocuency plugin loaded');
+    console.log(`Elocuency plugin loaded ${this.manifest.version}`);
+
+    // Initialize with current file if active
+    const activeFile = this.app.workspace.getActiveFile();
+    if (activeFile && activeFile.extension === 'md') {
+      this.lastActiveMarkdownFile = activeFile;
+    }
+
+    // Track active file changes
+    this.registerEvent(
+      this.app.workspace.on('active-leaf-change', (leaf) => {
+        if (leaf?.view instanceof MarkdownView) {
+          this.lastActiveMarkdownFile = (leaf.view as MarkdownView).file;
+        }
+      })
+    );
 
     await this.loadSettings();
 
@@ -106,168 +135,202 @@ export default class ObsidianExtension extends Plugin {
     const settingsAdapter = new ObsidianSettingsAdapter(this);
     this.musicService = new MusicService(this.spotifyAdapter, settingsAdapter);
 
-    this.addCommand({
-      id: 'GenerateMissingNotesCommand',
-      name: 'Create notes for unresolved links',
-      callback: async () => {
-        const generateMissingNotesCommand = new GenerateMissingNotesCommand(
-          this.app,
-          this.settings,
-        );
-        await generateMissingNotesCommand.execute();
-      },
-    });
+    // --- Command Definitions ---
+    // We define them here to access local variables (geocoder, geminiImages, etc)
+    // and populate the noteCommands array.
 
-    this.addCommand({
-      id: 'ApplyTemplateCommand',
-      name: 'Apply template',
-      callback: () => {
-        const applyTemplateCommand = new ApplyTemplateCommand(
-          this.llm,
-          imageSearch,
-          this.app,
-          this.settings,
-        );
-        applyTemplateCommand.execute();
+    this.noteCommands = [
+      {
+        id: 'GenerateMissingNotesCommand',
+        name: 'Create notes for unresolved links',
+        callback: async () => {
+          const generateMissingNotesCommand = new GenerateMissingNotesCommand(
+            this.app,
+            this.settings,
+          );
+          await generateMissingNotesCommand.execute();
+        },
       },
-    });
-
-    this.addCommand({
-      id: 'ApplyStreamBriefCommand',
-      name: 'Apply stream brief',
-      callback: () => {
-        const applyStreamBriefCommand = new ApplyStreamBriefCommand(
-          this.llm,
-          this.app,
-        );
-        applyStreamBriefCommand.execute();
+      {
+        id: 'ApplyTemplateCommand',
+        name: 'Apply template',
+        callback: (file?: TFile) => {
+          const applyTemplateCommand = new ApplyTemplateCommand(
+            this.llm,
+            imageSearch,
+            this.app,
+            this.settings,
+          );
+          applyTemplateCommand.execute(file);
+        },
       },
-    });
-
-    this.addCommand({
-      id: 'ApplyGeocoderCommand',
-      name: 'Apply Geocoder',
-      callback: () => {
-        const applyGeocoderCommand = new ApplyGeocoderCommand(
-          geocoder,
-          this.llm,
-          this.app,
-        );
-        applyGeocoderCommand.execute();
+      {
+        id: 'ApplyStreamBriefCommand',
+        name: 'Apply stream brief',
+        callback: () => {
+          const applyStreamBriefCommand = new ApplyStreamBriefCommand(
+            this.llm,
+            this.app,
+          );
+          applyStreamBriefCommand.execute();
+        },
       },
-    });
-
-    this.addCommand({
-      id: 'UpdatePlaceIdCommand',
-      name: 'Update Place ID',
-      callback: () => {
-        const updatePlaceIdCommand = new UpdatePlaceIdCommand(
-          geocoder,
-          this.app,
-        );
-        updatePlaceIdCommand.execute();
+      {
+        id: 'ApplyGeocoderCommand',
+        name: 'Apply Geocoder',
+        callback: () => {
+          const applyGeocoderCommand = new ApplyGeocoderCommand(
+            geocoder,
+            this.llm,
+            this.app,
+          );
+          applyGeocoderCommand.execute();
+        },
       },
-    });
-
-    this.addCommand({
-      id: 'EnhanceNoteCommand',
-      name: 'Enhance note (Template + AI)',
-      callback: () => {
-        const activeFile = this.app.workspace.getActiveFile();
-        if (activeFile) {
-          new EnhanceNoteCommand(this, this.llm).execute(activeFile);
+      {
+        id: 'UpdatePlaceIdCommand',
+        name: 'Update Place ID',
+        callback: () => {
+          const updatePlaceIdCommand = new UpdatePlaceIdCommand(
+            geocoder,
+            this.app,
+          );
+          updatePlaceIdCommand.execute();
+        },
+      },
+      {
+        id: 'EnhanceNoteCommand',
+        name: 'Enhance note (Template + AI)',
+        callback: (file?: TFile) => {
+          const activeFile = file || this.app.workspace.getActiveFile();
+          if (activeFile) {
+            new EnhanceNoteCommand(this, this.llm).execute(activeFile);
+          }
+        },
+      },
+      {
+        id: 'EnhanceByAiCommand',
+        name: 'Enhance with AI',
+        callback: (file?: TFile) => {
+          new EnhanceByAiCommand(this.app, this.settings, this.llm).execute(file);
+        },
+      },
+      {
+        id: 'ApplyPlaceTypeCommand',
+        name: 'Indicate Place Type',
+        callback: () => {
+          new ApplyPlaceTypeCommand(geocoder, this.llm, this.app).execute();
+        },
+      },
+      {
+        id: 'AddImagesCommand',
+        name: 'Add Images',
+        callback: () => {
+          new AddImagesCommand(this.app, imageSearch).execute();
+        },
+      },
+      {
+        id: 'CreateReciprocityNotesCommand',
+        name: 'Create Reciprocity Notes',
+        callback: () => {
+          new CreateReciprocityNotesCommand(this.app).execute();
         }
       },
-    });
-
-    this.addCommand({
-      id: 'EnhanceByAiCommand',
-      name: 'Enhance with AI',
-      callback: () => {
-        new EnhanceByAiCommand(this.app, this.settings, this.llm).execute();
-      },
-    });
-
-    this.addCommand({
-      id: 'ApplyPlaceTypeCommand',
-      name: 'Indicate Place Type',
-      callback: () => {
-        new ApplyPlaceTypeCommand(geocoder, this.llm, this.app).execute();
-      },
-    });
-
-    this.addCommand({
-      id: 'AddImagesCommand',
-      name: 'Add Images',
-      callback: () => {
-        new AddImagesCommand(this.app, imageSearch).execute();
-      },
-    });
-
-    // ConnectSpotify and EnterSpotifyCode commands removed in favor of Auto-Auth Modal
-
-    this.addCommand({
-      id: 'CreateReciprocityNotesCommand',
-      name: 'Create Reciprocity Notes',
-      callback: () => {
-        new CreateReciprocityNotesCommand(this.app).execute();
-      }
-    });
-
-    this.addCommand({
-      id: 'ReallocateNoteCommand',
-      name: 'Reallocate Note',
-      callback: () => {
-        new ReallocateNoteCommand(this.app).execute();
-      }
-    });
-
-    this.addCommand({
-      id: 'SearchSpotifyTrack',
-      name: 'Search Spotify Track',
-      callback: () => {
-        // Ensure adapter has latest credentials
-        this.spotifyAdapter.updateCredentials(this.settings.spotifyClientId, this.settings.spotifyAccessToken);
-
-        if (!this.spotifyAdapter.isAuthenticated()) {
-          new SpotifyAuthModal(this.app, this.musicService).open();
-          return;
+      {
+        id: 'ReallocateNoteCommand',
+        name: 'Reallocate Note',
+        callback: (file?: TFile) => {
+          new ReallocateNoteCommand(this.app).execute(file);
         }
+      },
+      {
+        id: 'SearchSpotifyTrack',
+        name: 'Search Spotify Track',
+        callback: () => {
+          // Ensure adapter has latest credentials
+          this.spotifyAdapter.updateCredentials(this.settings.spotifyClientId, this.settings.spotifyAccessToken);
 
-        new SpotifyModal(this.app, this.musicService).open();
-      }
-    });
+          if (!this.spotifyAdapter.isAuthenticated()) {
+            new SpotifyAuthModal(this.app, this.musicService).open();
+            return;
+          }
 
-    this.addCommand({
-      id: 'ImportPlaylistTracks',
-      name: 'Import Playlist Tracks',
-      callback: async () => {
-        this.spotifyAdapter.updateCredentials(this.settings.spotifyClientId, this.settings.spotifyAccessToken);
-
-        if (!this.spotifyAdapter.isAuthenticated()) {
-          new SpotifyAuthModal(this.app, this.musicService).open();
-          return;
+          new SpotifyModal(this.app, this.musicService).open();
         }
+      },
+      {
+        id: 'ImportPlaylistTracks',
+        name: 'Import Playlist Tracks',
+        callback: async () => {
+          this.spotifyAdapter.updateCredentials(this.settings.spotifyClientId, this.settings.spotifyAccessToken);
 
-        new SpotifyPlaylistModal(this.app, this.musicService).open();
+          if (!this.spotifyAdapter.isAuthenticated()) {
+            new SpotifyAuthModal(this.app, this.musicService).open();
+            return;
+          }
+
+          new SpotifyPlaylistModal(this.app, this.musicService).open();
+        }
+      },
+      {
+        id: 'SearchSpotifyArtistCommand',
+        name: 'Search Spotify Artist',
+        callback: () => {
+          // Ensure adapter has latest credentials
+          this.spotifyAdapter.updateCredentials(this.settings.spotifyClientId, this.settings.spotifyAccessToken);
+
+          new SearchSpotifyArtistCommand(
+            this.app,
+            this.spotifyAdapter,
+            () => new SpotifyAuthModal(this.app, this.musicService).open()
+          ).checkCallback(false);
+        }
+      },
+      {
+        id: 'CreateNoteFromImagesCommand',
+        name: 'Create Note From Images (Gemini)',
+        callback: () => {
+          new CreateNoteFromImagesCommand(this.app, geminiImages).execute();
+        }
+      },
+      {
+        id: 'AnalyzeAndLinkEntitiesCommand',
+        name: 'Analyze and Link Entities',
+        callback: (file?: TFile) => {
+          new AnalyzeAndLinkEntitiesCommand(this.app, this.llm).execute(file);
+        }
+      },
+      {
+        id: 'ApplyTemplateFromImageCommand',
+        name: 'Apply Template from Image (Gemini)',
+        callback: () => {
+          new ApplyTemplateFromImageCommand(geminiImages, this.app, this.settings).execute();
+        }
+      },
+      {
+        id: 'open-chat-session',
+        name: 'Open Chat Session',
+        callback: () => {
+          this.activateView();
+        }
+      },
+      {
+        id: 'generate-header-metadata',
+        name: 'Generate Header Metadata',
+        callback: (file?: TFile) => {
+          new GenerateHeaderMetadataCommand(this.app).execute(file);
+        }
       }
+    ];
+
+    // Register all commands
+    this.noteCommands.forEach(cmd => {
+      this.addCommand({
+        id: cmd.id,
+        name: cmd.name,
+        callback: cmd.callback
+      });
     });
-
-    this.addCommand({
-      id: 'SearchSpotifyArtistCommand',
-      name: 'Search Spotify Artist',
-      callback: () => {
-        // Ensure adapter has latest credentials
-        this.spotifyAdapter.updateCredentials(this.settings.spotifyClientId, this.settings.spotifyAccessToken);
-
-        new SearchSpotifyArtistCommand(
-          this.app,
-          this.spotifyAdapter,
-          () => new SpotifyAuthModal(this.app, this.musicService).open()
-        ).checkCallback(false);
-      }
-    });
-
 
     this.registerEvent(
       this.app.vault.on('rename', async (file, oldPath) => {
@@ -289,52 +352,35 @@ export default class ObsidianExtension extends Plugin {
     this.registerMarkdownPostProcessor(createHeaderMetadataRenderer(this.app, headerDataService));
 
 
-    this.addCommand({
-      id: 'CreateNoteFromImagesCommand',
-      name: 'Create Note From Images (Gemini)',
-      callback: () => {
-        new CreateNoteFromImagesCommand(this.app, geminiImages).execute();
-      }
-    });
+    // --- View Registration ---
 
-    this.addCommand({
-      id: 'ApplyTemplateFromImageCommand',
-      name: 'Apply Template from Image (Gemini)',
-      callback: () => {
-        new ApplyTemplateFromImageCommand(geminiImages, this.app, this.settings).execute();
-      }
-    });
-
-
+    // 1. Chat View
     this.registerView(
-      LIVE_SESSION_VIEW_TYPE,
+      VIEW_TYPE_CHAT,
       (leaf) => {
-        const view = new LiveSessionView(leaf);
+        const view = new ChatView(leaf);
         view.setPlugin(this);
         return view;
       }
     );
 
-    this.addCommand({
-      id: 'open-chat-session',
-      name: 'Open Chat Session',
-      callback: () => {
-        this.activateView();
-      }
-    });
+    // 2. Note Operations View
+    this.registerView(
+      VIEW_TYPE_NOTE_OPERATIONS,
+      (leaf) => new NoteOperationsView(leaf, this)
+    );
 
-    this.addRibbonIcon('microphone', 'Chat Session', () => {
+    // --- Ribbon Icons ---
+
+    // Chat Session - Changed Icon to 'message-circle'
+    this.addRibbonIcon('message-circle', 'Chat Session', () => {
       this.activateView();
     });
 
-    this.addCommand({
-      id: 'generate-header-metadata',
-      name: 'Generate Header Metadata',
-      callback: () => {
-        new GenerateHeaderMetadataCommand(this.app).execute();
-      }
+    // Note Operations - New Icon 'microphone'
+    this.addRibbonIcon('microphone', 'Note Operations', () => {
+      this.activateNoteOperationsView();
     });
-
   }
 
   onunload() {
@@ -352,19 +398,44 @@ export default class ObsidianExtension extends Plugin {
     await this.saveData(this.settings);
   }
 
+  public getNoteCommands() {
+    return this.noteCommands;
+  }
+
   async activateView() {
     const { workspace } = this.app;
 
-    let leaf = workspace.getLeavesOfType(LIVE_SESSION_VIEW_TYPE)[0];
+    let leaf = workspace.getLeavesOfType(VIEW_TYPE_CHAT)[0];
 
     if (!leaf) {
       const rightLeaf = workspace.getRightLeaf(false);
       if (rightLeaf) {
         await rightLeaf.setViewState({
-          type: LIVE_SESSION_VIEW_TYPE,
+          type: VIEW_TYPE_CHAT,
           active: true,
         });
-        leaf = workspace.getLeavesOfType(LIVE_SESSION_VIEW_TYPE)[0];
+        leaf = workspace.getLeavesOfType(VIEW_TYPE_CHAT)[0];
+      }
+    }
+
+    if (leaf) {
+      workspace.revealLeaf(leaf);
+    }
+  }
+
+  async activateNoteOperationsView() {
+    const { workspace } = this.app;
+
+    let leaf = workspace.getLeavesOfType(VIEW_TYPE_NOTE_OPERATIONS)[0];
+
+    if (!leaf) {
+      const rightLeaf = workspace.getRightLeaf(false);
+      if (rightLeaf) {
+        await rightLeaf.setViewState({
+          type: VIEW_TYPE_NOTE_OPERATIONS,
+          active: true,
+        });
+        leaf = workspace.getLeavesOfType(VIEW_TYPE_NOTE_OPERATIONS)[0];
       }
     }
 

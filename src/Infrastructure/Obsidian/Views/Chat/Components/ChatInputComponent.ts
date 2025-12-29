@@ -22,7 +22,7 @@ export class ChatInputComponent {
         this.transcriptionAdapter = new GeminiTranscriptionAdapter(apiKey);
     }
 
-    render(isEnabled: boolean) {
+    render(isEnabled: boolean, userMode: 'voice_text' | 'text_only' | 'voice_only' = 'voice_text') {
         this.container.empty();
         const wrapper = this.container.createDiv();
         wrapper.style.display = 'flex';
@@ -31,10 +31,18 @@ export class ChatInputComponent {
         wrapper.style.marginBottom = '10px';
         wrapper.style.alignItems = 'center';
 
+        // Check Modes
+        const showText = userMode === 'voice_text' || userMode === 'text_only';
+        const showMic = userMode === 'voice_text' || userMode === 'voice_only';
+
         this.inputEl = new TextComponent(wrapper);
         this.inputEl.setPlaceholder('Escribe tu respuesta...');
         this.inputEl.inputEl.style.flex = '1';
         this.inputEl.setDisabled(!isEnabled);
+
+        if (!showText) {
+            this.inputEl.inputEl.style.display = 'none';
+        }
 
         this.inputEl.inputEl.addEventListener('keypress', (e) => {
             if (e.key === 'Enter') {
@@ -48,14 +56,23 @@ export class ChatInputComponent {
         this.micButton.setTooltip('Hablar para escribir');
         this.micButton.setDisabled(!isEnabled);
         this.micButton.onClick(() => {
-            this.toggleRecording();
+            if (showMic) this.toggleRecording();
         });
+
+        if (!showMic) {
+            this.micButton.buttonEl.style.display = 'none';
+        }
 
         // --- Send Button ---
         const sendBtn = new ButtonComponent(wrapper);
         sendBtn.setIcon('send');
         sendBtn.setTooltip('Enviar');
         sendBtn.setDisabled(!isEnabled);
+
+        if (!showText) {
+            sendBtn.buttonEl.style.display = 'none';
+        }
+
         sendBtn.onClick(() => {
             this.sendMessage();
         });

@@ -1,4 +1,5 @@
 import { App, Editor, MarkdownView, Notice, TFile } from "obsidian";
+import { getActiveMarkdownView } from '@/Infrastructure/Obsidian/Utils/ViewMode';
 import { MetadataService } from "@/Infrastructure/Services/MetadataService";
 
 export class GenerateHeaderMetadataCommand {
@@ -8,8 +9,8 @@ export class GenerateHeaderMetadataCommand {
         this.metadataService = new MetadataService(app);
     }
 
-    async execute(): Promise<void> {
-        const activeView = this.app.workspace.getActiveViewOfType(MarkdownView);
+    async execute(targetFile?: TFile): Promise<void> {
+        const activeView = getActiveMarkdownView(this.app, targetFile);
         if (!activeView) {
             new Notice("No active markdown view");
             return;

@@ -52,7 +52,7 @@ export class HeaderEvaluationService {
                         // Note: The service currently only updates if block ID exists. 
                         // To support generating block IDs, we'd need to modify the file content which is more invasive.
                         // For now, mirroring existing logic: logic only updated if blockId existed?
-                        // Re-checking LiveSessionView logic:
+                        // Re-checking ChatView logic:
                         // "if (blockId) { update } else { warn }"
                         // So yes, it only updates if block ID exists.
                     }

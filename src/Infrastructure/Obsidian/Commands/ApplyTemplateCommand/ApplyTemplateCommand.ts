@@ -26,7 +26,7 @@ import { mergeNotes } from '@/Infrastructure/Obsidian/Utils/Notes';
 import { PersonasNoteOrganizer } from '@/Application/Services/PersonasNoteOrganizer';
 import { GenericFuzzySuggestModal } from '@/Infrastructure/Obsidian/Views/Modals/GenericFuzzySuggestModal';
 import { ObsidianNoteManager } from '@/Infrastructure/Adapters/ObsidianNoteManager';
-import { executeInEditMode } from '@/Infrastructure/Obsidian/Utils/ViewMode';
+import { executeInEditMode, getActiveMarkdownView } from '@/Infrastructure/Obsidian/Utils/ViewMode';
 import { TemplateContext } from '@/Infrastructure/Obsidian/Utils/TemplateContext';
 
 export class ApplyTemplateCommand {
@@ -37,8 +37,8 @@ export class ApplyTemplateCommand {
     private readonly settings: UnresolvedLinkGeneratorSettings,
   ) { }
 
-  async execute() {
-    const view = this.obsidian.workspace.getActiveViewOfType(MarkdownView);
+  async execute(targetFile?: TFile) {
+    const view = getActiveMarkdownView(this.obsidian, targetFile);
     if (!view?.file) {
       showMessage('Open a markdown note to apply a template.');
       return;

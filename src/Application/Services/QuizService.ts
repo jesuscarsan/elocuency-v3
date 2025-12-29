@@ -1,6 +1,6 @@
 import { NoteManagerPort, NoteItem } from '../../Domain/Ports/NoteManagerPort';
 import { ContextProviderPort } from '../../Domain/Ports/ContextProviderPort';
-import { ScoreUtils } from '../../Domain/Utils/ScoreUtils';
+import { normalizeImportance } from '../../Domain/Utils/ScoreUtils';
 import { showMessage } from '../../Infrastructure/Obsidian/Utils/Messages'; // Utils, arguably Infrastructure/Shared
 
 export interface QuizItem {
@@ -17,7 +17,7 @@ export class QuizService {
     public queue: QuizItem[] = [];
     public currentIndex: number = -1;
     public onlyTitlesWithoutSubtitles: boolean = true;
-    public selectedStarLevel: string = '1';
+    public selectedStarLevel: string = '0';
 
     constructor(
         private noteManager: NoteManagerPort,
@@ -108,7 +108,7 @@ export class QuizService {
                 } else {
                     if (blockId && metadata[blockId]) {
                         const importance = metadata[blockId].importance;
-                        if (typeof importance === 'number' && ScoreUtils.normalizeImportance(importance) >= requiredLevel) {
+                        if (typeof importance === 'number' && normalizeImportance(importance) >= requiredLevel) {
                             shouldInclude = true;
                         }
                     }

@@ -39,7 +39,7 @@ export class GoogleGeminiLiveAdapter implements IGeminiSessionAdapter {
         await this.audioPlayer.resume();
     }
 
-    async connect(systemInstruction: string = '', enableScoreTracking: boolean = false, voice: string = 'Aoede', temperature: number = 0.5): Promise<boolean> {
+    async connect(systemInstruction: string = '', enableScoreTracking: boolean = false, voice: string = 'Aoede', temperature: number = 0.5, topP: number = 0.95): Promise<boolean> {
         this.systemInstruction = systemInstruction;
         if (!this.apiKey) {
             new Notice('Falta la API Key de Gemini');
@@ -62,7 +62,7 @@ export class GoogleGeminiLiveAdapter implements IGeminiSessionAdapter {
             this.ws.onopen = async () => {
                 console.log('Gemini Live WS Connected');
                 this.isConnected = true;
-                this.sendSetupMessage(enableScoreTracking, voice, temperature);
+                this.sendSetupMessage(enableScoreTracking, voice, temperature, topP);
 
                 // Start recording immediately upon connection (or can be manual)
                 const micStarted = await this.audioRecorder.start();
@@ -102,7 +102,7 @@ export class GoogleGeminiLiveAdapter implements IGeminiSessionAdapter {
         }
     }
 
-    private sendSetupMessage(enableScoreTracking: boolean, voice: string, temperature: number): void {
+    private sendSetupMessage(enableScoreTracking: boolean, voice: string, temperature: number, topP: number): void {
         if (!this.ws) return;
 
         const setupMsg: any = {
@@ -118,6 +118,7 @@ export class GoogleGeminiLiveAdapter implements IGeminiSessionAdapter {
                         }
                     },
                     temperature: temperature,
+                    top_p: topP,
                 },
             },
         };
@@ -170,6 +171,7 @@ export class GoogleGeminiLiveAdapter implements IGeminiSessionAdapter {
             };
         }
 
+        console.log(`Gemini Live: Sending Setup with Temperature: ${temperature}, TopP: ${topP}, Voice: ${voice}`);
         console.log("Sending Setup Msg:", JSON.stringify(setupMsg, null, 2));
 
         this.ws.send(JSON.stringify(setupMsg));
@@ -256,10 +258,22 @@ export class GoogleGeminiLiveAdapter implements IGeminiSessionAdapter {
         // but typically it is in modelTurn parts or toolCall.
         // Let's check modelTurn parts first.
 
+        // Handle Setup Complete
+        if ((data as any).setupComplete) {
+            console.log("Gemini Live: Setup Complete");
+            return;
+        }
+
+        // Handle Errors (e.g. Quota, Invalid Argument)
+        if ((data as any).error) {
+            console.error("Gemini Live API Error:", (data as any).error);
+            new Notice(`Gemini Error: ${(data as any).error.message || 'Unknown error'}`);
+            return;
+        }
+
         const serverContent = data?.serverContent;
         if (!serverContent) {
-            console.log("No serverContent in message", data);
-            // Could be tool_response confirmation or something else
+            console.log("No serverContent in message (and not setup/error)", data);
             return;
         }
 

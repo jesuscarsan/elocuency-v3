@@ -18,16 +18,16 @@ import { ContextService } from '@/Infrastructure/Services/ContextService';
 import { QuizService } from '@/Application/Services/QuizService';
 
 // Components
-import { RolesComponent } from '@/Infrastructure/Obsidian/Views/LiveSession/Components/RolesComponent';
-import { QuizComponent } from '@/Infrastructure/Obsidian/Views/LiveSession/Components/QuizComponent';
-import { TranscriptComponent } from '@/Infrastructure/Obsidian/Views/LiveSession/Components/TranscriptComponent';
-import { SessionControlsComponent } from '@/Infrastructure/Obsidian/Views/LiveSession/Components/SessionControlsComponent';
-import { VocabularyComponent } from '@/Infrastructure/Obsidian/Views/LiveSession/Components/VocabularyComponent';
-import { ChatInputComponent } from '@/Infrastructure/Obsidian/Views/LiveSession/Components/ChatInputComponent';
+import { RolesComponent } from '@/Infrastructure/Obsidian/Views/Chat/Components/RolesComponent';
+import { QuizComponent } from '@/Infrastructure/Obsidian/Views/Chat/Components/QuizComponent';
+import { TranscriptComponent } from '@/Infrastructure/Obsidian/Views/Chat/Components/TranscriptComponent';
+import { SessionControlsComponent } from '@/Infrastructure/Obsidian/Views/Chat/Components/SessionControlsComponent';
+import { VocabularyComponent } from '@/Infrastructure/Obsidian/Views/Chat/Components/VocabularyComponent';
+import { ChatInputComponent } from '@/Infrastructure/Obsidian/Views/Chat/Components/ChatInputComponent';
 
-export const LIVE_SESSION_VIEW_TYPE = 'gemini-live-session-view';
+export const VIEW_TYPE_CHAT = 'gemini-live-session-view';
 
-export class LiveSessionView extends ItemView {
+export class ChatView extends ItemView {
     // =========================================================================================
     // Properties
     // =========================================================================================
@@ -37,7 +37,8 @@ export class LiveSessionView extends ItemView {
     private apiKey: string = '';
 
 
-    private useSpokenChat: boolean = true; // Default to voice (Live)
+    private liveMode: 'gemini_live_voice_text' | 'gemini_live_voice_only' | 'local_voice_text' | 'local_voice_only' | 'text_only' = 'gemini_live_voice_text';
+    private liveUserMode: 'voice_text' | 'text_only' | 'voice_only' = 'voice_text';
 
     // --- Services ---
     private sessionLogger: SessionLogger;
@@ -52,19 +53,21 @@ export class LiveSessionView extends ItemView {
     private transcriptComponent: TranscriptComponent | null = null;
     private rolesComponent: RolesComponent | null = null;
     private quizComponent: QuizComponent | null = null;
-    private sessionControlsComponent: SessionControlsComponent | null = null;
     private chatInputComponent: ChatInputComponent | null = null;
+    private sessionControlsComponent: SessionControlsComponent | null = null;
 
     // --- UI Elements ---
     private contentContainer: HTMLElement | null = null;
     private configTabBtn: HTMLElement | null = null;
     private chatTabBtn: HTMLElement | null = null;
+    private quizTabBtn: HTMLElement | null = null; // New Quiz Tab Button
     private configContentDiv: HTMLElement | null = null;
     private chatContentDiv: HTMLElement | null = null;
+    private quizContentDiv: HTMLElement | null = null; // New Quiz Content Div
     private chatStopButton: HTMLElement | null = null;
 
     // --- State ---
-    private activeTab: 'config' | 'chat' = 'config';
+    private activeTab: 'config' | 'chat' | 'quiz' = 'config';
     private isSessionActive: boolean = false;
     private sessionStartTime: Date | null = null;
     private originalSidebarSize: number | null = null;
@@ -73,7 +76,9 @@ export class LiveSessionView extends ItemView {
     private selectedRolePrompt: string = '';
     private selectedRoleEvaluationPrompt: string = '';
     private selectedVoice: string = 'Aoede';
+    private selectedLocalVoice: string = ''; // New Local Voice
     private selectedTemperature: number = 1;
+    private selectedTopP: number = 0.95;
 
     // Data
     private availableRoles: Role[] = [];
@@ -101,7 +106,9 @@ export class LiveSessionView extends ItemView {
         this.plugin = plugin;
         this.apiKey = plugin.settings.geminiApiKey;
 
-        this.useSpokenChat = plugin.settings.geminiLiveMode ?? true;
+        this.liveMode = plugin.settings.geminiLiveMode ?? 'gemini_live_voice_text';
+        this.liveUserMode = plugin.settings.geminiLiveUserMode ?? 'voice_text';
+        this.selectedLocalVoice = plugin.settings.geminiLiveLocalVoice ?? '';
 
         // Load saved role if not already selected
         if (!this.selectedRolePrompt && plugin.settings.geminiLiveRole) {
@@ -126,15 +133,11 @@ export class LiveSessionView extends ItemView {
     }
 
     getViewType() {
-        return LIVE_SESSION_VIEW_TYPE;
+        return VIEW_TYPE_CHAT;
     }
 
     getDisplayText() {
-        return 'Live';
-    }
-
-    getIcon() {
-        return 'microphone';
+        return 'Chat Session';
     }
 
     async onOpen() {
@@ -143,8 +146,8 @@ export class LiveSessionView extends ItemView {
         // Refresh view when it becomes active or markdown context changes
         this.registerEvent(this.app.workspace.on('active-leaf-change', async (leaf) => {
             if (leaf) {
-                if (leaf.view.getViewType() === LIVE_SESSION_VIEW_TYPE && leaf.view === this) {
-                    await this.renderContent();
+                if (leaf.view.getViewType() === VIEW_TYPE_CHAT && leaf.view === this) {
+                    // await this.renderContent(); // This line is part of the old LiveSessionView logic
                 } else if (leaf.view instanceof MarkdownView) {
                     // Silent Queue Refresh
                     await this.quizService.buildQuizQueue();
@@ -213,6 +216,7 @@ export class LiveSessionView extends ItemView {
 
         // --- Content Containers ---
         this.configContentDiv = mainInterface.createDiv('tab-content');
+        this.quizContentDiv = mainInterface.createDiv('tab-content'); // Create Quiz Container
         this.chatContentDiv = mainInterface.createDiv('tab-content');
 
         // Apply initial active state
@@ -220,6 +224,7 @@ export class LiveSessionView extends ItemView {
 
         // --- Tab Contents ---
         this.renderConfigTab();
+        this.renderQuizTab(); // Render Quiz Tab
         this.renderChatTab();
     }
 
@@ -229,6 +234,10 @@ export class LiveSessionView extends ItemView {
         this.configTabBtn = tabContainer.createDiv('live-session-tab');
         this.configTabBtn.textContent = 'Config';
         this.configTabBtn.onclick = () => this.switchTab('config');
+
+        this.quizTabBtn = tabContainer.createDiv('live-session-tab'); // Quiz Tab Button
+        this.quizTabBtn.textContent = 'Quiz';
+        this.quizTabBtn.onclick = () => this.switchTab('quiz');
 
         this.chatTabBtn = tabContainer.createDiv('live-session-tab');
         this.chatTabBtn.textContent = 'Chat';
@@ -255,30 +264,39 @@ export class LiveSessionView extends ItemView {
                 this.selectedTemperature = val;
                 if (this.isSessionActive) await this.restartSession('temperature update');
             },
+            selectedTopP: this.selectedTopP,
+            onTopPChange: async (val) => {
+                this.selectedTopP = val;
+                if (this.isSessionActive) await this.restartSession('top_p update');
+            },
             onEvalHeaders: () => this.evaluateHeaders(),
             onGenerateMetadata: () => new GenerateHeaderMetadataCommand(this.app).execute(),
 
-            useSpokenChat: this.useSpokenChat,
-            onSpokenChatChange: async (val) => {
-                this.useSpokenChat = val;
+            liveMode: this.liveMode,
+            liveUserMode: this.liveUserMode,
+            onLiveModeChange: async (val) => {
+                this.liveMode = val;
                 this.plugin.settings.geminiLiveMode = val;
                 await this.plugin.saveSettings();
-                showMessage(`Modo Live (Voz): ${val ? 'ON' : 'OFF'}`);
+                await this.restartSession('AI Mode Update');
+            },
+            onLiveUserModeChange: async (val) => {
+                this.liveUserMode = val;
+                this.plugin.settings.geminiLiveUserMode = val;
+                await this.plugin.saveSettings();
+                this.renderChatTab(); // Update input visibility live
+            },
+
+            selectedLocalVoice: this.selectedLocalVoice,
+            onLocalVoiceChange: async (val) => {
+                this.selectedLocalVoice = val;
+                this.plugin.settings.geminiLiveLocalVoice = val;
+                await this.plugin.saveSettings();
+                // No restart needed for TTS voice change usually as it applies to next utterance
             }
         });
 
-        // 2. Quiz Component
-        this.quizComponent = new QuizComponent(this.configContentDiv);
-        this.quizComponent.render({
-            quizService: this.quizService,
-            onStarLevelChange: async (val) => this.handleStarLevelChange(val),
-            onFilterChange: async (val) => this.handleFilterChange(val),
-            onAskNext: () => this.handleAskNext(),
-            onTopicSelect: (i) => this.onQuizSelect(i),
-            onRefresh: () => this.handleRefresh()
-        });
-
-        // 3. Vocabulary Component
+        // 2. Vocabulary Component (Moved here or keep in config - assuming keep for now)
         const vocabComponent = new VocabularyComponent(this.configContentDiv);
         const currentRole = this.availableRoles.find(r => r.prompt === this.selectedRolePrompt);
         if (currentRole && currentRole.vocabularyList) {
@@ -288,23 +306,31 @@ export class LiveSessionView extends ItemView {
                 (item) => this.toggleVocabularyItem(item)
             );
         }
+    }
 
-        // 4. Session Controls
-        const controlsContainer = this.configContentDiv.createDiv();
-        controlsContainer.style.marginTop = '20px';
-        controlsContainer.style.marginBottom = '20px';
-        controlsContainer.style.display = 'flex';
-        controlsContainer.style.justifyContent = 'center';
+    private renderQuizTab() {
+        if (!this.quizContentDiv) return;
+        this.quizContentDiv.empty();
+        this.quizContentDiv.style.height = '100%'; // Ensure full height for embedded controls
 
-        this.sessionControlsComponent = new SessionControlsComponent(
-            controlsContainer,
-            () => this.handleStartStop(),
-        );
-        this.sessionControlsComponent.updateStatus(this.isSessionActive, '', '');
+        // Quiz Component
+        this.quizComponent = new QuizComponent(this.quizContentDiv);
+        this.quizComponent.render({
+            quizService: this.quizService,
+            onStarLevelChange: async (val) => this.handleStarLevelChange(val),
+            onFilterChange: async (val) => this.handleFilterChange(val),
+            onAskNext: () => this.handleStartStop(), // Reuse start/stop logic which is now the primary trigger
+            onTopicSelect: (i) => this.onQuizSelect(i),
+            onRefresh: () => this.handleRefresh()
+        });
+
+        // Initial status update
+        this.quizComponent.updateSessionStatus(this.isSessionActive, '', '');
     }
 
     private renderChatTab() {
         if (!this.chatContentDiv) return;
+        this.chatContentDiv.empty();
 
         // Toolbar
         const chatToolbar = this.chatContentDiv.createDiv('chat-toolbar');
@@ -321,23 +347,26 @@ export class LiveSessionView extends ItemView {
         // Chat Input
         const chatContainer = this.chatContentDiv.createDiv();
         this.chatInputComponent = new ChatInputComponent(chatContainer, this.apiKey, (text) => this.handleUserText(text));
-        this.chatInputComponent.render(this.isSessionActive);
+        this.chatInputComponent.render(this.isSessionActive, this.liveUserMode);
     }
 
-    private switchTab(tab: 'config' | 'chat') {
+    private switchTab(tab: 'config' | 'chat' | 'quiz') {
         this.activeTab = tab;
         this.updateTabVisibility();
     }
 
     private updateTabVisibility() {
-        if (this.configTabBtn && this.chatTabBtn) {
+        if (this.configTabBtn && this.chatTabBtn && this.quizTabBtn) {
             this.configTabBtn.classList.toggle('active', this.activeTab === 'config');
             this.chatTabBtn.classList.toggle('active', this.activeTab === 'chat');
+            this.quizTabBtn.classList.toggle('active', this.activeTab === 'quiz');
+
         }
 
-        if (this.configContentDiv && this.chatContentDiv) {
+        if (this.configContentDiv && this.chatContentDiv && this.quizContentDiv) {
             this.configContentDiv.classList.toggle('active', this.activeTab === 'config');
             this.chatContentDiv.classList.toggle('active', this.activeTab === 'chat');
+            this.quizContentDiv.classList.toggle('active', this.activeTab === 'quiz');
         }
     }
 
@@ -382,17 +411,17 @@ export class LiveSessionView extends ItemView {
         this.selectedRoleEvaluationPrompt = role.evaluationPrompt || '';
         this.selectedVoice = role.liveVoice || 'Aoede';
         this.selectedTemperature = role.liveTemperature !== undefined ? role.liveTemperature : 1;
+        // If role has topP, use it, otherwise default. Role interface might not have it yet.
+        this.selectedTopP = 0.95;
     }
 
     private async handleStartStop() {
         if (this.isSessionActive) {
             await this.stopSession();
         } else {
-            if (this.quizService.getCurrentItem()) {
-                await this.handleAskNext('', true);
-            } else {
-                await this.startSession();
-            }
+            // Always use handleAskNext checking logic to ensure we validate topics/queue
+            // and show appropriate messages if empty.
+            await this.handleAskNext('', true);
         }
     }
 
@@ -419,21 +448,22 @@ export class LiveSessionView extends ItemView {
             this.adapter = null;
         }
 
-        console.log(`LiveSessionView: Instantiating adapter (Voice: ${this.useSpokenChat})...`);
+        console.log(`LiveSessionView: Instantiating adapter (Mode: ${this.liveMode})...`);
 
-        if (this.useSpokenChat) {
-            this.adapter = new GoogleGeminiLiveAdapter(
-                this.apiKey,
-                (text) => this.onAiAudioData(text),
-                async (score) => await this.onScoreUpdate(score),
-                (text) => this.onUserAudioData(text)
-            );
-        } else {
+        if (this.liveMode === 'text_only' || this.liveMode === 'local_voice_text' || this.liveMode === 'local_voice_only') {
             this.adapter = new GoogleGeminiChatAdapter(
                 this.apiKey,
                 (text) => this.onAiAudioData(text), // Reuse text handler (it appends to transcript)
                 async (score) => await this.onScoreUpdate(score),
                 (text) => this.onUserAudioData(text) // Chat adapter might not call this often, but needed for type
+            );
+        } else {
+            // gemini_live_voice_text or gemini_live_voice_only -> Use Live Adapter
+            this.adapter = new GoogleGeminiLiveAdapter(
+                this.apiKey,
+                (text) => this.onAiAudioData(text),
+                async (score) => await this.onScoreUpdate(score),
+                (text) => this.onUserAudioData(text)
             );
         }
 
@@ -442,25 +472,28 @@ export class LiveSessionView extends ItemView {
         console.log('LiveSessionView: Audio resumed.');
 
         this.sessionControlsComponent?.updateStatus(false, 'Connecting...', 'var(--text-normal)');
+        this.quizComponent?.updateSessionStatus(false, 'Connecting...', 'var(--text-normal)'); // Update Quiz controls too
         this.transcriptComponent?.startSession();
 
         const currentRole = this.availableRoles.find(r => r.prompt === this.selectedRolePrompt);
         const enableScoreTracking = currentRole?.trackLevelAnswer || false;
         const systemInstruction = this.selectedRolePrompt;
 
-        const success = await this.adapter.connect(systemInstruction, enableScoreTracking, this.selectedVoice, this.selectedTemperature);
+        const success = await this.adapter.connect(systemInstruction, enableScoreTracking, this.selectedVoice, this.selectedTemperature, this.selectedTopP);
 
         if (success) {
             this.isSessionActive = true;
             this.sessionStartTime = new Date();
             await this.sessionLogger.logStart(this.sessionStartTime);
             this.sessionControlsComponent?.updateStatus(true, '', '');
-            this.chatInputComponent?.render(true);
+            this.quizComponent?.updateSessionStatus(true, '', '');
+            this.chatInputComponent?.render(true, this.liveUserMode);
             this.updateChatStopButtonVisibility();
             showMessage('Live Connected');
             if (enableScoreTracking) showMessage('Answer scoring enabled.');
         } else {
             this.sessionControlsComponent?.updateStatus(false, 'Connection Failed', 'var(--text-error)');
+            this.quizComponent?.updateSessionStatus(false, 'Connection Failed', 'var(--text-error)');
             this.adapter = null;
         }
     }
@@ -479,15 +512,22 @@ export class LiveSessionView extends ItemView {
         }
         this.isSessionActive = false;
         this.sessionControlsComponent?.updateStatus(false, 'Session Ended', 'var(--text-muted)');
-        this.chatInputComponent?.render(false);
+        this.quizComponent?.updateSessionStatus(false, 'Session Ended', 'var(--text-muted)');
+        this.chatInputComponent?.render(false, this.liveUserMode);
         this.updateChatStopButtonVisibility();
     }
 
     // --- Audio Data Callbacks ---
 
     private onAiAudioData(text: string) {
-        this.transcriptComponent?.appendAiText(text);
+        if (this.liveMode !== 'gemini_live_voice_only' && this.liveMode !== 'local_voice_only') {
+            this.transcriptComponent?.appendAiText(text);
+        }
         this.aiTranscriptBuffer += text;
+
+        if (this.liveMode === 'local_voice_text' || this.liveMode === 'local_voice_only') {
+            this.speakText(text);
+        }
 
         let processBuffer = true;
         while (processBuffer) {
@@ -501,6 +541,26 @@ export class LiveSessionView extends ItemView {
                 processBuffer = false;
             }
         }
+    }
+
+    private speakText(text: string) {
+        if (!text) return;
+        // Simple queueing by default in browser, generally works fine for sentences.
+        // If we want to interrupt, we'd use cancel().
+        // For chat, we generally want to read what comes in.
+        const utterance = new SpeechSynthesisUtterance(text);
+
+        // Apply selected local voice
+        if (this.selectedLocalVoice) {
+            const voices = window.speechSynthesis.getVoices();
+            const voice = voices.find(v => v.voiceURI === this.selectedLocalVoice);
+            if (voice) {
+                utterance.voice = voice;
+                utterance.lang = voice.lang; // Good practice to match lang
+            }
+        }
+
+        window.speechSynthesis.speak(utterance);
     }
 
     private onUserAudioData(text: string) {
@@ -527,6 +587,10 @@ export class LiveSessionView extends ItemView {
         showMessage(`💡 Nota: ${score}`);
         this.transcriptComponent?.appendScore(score);
         await this.handleScoreInMetadata(score);
+
+        // Automatically send "continue" to keep the conversation flowing
+        // We do NOT append this to the user transcript to keep it internal/hidden
+        this.adapter?.sendText('continue');
     }
 
     // --- Quiz / Header Logic ---
@@ -536,7 +600,9 @@ export class LiveSessionView extends ItemView {
             if (!this.isSessionActive) {
                 showMessage('Starting session...');
                 await this.startSession();
-                if (!this.isSessionActive) return;
+                if (!this.isSessionActive) {
+                    return;
+                }
             }
         }
 
@@ -544,13 +610,19 @@ export class LiveSessionView extends ItemView {
             const success = await this.quizService.buildQuizQueue();
             if (!success) {
                 this.quizComponent?.setStatusText('No hay temas para preguntar.');
+                console.log("ChatView: Quiz queue empty and failed to build");
+                showMessage("No hay temas para preguntar. Selecciona una nota con encabezados.");
                 return;
             }
             this.quizComponent?.refreshList(this.quizService, (i) => this.onQuizSelect(i));
         }
 
         const item = this.quizService.getCurrentItem();
-        if (!item) return;
+        if (!item) {
+            console.log("ChatView: No current item found");
+            showMessage("No hay ningún tema seleccionado.");
+            return;
+        }
 
         this.switchTab('chat');
         this.chatInputComponent?.focus();
@@ -562,7 +634,9 @@ export class LiveSessionView extends ItemView {
         this.transcriptComponent?.appendTopic(item.heading);
 
         let prompt = await this.quizService.generateQuestionPrompt();
-        if (!prompt) return;
+        if (!prompt) {
+            return;
+        }
 
         // Inject Vocabulary
         const vocabContext = await this.contextService.getVocabularyContent(this.selectedVocabularyItems);
