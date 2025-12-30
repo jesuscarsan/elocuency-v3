@@ -4,7 +4,11 @@ export class InputModal extends Modal {
     private result!: string;
     private onSubmit: (result: string) => void;
 
-    constructor(app: App, onSubmit: (result: string) => void) {
+    constructor(
+        app: App,
+        private readonly config: { title: string; label: string; placeholder?: string; submitText?: string },
+        onSubmit: (result: string) => void
+    ) {
         super(app);
         this.onSubmit = onSubmit;
     }
@@ -12,20 +16,21 @@ export class InputModal extends Modal {
     onOpen() {
         const { contentEl } = this;
 
-        contentEl.createEl('h2', { text: 'Enter Spotify Authorization Code' });
+        contentEl.createEl('h2', { text: this.config.title });
 
         new Setting(contentEl)
-            .setName('Code')
-            .setDesc('Paste the code from the URL here')
-            .addText((text) =>
+            .setName(this.config.label)
+            .addText((text) => {
+                if (this.config.placeholder) text.setPlaceholder(this.config.placeholder);
                 text.onChange((value) => {
                     this.result = value;
-                }));
+                });
+            });
 
         new Setting(contentEl)
             .addButton((btn) =>
                 btn
-                    .setButtonText('Submit')
+                    .setButtonText(this.config.submitText || 'Submit')
                     .setCta()
                     .onClick(() => {
                         this.close();

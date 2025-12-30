@@ -7,9 +7,10 @@ import {
     splitFrontmatter,
     formatFrontmatterBlock
 } from '@/Infrastructure/Obsidian/Utils/Frontmatter';
+import { FrontmatterKeys } from '@/Domain/Constants/FrontmatterRegistry';
 import type { GeocodingPort, GeocodingResponse } from '@/Domain/Ports/GeocodingPort';
 import type { LlmPort } from '@/Domain/Ports/LlmPort';
-import { executeInEditMode } from '@/Infrastructure/Obsidian/Utils/ViewMode';
+import { executeInEditMode, getActiveMarkdownView } from '@/Infrastructure/Obsidian/Utils/ViewMode';
 
 export class ApplyPlaceTypeCommand extends ApplyGeocoderCommand {
     constructor(
@@ -20,10 +21,10 @@ export class ApplyPlaceTypeCommand extends ApplyGeocoderCommand {
         super(geocoder, llm, obsidian);
     }
 
-    async execute() {
+    async execute(file?: TFile) {
         // Redefine execute to orchestrate the new flow
         // 1. Get Place Name
-        const view = this.obsidian.workspace.getActiveViewOfType(MarkdownView);
+        const view = getActiveMarkdownView(this.obsidian, file);
         if (!view?.file) {
             showMessage('Open a markdown note to apply place type.');
             return;
@@ -34,9 +35,31 @@ export class ApplyPlaceTypeCommand extends ApplyGeocoderCommand {
             // Additional safety check
             if (!file) return;
 
-            const placeName = file.basename;
+            const content = await this.obsidian.vault.read(file);
+            const split = splitFrontmatter(content);
+            const currentFrontmatter = parseFrontmatter(split.frontmatterText);
 
-            showMessage(`Analyzing place type for ${placeName}...`);
+            // Check for existing Place ID
+            const existingIdRaw = currentFrontmatter?.[FrontmatterKeys.LugarId];
+            let nameToClassify = file.basename;
+
+            if (typeof existingIdRaw === 'string' && existingIdRaw.startsWith('google-maps-id:')) {
+                const placeId = existingIdRaw.replace('google-maps-id:', '');
+                showMessage(`Found existing ID: ${placeId}. Verifying...`);
+
+                // Fetch details to get the REAL name for classification
+                const details = await this.geocoder.requestPlaceDetails({
+                    placeName: file.basename,
+                    placeId: placeId
+                });
+
+                if (details?.lugar) {
+                    nameToClassify = details.lugar;
+                    showMessage(`Classifying as "${nameToClassify}"...`);
+                }
+            }
+
+            showMessage(`Analyzing place type for ${nameToClassify}...`);
 
             // 2. AI Classification + Geocoding Preview
             // We need geocoding details to make a good decision (e.g. is it a Restaurant in Madrid?)
@@ -44,7 +67,7 @@ export class ApplyPlaceTypeCommand extends ApplyGeocoderCommand {
             // Or better: ask for classification specifically.
 
             // Let's call the classification first.
-            const classification = await this.classifyPlace(placeName);
+            const classification = await this.classifyPlace(nameToClassify);
 
             if (!classification) {
                 showMessage('Could not classify place.');
@@ -73,7 +96,7 @@ export class ApplyPlaceTypeCommand extends ApplyGeocoderCommand {
             // effectively calling super.execute() but we are already in execute()
             // so we call the logic directly or call super.execute() 
             // calling super.execute() will re-read the file, which is fine.
-            await super.execute();
+            await super.execute(file);
         });
     }
 

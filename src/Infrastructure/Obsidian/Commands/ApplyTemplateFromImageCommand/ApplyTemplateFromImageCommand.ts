@@ -2,6 +2,7 @@ import {
     App as ObsidianApp,
     MarkdownView,
     normalizePath,
+    TFile,
 } from 'obsidian';
 import { showMessage } from '@/Infrastructure/Obsidian/Utils/Messages';
 import {
@@ -23,7 +24,7 @@ import { mergeNotes } from '@/Infrastructure/Obsidian/Utils/Notes';
 import { PersonasNoteOrganizer } from '@/Application/Services/PersonasNoteOrganizer';
 import { GenericFuzzySuggestModal } from '@/Infrastructure/Obsidian/Views/Modals/GenericFuzzySuggestModal';
 import { ObsidianNoteManager } from '@/Infrastructure/Adapters/ObsidianNoteManager';
-import { executeInEditMode } from '@/Infrastructure/Obsidian/Utils/ViewMode';
+import { executeInEditMode, getActiveMarkdownView } from '@/Infrastructure/Obsidian/Utils/ViewMode';
 import { TemplateContext } from '@/Infrastructure/Obsidian/Utils/TemplateContext';
 import { GoogleGeminiImagesAdapter, ImageContent } from '@/Infrastructure/Adapters/GoogleGeminiAdapter/GoogleGeminiImagesAdapter';
 import { ImageSourceModal } from '@/Infrastructure/Obsidian/Views/Modals/ImageSourceModal';
@@ -38,8 +39,8 @@ export class ApplyTemplateFromImageCommand {
         private readonly settings: UnresolvedLinkGeneratorSettings,
     ) { }
 
-    async execute() {
-        const view = this.obsidian.workspace.getActiveViewOfType(MarkdownView);
+    async execute(targetFile?: TFile) {
+        const view = getActiveMarkdownView(this.obsidian, targetFile);
         // Note: We might allow running without active view if we create a new file,
         // but ApplyTemplate logic heavily relies on merging with active note.
         // If user wants to create NEW note, they should probably open a new note first?

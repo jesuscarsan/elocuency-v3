@@ -12,5 +12,6 @@ export * from './GenerateHeaderMetadataCommand/GenerateHeaderMetadataCommand';
 export * from './GenerateMissingNotesCommand/GenerateMissingNotesCommand';
 export * from './ReallocateNoteCommand/ReallocateNoteCommand';
 export * from './SearchSpotifyArtistCommand/SearchSpotifyArtistCommand';
+export * from './AddPlaceIdFromUrlCommand/AddPlaceIdFromUrlCommand';
 export * from './UpdatePlaceIdCommand/UpdatePlaceIdCommand';
 export * from './AnalyzeAndLinkEntitiesCommand/AnalyzeAndLinkEntitiesCommand';

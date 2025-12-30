@@ -60,19 +60,52 @@ export class GoogleMapsAdapter implements GeocodingPort {
     }
 
     const trimmedName = params.placeName.trim();
-    if (!trimmedName) {
+    if (!trimmedName && !params.placeId) {
       console.warn(
-        `${LOG_PREFIX} Google Maps request omitido: el nombre del lugar está vacío.`,
+        `${LOG_PREFIX} Google Maps request omitido: el nombre del lugar y el ID están vacíos.`,
       );
       return EMPTY_PLACE_DETAILS;
     }
 
     try {
-      const query = new URLSearchParams({
-        address: trimmedName,
-        key: this.apiKey,
-        language: 'es',
-      });
+      let placeIdToUse = params.placeId;
+
+      // Handle Hex/CID format (0x...:0x...)
+      if (placeIdToUse && /^0x[a-fA-F0-9]+:0x[a-fA-F0-9]+$/.test(placeIdToUse)) {
+        console.info(`${LOG_PREFIX} Detectado ID hexadecimal (CID). Resolviendo a Place ID estándar...`);
+        const resolvedPlaceId = await this.resolveCidToPlaceId(placeIdToUse);
+        if (resolvedPlaceId) {
+          placeIdToUse = resolvedPlaceId;
+          console.info(`${LOG_PREFIX} CID resuelto a Place ID: ${placeIdToUse}`);
+        } else {
+          console.warn(`${LOG_PREFIX} No se pudo resolver el CID a Place ID.`);
+          // FALLBACK: If we have a name, use it invalidating the Hex ID to avoid 400
+          if (trimmedName) {
+            console.info(`${LOG_PREFIX} Usando nombre "${trimmedName}" como fallback.`);
+            placeIdToUse = undefined;
+          } else {
+            // If we don't have a name and resolution failed, we can't proceed with this ID.
+            showMessage('No se pudo resolver el ID de Google Maps y no hay nombre asociado.');
+            return null;
+          }
+        }
+      }
+
+      let query: URLSearchParams;
+
+      if (placeIdToUse) {
+        query = new URLSearchParams({
+          place_id: placeIdToUse,
+          key: this.apiKey,
+          language: 'es',
+        });
+      } else {
+        query = new URLSearchParams({
+          address: trimmedName,
+          key: this.apiKey,
+          language: 'es',
+        });
+      }
 
       const response = await requestUrl({
         url: `https://maps.googleapis.com/maps/api/geocode/json?${query.toString()}`,
@@ -103,6 +136,13 @@ export class GoogleMapsAdapter implements GeocodingPort {
             `Google Maps no encontró resultados para "${trimmedName}".`,
           );
           return { ...EMPTY_PLACE_DETAILS };
+        }
+
+        if (status === 'INVALID_REQUEST') {
+          // Often caused by malformed place_id
+          console.error(`${LOG_PREFIX} Google Maps INVALID_REQUEST. PlaceID: ${placeIdToUse}, Name: ${trimmedName}`);
+          showMessage('Error en la petición a Google Maps (IDs inválidos).');
+          return null;
         }
 
         const errorMessage =
@@ -218,6 +258,47 @@ export class GoogleMapsAdapter implements GeocodingPort {
       showMessage(
         'Google Maps no respondió. Revisa la consola para más detalles.',
       );
+      return null;
+    }
+  }
+
+  private async resolveCidToPlaceId(hexCid: string): Promise<string | null> {
+    try {
+      // Format: 0x<feature_id_ignored>:0x<cid>
+      const parts = hexCid.split(':');
+      if (parts.length !== 2) return null;
+
+      const cidHex = parts[1]; // 0x...
+      // Convert to decimal. 
+      // Note: BigInt is needed because CID is 64-bit unsigned, typically large.
+      const cidDecimal = BigInt(cidHex).toString();
+
+      const query = new URLSearchParams({
+        input: `cid:${cidDecimal}`,
+        inputtype: 'textquery',
+        fields: 'place_id',
+        key: this.apiKey
+      });
+
+      // Use Places API Find Place from Text
+      const url = `https://maps.googleapis.com/maps/api/place/findplacefromtext/json?${query.toString()}`;
+
+      const response = await requestUrl({
+        url: url,
+        method: 'GET'
+      });
+
+      const data = (response.json ?? JSON.parse(response.text));
+
+      if (data.status === 'OK' && Array.isArray(data.candidates) && data.candidates.length > 0) {
+        return data.candidates[0].place_id;
+      }
+
+      console.warn(`${LOG_PREFIX} resolveCidToPlaceId failed: ${data.status}`, data);
+      return null;
+
+    } catch (e) {
+      console.error(`${LOG_PREFIX} resolveCidToPlaceId error`, e);
       return null;
     }
   }

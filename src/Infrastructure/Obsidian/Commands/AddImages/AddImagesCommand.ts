@@ -1,9 +1,9 @@
-import { App as ObsidianApp, MarkdownView, Notice } from 'obsidian';
+import { App as ObsidianApp, MarkdownView, Notice, TFile } from 'obsidian';
 import type { ImageSearchPort } from '@/Domain/Ports/ImageSearchPort';
 import { FrontmatterKeys } from '@/Domain/Constants/FrontmatterRegistry';
 import { showMessage } from '@/Infrastructure/Obsidian/Utils/Messages';
 import { formatFrontmatterBlock, parseFrontmatter, splitFrontmatter } from '@/Infrastructure/Obsidian/Utils/Frontmatter';
-import { executeInEditMode } from '../../Utils/ViewMode';
+import { executeInEditMode, getActiveMarkdownView } from '../../Utils/ViewMode';
 
 export class AddImagesCommand {
     constructor(
@@ -11,8 +11,8 @@ export class AddImagesCommand {
         private readonly imageSearch: ImageSearchPort,
     ) { }
 
-    async execute() {
-        const view = this.app.workspace.getActiveViewOfType(MarkdownView);
+    async execute(targetFile?: TFile) {
+        const view = getActiveMarkdownView(this.app, targetFile);
         if (!view?.file) {
             showMessage('Open a markdown note to add images.');
             return;

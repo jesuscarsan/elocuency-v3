@@ -19,7 +19,8 @@ import {
   SearchSpotifyArtistCommand,
   CreateNoteFromImagesCommand,
   ApplyTemplateFromImageCommand,
-  GenerateHeaderMetadataCommand
+  GenerateHeaderMetadataCommand,
+  AddPlaceIdFromUrlCommand
 } from '@/Infrastructure/Obsidian/Commands';
 import { GoogleGeminiAdapter } from '../Adapters/GoogleGeminiAdapter/GoogleGeminiAdapter';
 import { GoogleMapsAdapter } from '../Adapters/GoogleMapsAdapter/GoogleMapsAdapter';
@@ -141,19 +142,8 @@ export default class ObsidianExtension extends Plugin {
 
     this.noteCommands = [
       {
-        id: 'GenerateMissingNotesCommand',
-        name: 'Create notes for unresolved links',
-        callback: async () => {
-          const generateMissingNotesCommand = new GenerateMissingNotesCommand(
-            this.app,
-            this.settings,
-          );
-          await generateMissingNotesCommand.execute();
-        },
-      },
-      {
         id: 'ApplyTemplateCommand',
-        name: 'Apply template',
+        name: 'Nota: Aplica plantilla',
         callback: (file?: TFile) => {
           const applyTemplateCommand = new ApplyTemplateCommand(
             this.llm,
@@ -166,41 +156,18 @@ export default class ObsidianExtension extends Plugin {
       },
       {
         id: 'ApplyStreamBriefCommand',
-        name: 'Apply stream brief',
-        callback: () => {
+        name: 'Nota: Añade resumen',
+        callback: (file?: TFile) => {
           const applyStreamBriefCommand = new ApplyStreamBriefCommand(
             this.llm,
             this.app,
           );
-          applyStreamBriefCommand.execute();
-        },
-      },
-      {
-        id: 'ApplyGeocoderCommand',
-        name: 'Apply Geocoder',
-        callback: () => {
-          const applyGeocoderCommand = new ApplyGeocoderCommand(
-            geocoder,
-            this.llm,
-            this.app,
-          );
-          applyGeocoderCommand.execute();
-        },
-      },
-      {
-        id: 'UpdatePlaceIdCommand',
-        name: 'Update Place ID',
-        callback: () => {
-          const updatePlaceIdCommand = new UpdatePlaceIdCommand(
-            geocoder,
-            this.app,
-          );
-          updatePlaceIdCommand.execute();
+          applyStreamBriefCommand.execute(file);
         },
       },
       {
         id: 'EnhanceNoteCommand',
-        name: 'Enhance note (Template + AI)',
+        name: 'Nota: Enriquece con plantilla y IA (ELIMINAR)',
         callback: (file?: TFile) => {
           const activeFile = file || this.app.workspace.getActiveFile();
           if (activeFile) {
@@ -210,42 +177,113 @@ export default class ObsidianExtension extends Plugin {
       },
       {
         id: 'EnhanceByAiCommand',
-        name: 'Enhance with AI',
+        name: 'Nota: Enriquece con IA',
         callback: (file?: TFile) => {
           new EnhanceByAiCommand(this.app, this.settings, this.llm).execute(file);
         },
       },
       {
-        id: 'ApplyPlaceTypeCommand',
-        name: 'Indicate Place Type',
-        callback: () => {
-          new ApplyPlaceTypeCommand(geocoder, this.llm, this.app).execute();
-        },
-      },
-      {
         id: 'AddImagesCommand',
-        name: 'Add Images',
-        callback: () => {
-          new AddImagesCommand(this.app, imageSearch).execute();
+        name: 'Nota: Añade imágenes',
+        callback: (file?: TFile) => {
+          new AddImagesCommand(this.app, imageSearch).execute(file);
         },
       },
       {
-        id: 'CreateReciprocityNotesCommand',
-        name: 'Create Reciprocity Notes',
-        callback: () => {
-          new CreateReciprocityNotesCommand(this.app).execute();
+        id: 'CreateNoteFromImagesCommand',
+        name: 'Nota: Crea nota a partir de imágenes (Gemini)',
+        callback: (file?: TFile) => {
+          new CreateNoteFromImagesCommand(this.app, geminiImages).execute(file);
+        }
+      },
+      {
+        id: 'ApplyTemplateFromImageCommand',
+        name: 'Nota: Aplica plantilla a partir de imágenes (Gemini)',
+        callback: (file?: TFile) => {
+          new ApplyTemplateFromImageCommand(geminiImages, this.app, this.settings).execute(file);
+        }
+      },
+      {
+        id: 'generate-header-metadata',
+        name: 'Nota: Genera metadatos de encabezado',
+        callback: (file?: TFile) => {
+          new GenerateHeaderMetadataCommand(this.app).execute(file);
         }
       },
       {
         id: 'ReallocateNoteCommand',
-        name: 'Reallocate Note',
+        name: 'Nota: Reubica',
         callback: (file?: TFile) => {
           new ReallocateNoteCommand(this.app).execute(file);
         }
       },
+
+      {
+        id: 'GenerateMissingNotesCommand',
+        name: 'Links: Create notas para links sin notas',
+        callback: async (file?: TFile) => {
+          const generateMissingNotesCommand = new GenerateMissingNotesCommand(
+            this.app,
+            this.settings,
+          );
+          await generateMissingNotesCommand.execute(file);
+        },
+      },
+      {
+        id: 'CreateReciprocityNotesCommand',
+        name: 'Links: Crea links reciprocos',
+        callback: (file?: TFile) => {
+          new CreateReciprocityNotesCommand(this.app).execute(file);
+        }
+      },
+      {
+        id: 'AnalyzeAndLinkEntitiesCommand',
+        name: 'Links: Analiza y enlaza entidades',
+        callback: (file?: TFile) => {
+          new AnalyzeAndLinkEntitiesCommand(this.app, this.llm).execute(file);
+        }
+      },
+
+      {
+        id: 'ApplyGeocoderCommand',
+        name: 'Lugares: Enriquece en base a Lugar Id o texto',
+        callback: (file?: TFile) => {
+          const applyGeocoderCommand = new ApplyGeocoderCommand(
+            geocoder,
+            this.llm,
+            this.app,
+          );
+          applyGeocoderCommand.execute(file);
+        },
+      },
+      {
+        id: 'UpdatePlaceIdCommand',
+        name: 'Lugares: Actualiza Place Id',
+        callback: (file?: TFile) => {
+          const updatePlaceIdCommand = new UpdatePlaceIdCommand(
+            geocoder,
+            this.app,
+          );
+          updatePlaceIdCommand.execute(file);
+        },
+      },
+      {
+        id: 'AddPlaceIdFromUrlCommand',
+        name: 'Lugares: Añadir Place Id desde URL',
+        callback: (file?: TFile) => {
+          new AddPlaceIdFromUrlCommand(geocoder, this.app).execute(file);
+        },
+      },
+      {
+        id: 'ApplyPlaceTypeCommand',
+        name: 'Lugares: Indica tipo de lugar',
+        callback: (file?: TFile) => {
+          new ApplyPlaceTypeCommand(geocoder, this.llm, this.app).execute(file);
+        },
+      },
       {
         id: 'SearchSpotifyTrack',
-        name: 'Search Spotify Track',
+        name: 'Spotify: Busca canción',
         callback: () => {
           // Ensure adapter has latest credentials
           this.spotifyAdapter.updateCredentials(this.settings.spotifyClientId, this.settings.spotifyAccessToken);
@@ -260,7 +298,7 @@ export default class ObsidianExtension extends Plugin {
       },
       {
         id: 'ImportPlaylistTracks',
-        name: 'Import Playlist Tracks',
+        name: 'Spotify: Importa canciones de playlist',
         callback: async () => {
           this.spotifyAdapter.updateCredentials(this.settings.spotifyClientId, this.settings.spotifyAccessToken);
 
@@ -274,7 +312,7 @@ export default class ObsidianExtension extends Plugin {
       },
       {
         id: 'SearchSpotifyArtistCommand',
-        name: 'Search Spotify Artist',
+        name: 'Spotify: Busca artista',
         callback: () => {
           // Ensure adapter has latest credentials
           this.spotifyAdapter.updateCredentials(this.settings.spotifyClientId, this.settings.spotifyAccessToken);
@@ -286,41 +324,13 @@ export default class ObsidianExtension extends Plugin {
           ).checkCallback(false);
         }
       },
-      {
-        id: 'CreateNoteFromImagesCommand',
-        name: 'Create Note From Images (Gemini)',
-        callback: () => {
-          new CreateNoteFromImagesCommand(this.app, geminiImages).execute();
-        }
-      },
-      {
-        id: 'AnalyzeAndLinkEntitiesCommand',
-        name: 'Analyze and Link Entities',
-        callback: (file?: TFile) => {
-          new AnalyzeAndLinkEntitiesCommand(this.app, this.llm).execute(file);
-        }
-      },
-      {
-        id: 'ApplyTemplateFromImageCommand',
-        name: 'Apply Template from Image (Gemini)',
-        callback: () => {
-          new ApplyTemplateFromImageCommand(geminiImages, this.app, this.settings).execute();
-        }
-      },
-      {
-        id: 'open-chat-session',
-        name: 'Open Chat Session',
-        callback: () => {
-          this.activateView();
-        }
-      },
-      {
-        id: 'generate-header-metadata',
-        name: 'Generate Header Metadata',
-        callback: (file?: TFile) => {
-          new GenerateHeaderMetadataCommand(this.app).execute(file);
-        }
-      }
+      // {
+      //   id: 'open-chat-session',
+      //   name: 'Chat: Abre sesión',
+      //   callback: () => {
+      //     this.activateView();
+      //   }
+      // },
     ];
 
     // Register all commands

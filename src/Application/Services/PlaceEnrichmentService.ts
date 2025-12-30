@@ -17,12 +17,13 @@ export class PlaceEnrichmentService {
         private llm: LlmPort
     ) { }
 
-    async enrichPlace(placeName: string, promptPlaceDetails?: GeocodingResponse): Promise<{ refinedDetails: GeocodingResponse, metadata: PlaceMetadata, summary: string, tags: string[] } | null> {
+    async enrichPlace(placeName: string, promptPlaceDetails?: GeocodingResponse, placeId?: string): Promise<{ refinedDetails: GeocodingResponse, metadata: PlaceMetadata, summary: string, tags: string[] } | null> {
         let placeDetails: GeocodingResponse | null | undefined = promptPlaceDetails;
 
         if (!placeDetails) {
             placeDetails = await this.geocoder.requestPlaceDetails({
                 placeName: placeName.trim(),
+                placeId: placeId
             });
         }
 

@@ -1,5 +1,5 @@
 import { App, TFile, MarkdownView } from 'obsidian';
-import { executeInEditMode } from '@/Infrastructure/Obsidian/Utils/ViewMode';
+import { executeInEditMode, getActiveMarkdownView } from '@/Infrastructure/Obsidian/Utils/ViewMode';
 import { FrontmatterRegistry } from '@/Domain/Constants/FrontmatterRegistry';
 import { GenericFuzzySuggestModal } from '@/Infrastructure/Obsidian/Views/Modals/GenericFuzzySuggestModal';
 import { showMessage } from '@/Infrastructure/Obsidian/Utils/Messages';
@@ -13,8 +13,8 @@ interface PersonMatch {
 export class CreateReciprocityNotesCommand {
     constructor(private readonly app: App) { }
 
-    async execute(): Promise<void> {
-        const view = this.app.workspace.getActiveViewOfType(MarkdownView);
+    async execute(file?: TFile): Promise<void> {
+        const view = getActiveMarkdownView(this.app, file);
         if (!view?.file) {
             showMessage('No active file');
             return;

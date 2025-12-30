@@ -1,5 +1,5 @@
 
-import { App as ObsidianApp, MarkdownView, Notice } from 'obsidian';
+import { App as ObsidianApp, MarkdownView, Notice, TFile } from 'obsidian';
 import { showMessage } from '@/Infrastructure/Obsidian/Utils/Messages';
 import {
     formatFrontmatterBlock,
@@ -8,7 +8,7 @@ import {
 } from '@/Infrastructure/Obsidian/Utils/Frontmatter';
 import type { GeocodingPort, GeocodingResponse } from '@/Domain/Ports/GeocodingPort';
 import { FrontmatterKeys, FrontmatterRegistry } from '@/Domain/Constants/FrontmatterRegistry';
-import { executeInEditMode } from '@/Infrastructure/Obsidian/Utils/ViewMode';
+import { executeInEditMode, getActiveMarkdownView } from '@/Infrastructure/Obsidian/Utils/ViewMode';
 
 export class UpdatePlaceIdCommand {
     constructor(
@@ -16,8 +16,8 @@ export class UpdatePlaceIdCommand {
         protected readonly obsidian: ObsidianApp,
     ) { }
 
-    async execute() {
-        const view = this.obsidian.workspace.getActiveViewOfType(MarkdownView);
+    async execute(file?: TFile) {
+        const view = getActiveMarkdownView(this.obsidian, file);
         if (!view?.file) {
             showMessage('Open a markdown note to update place ID.');
             return;

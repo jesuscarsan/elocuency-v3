@@ -1,5 +1,6 @@
 export type GeocodingParams = {
   placeName: string;
+  placeId?: string;
 };
 
 export type GeocodingResponse = {

@@ -5,7 +5,6 @@ import { FrontmatterKeys, FrontmatterRegistry } from '@/Domain/Constants/Frontma
 import { PlaceTypes } from '@/Domain/Constants/PlaceTypes';
 import { PlaceEnrichmentService } from '@/Application/Services/PlaceEnrichmentService';
 import {
-    executeInEditMode,
     showMessage,
     formatFrontmatterBlock,
     parseFrontmatter,
@@ -15,6 +14,7 @@ import {
     ensureFolderExists,
     capitalize
 } from '@/Infrastructure/Obsidian/Utils';
+import { executeInEditMode, getActiveMarkdownView } from '@/Infrastructure/Obsidian/Utils/ViewMode';
 
 
 
@@ -31,8 +31,8 @@ export class ApplyGeocoderCommand {
         this.enrichmentService = new PlaceEnrichmentService(geocoder, llm);
     }
 
-    async execute() {
-        const view = this.obsidian.workspace.getActiveViewOfType(MarkdownView);
+    async execute(file?: TFile) {
+        const view = getActiveMarkdownView(this.obsidian, file);
         if (!view?.file) {
             showMessage('Open a markdown note to apply geocoding.');
             return;
@@ -47,10 +47,18 @@ export class ApplyGeocoderCommand {
             const split = splitFrontmatter(content);
             const currentFrontmatter = parseFrontmatter(split.frontmatterText);
 
+            // Check for existing Place ID
+            const existingIdRaw = currentFrontmatter?.[FrontmatterKeys.LugarId];
+            let placeId: string | undefined;
+            if (typeof existingIdRaw === 'string' && existingIdRaw.startsWith('google-maps-id:')) {
+                placeId = existingIdRaw.replace('google-maps-id:', '');
+                showMessage(`Using existing Place ID: ${placeId}`);
+            }
+
             showMessage(`Fetching place details for ${file.basename}...`);
 
             // Use Service to Enrich
-            const enriched = await this.enrichmentService.enrichPlace(file.basename);
+            const enriched = await this.enrichmentService.enrichPlace(file.basename, undefined, placeId);
             console.log({ enriched });
 
             if (!enriched) {

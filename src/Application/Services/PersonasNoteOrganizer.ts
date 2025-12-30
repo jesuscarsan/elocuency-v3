@@ -43,6 +43,10 @@ export class PersonasNoteOrganizer {
         if (lugar) {
             newPathParts.push(lugar);
         }
+
+        // Add (Personas) folder
+        newPathParts.push('(Personas)');
+
         newPathParts.push(file.name);
 
         const newPath = this.noteManager.normalizePath(newPathParts.join('/'));

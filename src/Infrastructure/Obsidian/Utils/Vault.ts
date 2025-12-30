@@ -1,4 +1,4 @@
-import { App, normalizePath } from 'obsidian';
+import { App, normalizePath, TFolder } from 'obsidian';
 
 /**
  * Checks if a given folder path matches a target folder configuration.
@@ -109,11 +109,34 @@ async function createFolderRecursively(app: App, folderPath: string) {
   const parts = folderPath.split('/');
   let current = '';
 
+  console.log(`[GenerateMissingNotes] Ensuring folder structure: ${folderPath}`);
+
   for (const part of parts) {
     current = current ? `${current}/${part}` : part;
-    const existing = app.vault.getAbstractFileByPath(current);
-    if (!existing) {
+
+    // Check disk directly for robustness
+    const existsOnDisk = await app.vault.adapter.exists(current);
+    if (existsOnDisk) {
+      // If it exists, verify it is not a file
+      const stat = await app.vault.adapter.stat(current);
+      if (stat?.type === 'file') {
+        console.error(`[GenerateMissingNotes] Error: Path "${current}" exists as a file, cannot create folder.`);
+        throw new Error(`Cannot create folder "${current}" because a file already exists with that name.`);
+      }
+      // It exists and is (likely) a folder
+      continue;
+    }
+
+    try {
+      console.log(`[GenerateMissingNotes] Creating folder: ${current}`);
       await app.vault.createFolder(current);
+    } catch (e: any) {
+      // Ignore "Folder already exists" errors which can happen in race conditions
+      if (e?.message?.includes('Folder already exists') || e?.code === 'EEXIST') {
+        continue;
+      }
+      console.error(`[GenerateMissingNotes] Failed to create folder "${current}":`, e);
+      throw e;
     }
   }
 }

@@ -1,4 +1,4 @@
-import { App as ObsidianApp, MarkdownView } from 'obsidian';
+import { App as ObsidianApp, MarkdownView, TFile } from 'obsidian';
 import { showMessage } from '@/Infrastructure/Obsidian/Utils/Messages';
 import {
   formatFrontmatterBlock,
@@ -8,7 +8,7 @@ import {
 import { getStreamTranscript } from '@/Infrastructure/Obsidian/Utils/Streams';
 import type { LlmPort } from '@/Domain/Ports/LlmPort';
 import { FrontmatterKeys } from '@/Domain/Constants/FrontmatterRegistry';
-import { executeInEditMode } from '@/Infrastructure/Obsidian/Utils/ViewMode';
+import { executeInEditMode, getActiveMarkdownView } from '@/Infrastructure/Obsidian/Utils/ViewMode';
 
 export class ApplyStreamBriefCommand {
   constructor(
@@ -16,8 +16,8 @@ export class ApplyStreamBriefCommand {
     private readonly obsidian: ObsidianApp,
   ) { }
 
-  async execute(): Promise<void> {
-    const view = this.obsidian.workspace.getActiveViewOfType(MarkdownView);
+  async execute(file?: TFile): Promise<void> {
+    const view = getActiveMarkdownView(this.obsidian, file);
     if (!view?.file) {
       showMessage('Abre una nota de streaming para generar el brief.');
       return;

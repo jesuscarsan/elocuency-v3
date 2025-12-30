@@ -96,8 +96,8 @@ export class ReallocateNoteCommand {
                 return;
             }
 
-            console.log('ReallocateNoteCommand: activeFile.parent?.path', activeFile.parent?.path);
-            console.log('ReallocateNoteCommand: targetFolder.path', targetFolder.path);
+            console.log('ReallocateNoteCommand: From', activeFile.parent?.path);
+            console.log('ReallocateNoteCommand: To', targetFolder.path);
 
             if (activeFile.parent?.path === targetFolder.path) {
                 showMessage('Note is already in the target folder');

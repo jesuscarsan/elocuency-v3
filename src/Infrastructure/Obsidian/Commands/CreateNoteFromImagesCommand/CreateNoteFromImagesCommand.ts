@@ -1,4 +1,5 @@
-import { App, Modal, Notice, Setting, MarkdownView } from 'obsidian';
+import { App, Modal, Notice, Setting, MarkdownView, TFile } from 'obsidian';
+import { getActiveMarkdownView } from '@/Infrastructure/Obsidian/Utils/ViewMode';
 import { GoogleGeminiImagesAdapter, ImageContent } from '@/Infrastructure/Adapters/GoogleGeminiAdapter/GoogleGeminiImagesAdapter';
 import { showMessage } from '@/Infrastructure/Obsidian/Utils/Messages';
 import * as fs from 'fs';
@@ -14,22 +15,22 @@ export class CreateNoteFromImagesCommand {
         private readonly adapter: GoogleGeminiImagesAdapter
     ) { }
 
-    async execute() {
+    async execute(file?: TFile) {
         new ImageSourceModal(this.app, async (source) => {
             if (source.type === 'path') {
-                await this.processFromPath(source.path);
+                await this.processFromPath(source.path, file);
             } else if (source.type === 'files') {
-                await this.processFromFiles(source.files, source.folderName);
+                await this.processFromFiles(source.files, source.folderName, file);
             } else if (source.type === 'clipboard') {
                 // Wrap simplistic single-image processing or reuse processFromFiles logic by mocking File?
                 // Or just implement processFromBlob
-                await this.processFromBlob(source.blob);
+                await this.processFromBlob(source.blob, file);
             }
         }).open();
     }
 
-    private async processFromBlob(blob: Blob) {
-        const activeView = this.app.workspace.getActiveViewOfType(MarkdownView);
+    private async processFromBlob(blob: Blob, targetFile?: TFile) {
+        const activeView = getActiveMarkdownView(this.app, targetFile);
         if (!activeView) {
             showMessage('No hay una nota activa para añadir el contenido.');
             return;
@@ -47,8 +48,8 @@ export class CreateNoteFromImagesCommand {
     }
 
 
-    private async processFromPath(folderPath: string) {
-        const activeView = this.app.workspace.getActiveViewOfType(MarkdownView);
+    private async processFromPath(folderPath: string, targetFile?: TFile) {
+        const activeView = getActiveMarkdownView(this.app, targetFile);
         if (!activeView) {
             showMessage('No hay una nota activa para añadir el contenido.');
             return;
@@ -107,8 +108,8 @@ export class CreateNoteFromImagesCommand {
         }
     }
 
-    private async processFromFiles(fileList: FileList, folderName: string) {
-        const activeView = this.app.workspace.getActiveViewOfType(MarkdownView);
+    private async processFromFiles(fileList: FileList, folderName: string, targetFile?: TFile) {
+        const activeView = getActiveMarkdownView(this.app, targetFile);
         if (!activeView) {
             showMessage('No hay una nota activa para añadir el contenido.');
             return;
