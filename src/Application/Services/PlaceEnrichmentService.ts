@@ -166,4 +166,21 @@ export class PlaceEnrichmentService {
 
         return base;
     }
+
+    async classifyPlace(placeName: string): Promise<{ suggestedTag: string | null, isConfident: boolean } | null> {
+        const prompt = `
+        I have a place named "${placeName}".
+        Function: Classify this place into one of the following categories:
+        ${PlaceTypes.map(t => `- "${t}"`).join('\n')}
+
+        Return a JSON object:
+        {
+            "suggestedTag": "Lugares/..." or null if none match,
+            "isConfident": boolean // set to true ONLY if you are very sure (e.g. "McDonalds" is a Restaurant). If ambiguous, false.
+        }
+        `;
+
+        const response = await this.llm.requestJson({ prompt });
+        return response as any;
+    }
 }

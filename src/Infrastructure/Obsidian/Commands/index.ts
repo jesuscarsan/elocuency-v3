@@ -1,6 +1,6 @@
 export * from './AddImages/AddImagesCommand';
-export * from './ApplyGeocoder/ApplyGeocoderCommand';
-export * from './ApplyPlaceTypeCommand/ApplyPlaceTypeCommand';
+export * from './Place/EnrichPlaceCommand/EnrichPlaceCommand';
+
 export * from './ApplyStreamBriefCommand/ApplyStreamBriefCommand';
 export * from './ApplyTemplateCommand/ApplyTemplateCommand';
 export * from './ApplyTemplateFromImageCommand/ApplyTemplateFromImageCommand';
@@ -12,6 +12,6 @@ export * from './GenerateHeaderMetadataCommand/GenerateHeaderMetadataCommand';
 export * from './GenerateMissingNotesCommand/GenerateMissingNotesCommand';
 export * from './ReallocateNoteCommand/ReallocateNoteCommand';
 export * from './SearchSpotifyArtistCommand/SearchSpotifyArtistCommand';
-export * from './AddPlaceIdFromUrlCommand/AddPlaceIdFromUrlCommand';
-export * from './UpdatePlaceIdCommand/UpdatePlaceIdCommand';
+export * from './Place/AddPlaceIdFromUrlCommand/AddPlaceIdFromUrlCommand';
+
 export * from './AnalyzeAndLinkEntitiesCommand/AnalyzeAndLinkEntitiesCommand';

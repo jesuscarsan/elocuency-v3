@@ -6,15 +6,22 @@ import {
     parseFrontmatter,
     splitFrontmatter,
 } from '@/Infrastructure/Obsidian/Utils/Frontmatter';
-import { FrontmatterKeys } from '@/Domain/Constants/FrontmatterRegistry';
 import type { GeocodingPort } from '@/Domain/Ports/GeocodingPort';
+import type { LlmPort } from '@/Domain/Ports/LlmPort';
 import { InputModal } from '@/Infrastructure/Obsidian/Views/Modals/InputModal';
+import { GoogleMapsUrlParser } from '@/Infrastructure/Obsidian/Utils/GoogleMapsUrlParser';
+import { PlaceEnrichmentService } from '@/Application/Services/PlaceEnrichmentService';
 
 export class AddPlaceIdFromUrlCommand {
+    private enrichmentService: PlaceEnrichmentService;
+
     constructor(
         private readonly geocoder: GeocodingPort,
+        private readonly llm: LlmPort,
         private readonly app: ObsidianApp,
-    ) { }
+    ) {
+        this.enrichmentService = new PlaceEnrichmentService(geocoder, llm);
+    }
 
     async execute(file?: TFile) {
         const view = getActiveMarkdownView(this.app, file);
@@ -41,8 +48,8 @@ export class AddPlaceIdFromUrlCommand {
     }
 
     private async processUrl(url: string, file: TFile, view: MarkdownView) {
-        const placeId = this.extractPlaceIdFromUrl(url);
-        const placeName = this.extractNameFromUrl(url);
+        const placeId = GoogleMapsUrlParser.extractPlaceId(url);
+        const placeName = GoogleMapsUrlParser.extractName(url);
 
         if (!placeId && !placeName) {
             showMessage('No se encontró un Place ID o nombre válido en la URL.');
@@ -55,8 +62,10 @@ export class AddPlaceIdFromUrlCommand {
             showMessage(`Lugar encontrado: ${placeName}. Obteniendo detalles...`);
         }
 
+        // We use geocoder directly to get details first, similar to how it was before
+        // but then we will use enrichment service to merge.
         const details = await this.geocoder.requestPlaceDetails({
-            placeName: placeName,
+            placeName: placeName ?? '',
             placeId: placeId ?? undefined
         });
 
@@ -75,21 +84,10 @@ export class AddPlaceIdFromUrlCommand {
             const split = splitFrontmatter(content);
             const currentFrontmatter = parseFrontmatter(split.frontmatterText) ?? {};
 
-            const base = { ...currentFrontmatter };
-            base[FrontmatterKeys.LugarId] = "google-maps-id:" + details.googlePlaceId;
+            // Use shared logic for merging frontmatter
+            const updatedFrontmatter = this.enrichmentService.mergeFrontmatter(currentFrontmatter, details);
 
-            // Update other fields if available and not set? or force update? 
-            // Requirement says "extraiga el PlaceId y lo meta en el campo...".
-            // Usually we want to enrich too. Let's enrich basic fields if they match what geocoder returns
-            // Update logic similar to UpdatePlaceIdCommand
-            if (details.lat) base[FrontmatterKeys.Latitud] = details.lat;
-            if (details.lng) base[FrontmatterKeys.Longitud] = details.lng;
-            if (details.municipio) base[FrontmatterKeys.Municipio] = details.municipio;
-            if (details.provincia) base[FrontmatterKeys.Provincia] = details.provincia;
-            if (details.pais) base[FrontmatterKeys.Pais] = details.pais;
-
-
-            const frontmatterBlock = formatFrontmatterBlock(base);
+            const frontmatterBlock = formatFrontmatterBlock(updatedFrontmatter);
             const normalizedBody = split.body.replace(/^[\n\r]+/, '');
 
             const segments: string[] = [];
@@ -104,43 +102,5 @@ export class AddPlaceIdFromUrlCommand {
                 showMessage('La nota ya estaba actualizada.');
             }
         });
-    }
-
-    private extractPlaceIdFromUrl(url: string): string | null {
-        // 1. Intentar buscar el formato estándar ChIJ (27 caracteres aprox.)
-        const chijRegex = /ChIJ[a-zA-Z0-9_-]{23}/;
-        const chijMatch = url.match(chijRegex);
-        if (chijMatch) {
-            console.log('Place ID encontrado chijMatch:', chijMatch[0]);
-            return chijMatch[0];
-        }
-
-        // 2. Si no existe ChIJ, extraer el ID hexadecimal de la URL
-        // En tu URL está después del parámetro !1s y antes del siguiente !
-        const hexRegex = /!1s(0x[a-fA-F0-9]+:0x[a-fA-F0-9]+)/;
-        const hexMatch = url.match(hexRegex);
-
-        if (hexMatch && hexMatch[1]) {
-            console.log('Place ID encontrado hexMatch:', hexMatch[1]);
-            return hexMatch[1]; // Retorna algo como "0xd2f669cbd7ed74d:0x8abbf58f157b2d58"
-        }
-        console.log('No se encontró un Place ID válido en la URL.');
-        return null;
-    }
-
-    private extractNameFromUrl(url: string): string {
-        try {
-            // Regex matches /place/NAME/
-            const nameRegex = /\/place\/([^/]+)\//;
-            const match = url.match(nameRegex);
-            if (match && match[1]) {
-                // Decode URI component and replace plus signs with spaces
-                const decoded = decodeURIComponent(match[1].replace(/\+/g, ' '));
-                return decoded;
-            }
-        } catch (e) {
-            console.error('Error extracting name from URL', e);
-        }
-        return '';
     }
 }

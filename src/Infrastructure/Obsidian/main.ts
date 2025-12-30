@@ -5,13 +5,12 @@ import {
 } from './settings';
 import {
   ApplyTemplateCommand,
-  ApplyGeocoderCommand,
-  UpdatePlaceIdCommand,
+  EnrichPlaceCommand,
   ApplyStreamBriefCommand,
   GenerateMissingNotesCommand,
   EnhanceNoteCommand,
   EnhanceByAiCommand,
-  ApplyPlaceTypeCommand,
+
   AddImagesCommand,
   CreateReciprocityNotesCommand,
   ReallocateNoteCommand,
@@ -245,42 +244,20 @@ export default class ObsidianExtension extends Plugin {
       },
 
       {
-        id: 'ApplyGeocoderCommand',
-        name: 'Lugares: Enriquece en base a Lugar Id o texto',
+        id: 'EnrichPlaceCommand',
+        name: 'Lugares: Enriquecer Nota (Detectar Tipo + Mover)',
         callback: (file?: TFile) => {
-          const applyGeocoderCommand = new ApplyGeocoderCommand(
-            geocoder,
-            this.llm,
-            this.app,
-          );
-          applyGeocoderCommand.execute(file);
-        },
-      },
-      {
-        id: 'UpdatePlaceIdCommand',
-        name: 'Lugares: Actualiza Place Id',
-        callback: (file?: TFile) => {
-          const updatePlaceIdCommand = new UpdatePlaceIdCommand(
-            geocoder,
-            this.app,
-          );
-          updatePlaceIdCommand.execute(file);
+          new EnrichPlaceCommand(geocoder, this.llm, this.app).execute(file);
         },
       },
       {
         id: 'AddPlaceIdFromUrlCommand',
         name: 'Lugares: Añadir Place Id desde URL',
         callback: (file?: TFile) => {
-          new AddPlaceIdFromUrlCommand(geocoder, this.app).execute(file);
+          new AddPlaceIdFromUrlCommand(geocoder, this.llm, this.app).execute(file);
         },
       },
-      {
-        id: 'ApplyPlaceTypeCommand',
-        name: 'Lugares: Indica tipo de lugar',
-        callback: (file?: TFile) => {
-          new ApplyPlaceTypeCommand(geocoder, this.llm, this.app).execute(file);
-        },
-      },
+
       {
         id: 'SearchSpotifyTrack',
         name: 'Spotify: Busca canción',
