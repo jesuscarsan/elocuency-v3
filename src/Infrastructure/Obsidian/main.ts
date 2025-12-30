@@ -6,6 +6,7 @@ import {
 import {
   ApplyTemplateCommand,
   EnrichPlaceCommand,
+  OrganizePlaceCommand,
   ApplyStreamBriefCommand,
   GenerateMissingNotesCommand,
   EnhanceNoteCommand,
@@ -245,9 +246,16 @@ export default class ObsidianExtension extends Plugin {
 
       {
         id: 'EnrichPlaceCommand',
-        name: 'Lugares: Enriquecer Nota (Detectar Tipo + Mover)',
+        name: 'Lugares: Enriquece Nota',
         callback: (file?: TFile) => {
           new EnrichPlaceCommand(geocoder, this.llm, this.app).execute(file);
+        },
+      },
+      {
+        id: 'OrganizePlaceCommand',
+        name: 'Lugares: Organizar Nota',
+        callback: (file?: TFile) => {
+          new OrganizePlaceCommand(this.app, geocoder, this.llm).execute(file);
         },
       },
       {

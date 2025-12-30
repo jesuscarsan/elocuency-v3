@@ -1,4 +1,4 @@
-import { App, normalizePath, TFolder } from 'obsidian';
+import { App, normalizePath, TFolder, TFile } from 'obsidian';
 
 /**
  * Checks if a given folder path matches a target folder configuration.
@@ -141,3 +141,23 @@ async function createFolderRecursively(app: App, folderPath: string) {
   }
 }
 
+
+export async function moveFile(app: App, file: TFile, targetPath: string): Promise<void> {
+  const currentPath = file.path;
+
+  if (currentPath === targetPath) {
+    return;
+  }
+
+  // Ensure target folder exists
+  await ensureFolderExists(app, targetPath);
+
+  // Check if target file already exists
+  const existingFile = app.vault.getAbstractFileByPath(targetPath);
+  if (existingFile && existingFile instanceof TFile) {
+    throw new Error(`Target file already exists: ${targetPath}`);
+  }
+
+  // Perform the move
+  await app.fileManager.renameFile(file, targetPath);
+}

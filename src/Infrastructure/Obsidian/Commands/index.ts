@@ -1,5 +1,6 @@
 export * from './AddImages/AddImagesCommand';
 export * from './Place/EnrichPlaceCommand/EnrichPlaceCommand';
+export * from './Place/OrganizePlaceCommand/OrganizePlaceCommand';
 
 export * from './ApplyStreamBriefCommand/ApplyStreamBriefCommand';
 export * from './ApplyTemplateCommand/ApplyTemplateCommand';
@@ -11,7 +12,7 @@ export * from './EnhanceNoteCommand/EnhanceNoteCommand';
 export * from './GenerateHeaderMetadataCommand/GenerateHeaderMetadataCommand';
 export * from './GenerateMissingNotesCommand/GenerateMissingNotesCommand';
 export * from './ReallocateNoteCommand/ReallocateNoteCommand';
-export * from './SearchSpotifyArtistCommand/SearchSpotifyArtistCommand';
+export * from './Music/SearchSpotifyArtistCommand/SearchSpotifyArtistCommand';
 export * from './Place/AddPlaceIdFromUrlCommand/AddPlaceIdFromUrlCommand';
 
 export * from './AnalyzeAndLinkEntitiesCommand/AnalyzeAndLinkEntitiesCommand';

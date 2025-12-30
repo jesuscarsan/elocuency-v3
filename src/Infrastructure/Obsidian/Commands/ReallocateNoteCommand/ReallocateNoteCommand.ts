@@ -1,7 +1,7 @@
 import { App, Notice, TFile, TFolder, MarkdownView } from 'obsidian';
 import { executeInEditMode, getActiveMarkdownView } from '@/Infrastructure/Obsidian/Utils/ViewMode';
 import { FrontmatterRegistry } from '@/Domain/Constants/FrontmatterRegistry';
-import { showMessage } from '@/Infrastructure/Obsidian/Utils/Messages';
+import { showMessage, moveFile } from '@/Infrastructure/Obsidian/Utils';
 
 export class ReallocateNoteCommand {
     constructor(private readonly app: App) { }
@@ -104,10 +104,9 @@ export class ReallocateNoteCommand {
                 return;
             }
 
-            const newPath = `${targetFolder.path}/${activeFile.name}`;
-
             try {
-                await this.app.fileManager.renameFile(activeFile, newPath);
+                const newPath = `${targetFolder.path}/${activeFile.name}`;
+                await moveFile(this.app, activeFile, newPath);
                 showMessage(`Moved note to ${targetFolder.path}`);
             } catch (error) {
                 console.error(error);

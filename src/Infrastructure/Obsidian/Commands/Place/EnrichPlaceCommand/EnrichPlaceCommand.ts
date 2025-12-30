@@ -9,14 +9,11 @@ import {
     formatFrontmatterBlock,
     parseFrontmatter,
     splitFrontmatter,
-    LocationPathBuilder,
-    ensureFolderExists,
 } from '@/Infrastructure/Obsidian/Utils';
 import { executeInEditMode, getActiveMarkdownView } from '@/Infrastructure/Obsidian/Utils/ViewMode';
 
 export class EnrichPlaceCommand {
     private enrichmentService: PlaceEnrichmentService;
-    private pathBuilder: LocationPathBuilder;
 
     constructor(
         private readonly geocoder: GeocodingPort,
@@ -24,7 +21,6 @@ export class EnrichPlaceCommand {
         private readonly app: ObsidianApp,
     ) {
         this.enrichmentService = new PlaceEnrichmentService(geocoder, llm);
-        this.pathBuilder = new LocationPathBuilder(app);
     }
 
     async execute(file?: TFile) {
@@ -103,7 +99,7 @@ export class EnrichPlaceCommand {
                 return;
             }
 
-            const { refinedDetails, metadata, summary, tags } = enriched;
+            const { refinedDetails, summary, tags } = enriched;
 
             // Merge our selected tag with any tags returned by enrichment service
             const finalTags = tags || [];
@@ -124,18 +120,11 @@ export class EnrichPlaceCommand {
             const finalContent = segments.join('\n\n');
             if (finalContent !== content) {
                 await this.app.vault.modify(file, finalContent);
-            }
-
-            // 5. Move File
-            showMessage(`Calculando nueva ubicación...`);
-            const newPath = this.pathBuilder.buildPath(file.basename, refinedDetails, metadata);
-
-            if (newPath !== file.path) {
-                await ensureFolderExists(this.app, newPath);
-                await this.app.fileManager.renameFile(file, newPath);
-                showMessage(`Nota movida a ${newPath}`);
+                showMessage('Nota enriquecida correctamente.');
+                // Tip to user
+                showMessage('Sugerencia: Usa "Organizar nota de Lugar" para moverla a su carpeta.');
             } else {
-                showMessage('Nota actualizada en su ubicación actual.');
+                showMessage('No hubo cambios en la nota.');
             }
         });
     }
