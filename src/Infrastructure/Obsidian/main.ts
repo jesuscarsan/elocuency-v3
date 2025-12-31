@@ -6,7 +6,7 @@ import {
 import {
   ApplyTemplateCommand,
   EnrichPlaceCommand,
-  OrganizePlaceCommand,
+  RelocatePlaceNoteCommand,
   ApplyStreamBriefCommand,
   GenerateMissingNotesCommand,
   EnhanceNoteCommand,
@@ -14,7 +14,7 @@ import {
 
   AddImagesCommand,
   CreateReciprocityNotesCommand,
-  ReallocateNoteCommand,
+  RelocateNoteByLinkFieldCommand,
   AnalyzeAndLinkEntitiesCommand,
   SearchSpotifyArtistCommand,
   CreateNoteFromImagesCommand,
@@ -211,10 +211,10 @@ export default class ObsidianExtension extends Plugin {
         }
       },
       {
-        id: 'ReallocateNoteCommand',
+        id: 'RelocateNoteByLinkFieldCommand',
         name: 'Nota: Reubica',
         callback: (file?: TFile) => {
-          new ReallocateNoteCommand(this.app).execute(file);
+          new RelocateNoteByLinkFieldCommand(this.app).execute(file);
         }
       },
 
@@ -252,10 +252,10 @@ export default class ObsidianExtension extends Plugin {
         },
       },
       {
-        id: 'OrganizePlaceCommand',
-        name: 'Lugares: Organizar Nota',
+        id: 'RelocatePlaceNoteCommand',
+        name: 'Lugares: Reubica Nota',
         callback: (file?: TFile) => {
-          new OrganizePlaceCommand(this.app, geocoder, this.llm).execute(file);
+          new RelocatePlaceNoteCommand(this.app, geocoder, this.llm).execute(file);
         },
       },
       {

@@ -1,9 +1,9 @@
-import { App, Notice, TFile, TFolder, MarkdownView } from 'obsidian';
+import { App, TFile, getAllTags } from 'obsidian';
 import { executeInEditMode, getActiveMarkdownView } from '@/Infrastructure/Obsidian/Utils/ViewMode';
 import { FrontmatterRegistry } from '@/Domain/Constants/FrontmatterRegistry';
 import { showMessage, moveFile } from '@/Infrastructure/Obsidian/Utils';
 
-export class ReallocateNoteCommand {
+export class RelocateNoteByLinkFieldCommand {
     constructor(private readonly app: App) { }
 
     async execute(targetFile?: TFile): Promise<void> {
@@ -15,7 +15,7 @@ export class ReallocateNoteCommand {
 
         await executeInEditMode(view, async () => {
             const activeFile = view.file;
-            console.log('ReallocateNoteCommand: Active file', activeFile?.path);
+            console.log('RelocateteNoteCommand: Active file', activeFile?.path);
             // check again
             if (!activeFile) return;
 
@@ -25,12 +25,12 @@ export class ReallocateNoteCommand {
                 return;
             }
 
-            // Find the first field with forRealocateNote=true THAT EXISTS in the current note
+            // Find the first field with isRelocateField=true THAT EXISTS in the current note
             const registryValues = Object.values(FrontmatterRegistry);
-            const candidateFields = registryValues.filter(entry => entry.forRealocateNote);
+            const candidateFields = registryValues.filter(entry => entry.isRelocateField);
 
             if (candidateFields.length === 0) {
-                showMessage('No field configured for reallocation (forRealocateNote=true) in registry');
+                showMessage('No field configured for reallocation (isRelocateField=true) in registry');
                 return;
             }
 
@@ -88,26 +88,39 @@ export class ReallocateNoteCommand {
                 return;
             }
 
-            const targetFolder = targetFile.parent;
+            let targetFolder = targetFile.parent;
             if (!targetFolder) {
                 showMessage('Target file has no parent folder (root?)');
-                // If root, targetFolder.path is "/" or empty?
-                // targetFolder is TFolder.
                 return;
             }
 
-            console.log('ReallocateNoteCommand: From', activeFile.parent?.path);
-            console.log('ReallocateNoteCommand: To', targetFolder.path);
+            // Check if note is a "Persona" and target is "Lugares"
+            const tags = getAllTags(this.app.metadataCache.getFileCache(activeFile)!) || [];
+            const isPersona = tags.some(tag => tag.startsWith('#Personas/') || tag === '#Personas');
+            const isTargetLugar = targetFolder.path.startsWith('Lugares');
 
-            if (activeFile.parent?.path === targetFolder.path) {
+            let finalFolderPath = targetFolder.path;
+
+            if (isPersona && isTargetLugar) {
+                finalFolderPath = `${targetFolder.path}/(Personas)`;
+                const folderExists = await this.app.vault.adapter.exists(finalFolderPath);
+                if (!folderExists) {
+                    await this.app.vault.createFolder(finalFolderPath);
+                }
+            }
+
+            console.log('RelocateteNoteCommand: From', activeFile.parent?.path);
+            console.log('RelocateteNoteCommand: To', finalFolderPath);
+
+            if (activeFile.parent?.path === finalFolderPath) {
                 showMessage('Note is already in the target folder');
                 return;
             }
 
             try {
-                const newPath = `${targetFolder.path}/${activeFile.name}`;
+                const newPath = `${finalFolderPath}/${activeFile.name}`;
                 await moveFile(this.app, activeFile, newPath);
-                showMessage(`Moved note to ${targetFolder.path}`);
+                showMessage(`Moved note to ${finalFolderPath}`);
             } catch (error) {
                 console.error(error);
                 showMessage(`Failed to move note: ${error}`);

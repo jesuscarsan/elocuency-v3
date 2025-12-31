@@ -18,4 +18,4 @@ Este comando es una versión extendida de [Apply Geocoder Command](./ApplyGeocod
 2.  Ejecutas **"Indicate Place Type"**.
 3.  El sistema detecta que es un museo y añade `#Lugares/Museo`.
 4.  El sistema busca la dirección, coordenadas, etc.
-5.  La nota se mueve a `Lugares/España/Comunidad de Madrid/Madrid/Museo del Prado.md`.
+5.  La nota se mueve a `Lugares/Europa/España/Comunidad de Madrid/Madrid/Museo del Prado.md`.

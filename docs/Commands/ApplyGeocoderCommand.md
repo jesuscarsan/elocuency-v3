@@ -14,7 +14,7 @@ Este comando enriquece la nota de un lugar con información geográfica y la mue
     *   `Lugar Id`
     *   `Capital` (si aplica)
 4.  **Reorganización (Move)**: Mueve la nota a una jerarquía de carpetas basada en su ubicación.
-    *   Ejemplo: `Lugares/España/Comunidad de Madrid/Madrid/Puerta del Sol.md`
+    *   Ejemplo: `Lugares/Europa/España/Comunidad de Madrid/Madrid/Puerta del Sol.md`
 
 ## Requisitos
 
@@ -24,6 +24,4 @@ Este comando enriquece la nota de un lugar con información geográfica y la mue
 ## Estructura de Carpetas Generada
 
 El comando intenta crear una estructura lógica:
-`[Carpeta Raíz de Lugares] / [País] / [Región/Comunidad] / [Provincia] / [Municipio] / Nota.md`
-
-Si alguno de los niveles no aplica (ej. Madrid es Comunidad y Provincia), la estructura se adapta para evitar redundancias (ej. `.../Madrid/Madrid/Madrid...`).
+`[Carpeta Raíz de Lugares] / [Continente] / [País] / [Región/Comunidad] / [Provincia] / [Municipio] / Nota.md`

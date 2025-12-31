@@ -1,4 +1,4 @@
-# Reallocate Note Command
+# Relocatete Note Command
 
 Este comando se utiliza para **mover la nota actual automáticamente** a la misma carpeta donde se encuentra otra nota relacionada (por ejemplo, una nota de "Lugar" o "Lugares").
 
@@ -23,7 +23,7 @@ Para que el comando se ejecute con éxito, la nota actual debe cumplir con lo si
 
 Supongamos que tienes la siguiente estructura de carpetas:
 
-*   📂 `Lugares/España/Comunidad de Madrid/` -> Aquí está la nota `[[Madrid.md]]`
+*   📂 `Lugares/Europa/España/Comunidad de Madrid/` -> Aquí está la nota `[[Madrid.md]]`
 *   📂 `Bandeja de Entrada/` -> Aquí tienes tu nota `[[Mi Viaje.md]]`
 
 Si en `[[Mi Viaje.md]]` tienes este frontmatter:
@@ -34,4 +34,4 @@ Lugar: [[Madrid]]
 ---
 ```
 
-Al ejecutar el comando **"Reallocate Note"** (Cmd/Ctrl + P -> Reallocate Note), la nota `[[Mi Viaje.md]]` se moverá automáticamente de `Bandeja de Entrada/` a `Lugares/España/Comunidad de Madrid/`.
+Al ejecutar el comando **"Relocatete Note"** (Cmd/Ctrl + P -> Relocatete Note), la nota `[[Mi Viaje.md]]` se moverá automáticamente de `Bandeja de Entrada/` a `Lugares/Europa/España/Comunidad de Madrid/`.

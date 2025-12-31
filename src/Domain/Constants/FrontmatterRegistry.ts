@@ -37,7 +37,7 @@ export interface FrontmatterFieldConfig {
     type: 'string' | 'number' | 'boolean' | 'date' | 'array';
     asLink?: boolean;
     reciprocityField?: FrontmatterKey;
-    forRealocateNote?: boolean;
+    isRelocateField?: boolean;
 }
 
 export const FrontmatterRegistry: Record<string, FrontmatterFieldConfig> = {
@@ -74,14 +74,14 @@ export const FrontmatterRegistry: Record<string, FrontmatterFieldConfig> = {
         key: FrontmatterKeys.Lugares,
         description: "Lugares relacionados",
         type: 'array',
-        forRealocateNote: true,
+        isRelocateField: true,
         asLink: true
     },
     [FrontmatterKeys.Lugar]: {
         key: FrontmatterKeys.Lugar,
         description: "Lugar relacionado",
         type: 'string',
-        forRealocateNote: true,
+        isRelocateField: true,
         asLink: true
     },
     [FrontmatterKeys.Latitud]: {
