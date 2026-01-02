@@ -2,7 +2,7 @@ import { App, TFile, TFolder } from 'obsidian';
 
 export class SessionLogger {
     private app: App;
-    private logFolderPath = 'Sesiones';
+    private logFolderPath = '!!metadatos/Sesiones';
 
     constructor(app: App) {
         this.app = app;

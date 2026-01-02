@@ -8,12 +8,12 @@ import {
   EnrichPlaceCommand,
   RelocatePlaceNoteCommand,
   ApplyStreamBriefCommand,
-  GenerateMissingNotesCommand,
+  GenerateMissingNotesFromLinksCommand,
   EnhanceNoteCommand,
   EnhanceByAiCommand,
 
   AddImagesCommand,
-  CreateReciprocityNotesCommand,
+  CreateReciprocityLinksNotesCommand,
   RelocateNoteByLinkFieldCommand,
   AnalyzeAndLinkEntitiesCommand,
   SearchSpotifyArtistCommand,
@@ -184,21 +184,21 @@ export default class ObsidianExtension extends Plugin {
       },
       {
         id: 'AddImagesCommand',
-        name: 'Nota: Añade imágenes',
+        name: 'Nota: Añade imágenes [AddImagesCommand]',
         callback: (file?: TFile) => {
           new AddImagesCommand(this.app, imageSearch).execute(file);
         },
       },
       {
         id: 'CreateNoteFromImagesCommand',
-        name: 'Nota: Crea nota a partir de imágenes (Gemini)',
+        name: 'Nota: Crea nota a partir de imágenes [CreateNoteFromImagesCommand]',
         callback: (file?: TFile) => {
           new CreateNoteFromImagesCommand(this.app, geminiImages).execute(file);
         }
       },
       {
         id: 'ApplyTemplateFromImageCommand',
-        name: 'Nota: Aplica plantilla a partir de imágenes (Gemini)',
+        name: 'Nota: Aplica plantilla a partir de imágenes [ApplyTemplateFromImageCommand]',
         callback: (file?: TFile) => {
           new ApplyTemplateFromImageCommand(geminiImages, this.app, this.settings).execute(file);
         }
@@ -212,17 +212,17 @@ export default class ObsidianExtension extends Plugin {
       },
       {
         id: 'RelocateNoteByLinkFieldCommand',
-        name: 'Nota: Reubica',
+        name: 'Nota: Reubica [RelocateNoteByLinkFieldCommand]',
         callback: (file?: TFile) => {
           new RelocateNoteByLinkFieldCommand(this.app).execute(file);
         }
       },
 
       {
-        id: 'GenerateMissingNotesCommand',
-        name: 'Links: Create notas para links sin notas',
+        id: 'GenerateMissingNotesFromLinksCommand',
+        name: 'Links: Create notas para links sin notas [GenerateMissingNotesFromLinksCommand]',
         callback: async (file?: TFile) => {
-          const generateMissingNotesCommand = new GenerateMissingNotesCommand(
+          const generateMissingNotesCommand = new GenerateMissingNotesFromLinksCommand(
             this.app,
             this.settings,
           );
@@ -230,15 +230,15 @@ export default class ObsidianExtension extends Plugin {
         },
       },
       {
-        id: 'CreateReciprocityNotesCommand',
-        name: 'Links: Crea links reciprocos',
+        id: 'CreateReciprocityLinksNotesCommand',
+        name: 'Links: Crea links reciprocos [CreateReciprocityLinksNotesCommand]',
         callback: (file?: TFile) => {
-          new CreateReciprocityNotesCommand(this.app).execute(file);
+          new CreateReciprocityLinksNotesCommand(this.app).execute(file);
         }
       },
       {
         id: 'AnalyzeAndLinkEntitiesCommand',
-        name: 'Links: Analiza y enlaza entidades',
+        name: 'Links: Analiza y enlaza entidades [AnalyzeAndLinkEntitiesCommand]',
         callback: (file?: TFile) => {
           new AnalyzeAndLinkEntitiesCommand(this.app, this.llm).execute(file);
         }

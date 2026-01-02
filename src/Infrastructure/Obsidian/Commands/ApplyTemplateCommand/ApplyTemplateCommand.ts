@@ -98,11 +98,14 @@ export class ApplyTemplateCommand {
       let finalContent = recomposedSegments.join('\n\n');
 
       if (config.prompt) {
-        const prompt = this.buildPrompt(file.basename, mergedFrontmatter, config.prompt);
+        const prompt = this.buildPrompt(file.basename, mergedFrontmatter, config.prompt, normalizedBody);
 
+
+        console.log('[ApplyTemplateCommand] Requesting enrichment with prompt:', prompt);
         const enrichment = await this.llm.requestEnrichment({
           prompt,
         });
+        console.log('[ApplyTemplateCommand] Enrichment received:', enrichment);
 
         if (enrichment) {
           let updatedFrontmatter = mergeFrontmatterSuggestions(
@@ -132,9 +135,13 @@ export class ApplyTemplateCommand {
           const frontmatterBlock = updatedFrontmatter
             ? formatFrontmatterBlock(updatedFrontmatter)
             : '';
-          const bodyFromGemini = enrichment.body
+          // If enrichment.body is undefined/null, it means the LLM didn't return a body or failed to parse.
+          // In that case, we fallback to normalizedBody (the content before enrichment) to avoid deleting the note content.
+          // We intentionally allow empty string if the LLM specifically returned "" (though rare).
+          const bodyFromGemini = (enrichment.body !== undefined && enrichment.body !== null)
             ? enrichment.body.trim()
-            : '';
+            : (normalizedBody || '');
+
           const segments: string[] = [];
 
           if (frontmatterBlock) {
@@ -149,6 +156,7 @@ export class ApplyTemplateCommand {
         }
       }
 
+      console.log('[ApplyTemplateCommand] Setting editor value to:', finalContent);
       editor.setValue(finalContent);
 
       // ...
@@ -184,6 +192,9 @@ export class ApplyTemplateCommand {
 
       // Handle !!commands (Execute commands)
       if (config.commands && Array.isArray(config.commands)) {
+        // Ensure the view is active and focused before running commands that might depend on it
+        this.obsidian.workspace.setActiveLeaf(view.leaf, { focus: true });
+
         TemplateContext.activeConfig = config;
         try {
           for (const commandId of config.commands) {
@@ -217,10 +228,12 @@ export class ApplyTemplateCommand {
     title: string,
     currentFrontmatter: Record<string, unknown> | null,
     promptTemplate: string,
+    currentBody: string = '',
   ): string {
     const frontmatterCopy = currentFrontmatter ? { ...currentFrontmatter } : {};
     delete frontmatterCopy.tags;
     const frontmatterJson = JSON.stringify(frontmatterCopy, null, 2);
-    return `Nota de obsidian:'${title}'\n\nFrontmatter:'${frontmatterJson}'\n\n${promptTemplate}\n\n`;
+    // Include the body in the prompt so the LLM has context
+    return `Nota de obsidian:'${title}'\n\nFrontmatter:'${frontmatterJson}'\n\nContenido actual de la nota:\n${currentBody}\n\nInstrucción:\n${promptTemplate}\n\n`;
   }
 }

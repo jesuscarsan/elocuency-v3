@@ -96,7 +96,18 @@ export class RelocateNoteByLinkFieldCommand {
 
             // Check if note is a "Persona" and target is "Lugares"
             const tags = getAllTags(this.app.metadataCache.getFileCache(activeFile)!) || [];
-            const isPersona = tags.some(tag => tag.startsWith('#Personas/') || tag === '#Personas');
+
+            // Check frontmatter tags explicitly to handle list/string variations
+            const fmTags = frontmatter['tags'] || frontmatter['tag'];
+            const fmTagList = Array.isArray(fmTags) ? fmTags : (fmTags ? [fmTags] : []);
+
+            const isPersona = tags.some(tag => tag.startsWith('#Personas/') || tag === '#Personas') ||
+                fmTagList.some((tag: string) => {
+                    // Handle potential non-string values gracefully
+                    if (typeof tag !== 'string') return false;
+                    const cleanTag = tag.trim().replace(/^#/, '');
+                    return cleanTag === 'Personas' || cleanTag.startsWith('Personas/');
+                });
             const isTargetLugar = targetFolder.path.startsWith('Lugares');
 
             let finalFolderPath = targetFolder.path;

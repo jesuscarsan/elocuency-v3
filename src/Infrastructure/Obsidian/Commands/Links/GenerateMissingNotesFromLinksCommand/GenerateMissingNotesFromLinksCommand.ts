@@ -21,7 +21,7 @@ interface PlannedNote {
   sources: LinkSource[];
 }
 
-export class GenerateMissingNotesCommand {
+export class GenerateMissingNotesFromLinksCommand {
   constructor(
     private readonly app: App,
     private readonly settings: UnresolvedLinkGeneratorSettings,

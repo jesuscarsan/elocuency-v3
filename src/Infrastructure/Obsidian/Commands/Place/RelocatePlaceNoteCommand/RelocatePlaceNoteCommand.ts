@@ -58,7 +58,12 @@ export class RelocatePlaceNoteCommand {
             // Extract continent from País link if usually formatted like [[Lugares/Europe/Spain|Spain]]
             // We need to catch 'Europe' from that path.
             let continent = '';
-            const paisRaw = frontmatter['País'];
+            let paisRaw = frontmatter['País'];
+
+            // Handle array case for País
+            if (Array.isArray(paisRaw)) {
+                paisRaw = paisRaw.length > 0 ? paisRaw[0] : '';
+            }
 
             // Function to search for continent in Lugares
             const findContinentForCountry = (country: string): string | null => {

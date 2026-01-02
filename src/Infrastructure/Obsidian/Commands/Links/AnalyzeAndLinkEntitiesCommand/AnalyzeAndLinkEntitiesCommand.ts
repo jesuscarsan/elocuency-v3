@@ -2,12 +2,7 @@ import { App, MarkdownView, TFile, Notice } from 'obsidian';
 import { LlmPort } from '@/Domain/Ports/LlmPort';
 import { showMessage } from '@/Infrastructure/Obsidian/Utils/Messages';
 import { getActiveMarkdownView } from '@/Infrastructure/Obsidian/Utils/ViewMode';
-
-interface Entity {
-    name: string;
-    type: 'Person' | 'Place' | 'Concept';
-    relevance: 'High' | 'Medium' | 'Low';
-}
+import { EntitySelectionModal, Entity } from '@/Infrastructure/Obsidian/Views/Modals/EntitySelectionModal';
 
 export class AnalyzeAndLinkEntitiesCommand {
     constructor(
@@ -46,8 +41,14 @@ export class AnalyzeAndLinkEntitiesCommand {
                 return;
             }
 
-            this.processEntities(highRelevanceEntities, editor);
-            showMessage(`Processed ${highRelevanceEntities.length} entities.`);
+            new EntitySelectionModal(this.app, highRelevanceEntities, (selectedEntities) => {
+                if (selectedEntities.length > 0) {
+                    this.processEntities(selectedEntities, editor);
+                    showMessage(`Processed ${selectedEntities.length} entities.`);
+                } else {
+                    showMessage('No entities selected.');
+                }
+            }).open();
 
         } catch (error) {
             console.error('Error analyzing entities:', error);

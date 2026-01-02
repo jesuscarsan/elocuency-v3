@@ -10,7 +10,7 @@ interface PersonMatch {
     description: string;
 }
 
-export class CreateReciprocityNotesCommand {
+export class CreateReciprocityLinksNotesCommand {
     constructor(private readonly app: App) { }
 
     async execute(file?: TFile): Promise<void> {
