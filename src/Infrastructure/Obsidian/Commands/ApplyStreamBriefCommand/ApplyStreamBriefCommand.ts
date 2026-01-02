@@ -17,9 +17,11 @@ export class ApplyStreamBriefCommand {
   ) { }
 
   async execute(file?: TFile): Promise<void> {
+    console.log('[ApplyStreamBriefCommand] Start');
     const view = getActiveMarkdownView(this.obsidian, file);
     if (!view?.file) {
       showMessage('Abre una nota de streaming para generar el brief.');
+      console.log('[ApplyStreamBriefCommand] End (No active view)');
       return;
     }
 
@@ -82,6 +84,7 @@ export class ApplyStreamBriefCommand {
       await this.obsidian.vault.modify(file, updatedContent);
       showMessage('Brief del streaming actualizado.');
     });
+    console.log('[ApplyStreamBriefCommand] End');
   }
 
   private buildStreamBriefPrompt(

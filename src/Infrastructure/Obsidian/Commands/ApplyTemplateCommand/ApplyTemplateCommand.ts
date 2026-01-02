@@ -38,190 +38,223 @@ export class ApplyTemplateCommand {
   ) { }
 
   async execute(targetFile?: TFile) {
+    console.log('[ApplyTemplateCommand] Start');
     const view = getActiveMarkdownView(this.obsidian, targetFile);
-    if (!view?.file) {
+
+    // Legacy behavior: Require active view if no targetFile provided, or just default to active file
+    const file = targetFile ?? view?.file;
+
+    if (!file) {
       showMessage('Open a markdown note to apply a template.');
       return;
     }
 
-    const file = view.file;
+    const matches = await getAllTemplateConfigs(this.obsidian);
 
-    await executeInEditMode(view, async () => {
-      const matches = await getAllTemplateConfigs(this.obsidian);
+    if (matches.length === 0) {
+      showMessage(`No templates found.`);
+      return;
+    }
 
-      if (matches.length === 0) {
-        showMessage(`No templates found.`);
-        return;
-      }
+    let templateResult: TemplateMatch | null = null;
+    if (matches.length === 1) {
+      templateResult = matches[0];
+    } else {
+      templateResult = await new Promise<TemplateMatch | null>((resolve) => {
+        new GenericFuzzySuggestModal<TemplateMatch>(
+          this.obsidian,
+          matches,
+          (item) => item.templateFile.basename,
+          () => { },
+          resolve
+        ).open();
+      });
+    }
 
-      let templateResult: TemplateMatch | null = null;
-      if (matches.length === 1) {
-        templateResult = matches[0];
-      } else {
-        templateResult = await new Promise<TemplateMatch | null>((resolve) => {
-          new GenericFuzzySuggestModal<TemplateMatch>(
-            this.obsidian,
-            matches,
-            (item) => item.templateFile.basename,
-            () => { },
-            resolve
-          ).open();
-        });
-      }
+    if (!templateResult) {
+      showMessage('No template selected.');
+      return;
+    }
 
-      if (!templateResult) {
-        showMessage('No template selected.');
-        return;
-      }
+    await this.applyTemplate(file, templateResult);
+  }
 
-      const { config, cleanedContent, templateFile } = templateResult;
+  async applyTemplate(file: TFile, templateResult: TemplateMatch) {
+    console.log(`[ApplyTemplateCommand] applying template ${templateResult.templateFile.basename} to ${file.path}`);
+    const { config, cleanedContent, templateFile } = templateResult;
 
-      showMessage(`Applying template ${templateFile.basename}...`);
+    showMessage(`Applying template ${templateFile.basename}...`);
 
-      const editor = view.editor;
-      const mergedContent = mergeNotes(cleanedContent, editor.getValue(), false);
-      const mergedSplit = splitFrontmatter(mergedContent);
-      const mergedFrontmatter = parseFrontmatter(mergedSplit.frontmatterText);
+    // Read content directly from file to support batch processing
+    const currentContent = await this.obsidian.vault.read(file);
+    const mergedContent = mergeNotes(cleanedContent, currentContent, false);
+    const mergedSplit = splitFrontmatter(mergedContent);
+    const mergedFrontmatter = parseFrontmatter(mergedSplit.frontmatterText);
 
-      const recomposedSegments: string[] = [];
-      let finalFrontmatter = mergedFrontmatter;
+    const recomposedSegments: string[] = [];
+    let finalFrontmatter = mergedFrontmatter;
 
-      if (mergedFrontmatter) {
-        recomposedSegments.push(formatFrontmatterBlock(mergedFrontmatter));
-      }
+    if (mergedFrontmatter) {
+      recomposedSegments.push(formatFrontmatterBlock(mergedFrontmatter));
+    }
 
-      const normalizedBody = mergedSplit.body;
-      if (normalizedBody) {
-        recomposedSegments.push(normalizedBody);
-      }
+    const normalizedBody = mergedSplit.body;
+    if (normalizedBody) {
+      recomposedSegments.push(normalizedBody);
+    }
 
-      let finalContent = recomposedSegments.join('\n\n');
+    let finalContent = recomposedSegments.join('\n\n');
 
-      if (config.prompt) {
-        const prompt = this.buildPrompt(file.basename, mergedFrontmatter, config.prompt, normalizedBody);
+    if (config.prompt) {
+      const prompt = this.buildPrompt(file.basename, mergedFrontmatter, config.prompt, normalizedBody);
 
 
-        console.log('[ApplyTemplateCommand] Requesting enrichment with prompt:', prompt);
-        const enrichment = await this.llm.requestEnrichment({
-          prompt,
-        });
-        console.log('[ApplyTemplateCommand] Enrichment received:', enrichment);
+      console.log('[ApplyTemplateCommand] Requesting enrichment with prompt:', prompt);
+      const enrichment = await this.llm.requestEnrichment({
+        prompt,
+      });
+      console.log('[ApplyTemplateCommand] Enrichment received:', enrichment);
 
-        if (enrichment) {
-          let updatedFrontmatter = mergeFrontmatterSuggestions(
-            mergedFrontmatter,
-            enrichment.frontmatter,
-          );
+      if (enrichment) {
+        let updatedFrontmatter = mergeFrontmatterSuggestions(
+          mergedFrontmatter,
+          enrichment.frontmatter,
+        );
 
-          // Check for empty image URLs
-          if (updatedFrontmatter && Array.isArray(updatedFrontmatter[FrontmatterKeys.ImagenesUrls]) && (updatedFrontmatter[FrontmatterKeys.ImagenesUrls] as any[]).length === 0) {
-            showMessage('Buscando imágenes...');
-            const images = await this.imageSearch.searchImages(file.basename, 3);
-            if (images.length > 0) {
-              updatedFrontmatter = {
-                ...updatedFrontmatter,
-                [FrontmatterKeys.ImagenesUrls]: images,
-              };
-              showMessage(`Se encontraron ${images.length} imágenes.`);
-            } else {
-              showMessage('No se encontraron imágenes.');
-            }
-          }
-
-          if (updatedFrontmatter) {
-            finalFrontmatter = updatedFrontmatter;
-          }
-
-          const frontmatterBlock = updatedFrontmatter
-            ? formatFrontmatterBlock(updatedFrontmatter)
-            : '';
-          // If enrichment.body is undefined/null, it means the LLM didn't return a body or failed to parse.
-          // In that case, we fallback to normalizedBody (the content before enrichment) to avoid deleting the note content.
-          // We intentionally allow empty string if the LLM specifically returned "" (though rare).
-          const bodyFromGemini = (enrichment.body !== undefined && enrichment.body !== null)
-            ? enrichment.body.trim()
-            : (normalizedBody || '');
-
-          const segments: string[] = [];
-
-          if (frontmatterBlock) {
-            segments.push(frontmatterBlock);
-          }
-
-          if (bodyFromGemini) {
-            segments.push(bodyFromGemini);
-          }
-
-          finalContent = segments.join('\n\n');
-        }
-      }
-
-      console.log('[ApplyTemplateCommand] Setting editor value to:', finalContent);
-      editor.setValue(finalContent);
-
-      // ...
-      if (finalFrontmatter) {
-        const noteManager = new ObsidianNoteManager(this.obsidian);
-        const organizer = new PersonasNoteOrganizer(noteManager);
-        await organizer.organize(file, finalFrontmatter);
-      }
-
-      // Handle !!path (Move note)
-      if (config.path) {
-        try {
-          const targetPath = config.path.endsWith('.md')
-            ? normalizePath(config.path)
-            : normalizePath(`${config.path}/${file.name}`);
-
-          await ensureFolderExists(this.obsidian, targetPath);
-
-          // Check if file already exists at target to avoid error or overwrite? 
-          // Obsidian's rename throws if exists.
-          const existing = this.obsidian.vault.getAbstractFileByPath(targetPath);
-          if (!existing || existing === file) {
-            await this.obsidian.fileManager.renameFile(file, targetPath);
+        // Check for empty image URLs
+        if (updatedFrontmatter && Array.isArray(updatedFrontmatter[FrontmatterKeys.ImagenesUrls]) && (updatedFrontmatter[FrontmatterKeys.ImagenesUrls] as any[]).length === 0) {
+          showMessage('Buscando imágenes...');
+          const images = await this.imageSearch.searchImages(file.basename, 3);
+          if (images.length > 0) {
+            updatedFrontmatter = {
+              ...updatedFrontmatter,
+              [FrontmatterKeys.ImagenesUrls]: images,
+            };
+            showMessage(`Se encontraron ${images.length} imágenes.`);
           } else {
-            showMessage(`File already exists at ${targetPath}. Cannot move.`);
+            showMessage('No se encontraron imágenes.');
           }
-
-        } catch (e: any) {
-          console.error("Error moving file based on template config:", e);
-          showMessage(`Error moving file: ${e.message}`);
         }
+
+        if (updatedFrontmatter) {
+          finalFrontmatter = updatedFrontmatter;
+        }
+
+        const frontmatterBlock = updatedFrontmatter
+          ? formatFrontmatterBlock(updatedFrontmatter)
+          : '';
+        // If enrichment.body is undefined/null, it means the LLM didn't return a body or failed to parse.
+        // In that case, we fallback to normalizedBody (the content before enrichment) to avoid deleting the note content.
+        // We intentionally allow empty string if the LLM specifically returned "" (though rare).
+        const bodyFromGemini = (enrichment.body !== undefined && enrichment.body !== null)
+          ? enrichment.body.trim()
+          : (normalizedBody || '');
+
+        const segments: string[] = [];
+
+        if (frontmatterBlock) {
+          segments.push(frontmatterBlock);
+        }
+
+        if (bodyFromGemini) {
+          segments.push(bodyFromGemini);
+        }
+
+        finalContent = segments.join('\n\n');
+      }
+    }
+
+    console.log('[ApplyTemplateCommand] Setting file content to:', finalContent);
+    await this.obsidian.vault.modify(file, finalContent);
+
+    // ...
+    if (finalFrontmatter) {
+      const noteManager = new ObsidianNoteManager(this.obsidian);
+      const organizer = new PersonasNoteOrganizer(noteManager);
+      await organizer.organize(file, finalFrontmatter);
+    }
+
+    // Handle !!path (Move note)
+    if (config.path) {
+      try {
+        const targetPath = config.path.endsWith('.md')
+          ? normalizePath(config.path)
+          : normalizePath(`${config.path}/${file.name}`);
+
+        await ensureFolderExists(this.obsidian, targetPath);
+
+        // Check if file already exists at target to avoid error or overwrite? 
+        // Obsidian's rename throws if exists.
+        const existing = this.obsidian.vault.getAbstractFileByPath(targetPath);
+        if (!existing || existing === file) {
+          await this.obsidian.fileManager.renameFile(file, targetPath);
+        } else {
+          showMessage(`File already exists at ${targetPath}. Cannot move.`);
+        }
+
+      } catch (e: any) {
+        console.error("Error moving file based on template config:", e);
+        showMessage(`Error moving file: ${e.message}`);
+      }
+    }
+
+    // Handle !!commands (Execute commands)
+    if (config.commands && Array.isArray(config.commands)) {
+      // Find view for file if open
+      const leaf = this.obsidian.workspace.getLeavesOfType('markdown').find(leaf => (leaf.view as MarkdownView).file === file);
+      if (leaf) {
+        this.obsidian.workspace.setActiveLeaf(leaf, { focus: true });
       }
 
-      // Handle !!commands (Execute commands)
-      if (config.commands && Array.isArray(config.commands)) {
-        // Ensure the view is active and focused before running commands that might depend on it
-        this.obsidian.workspace.setActiveLeaf(view.leaf, { focus: true });
+      // If no view is open, some commands might fail.
+      // We log a warning but proceed.
+      if (!leaf) {
+        console.warn(`[ApplyTemplateCommand] No active view found for ${file.path}. Some commands might fail.`);
+      }
 
-        TemplateContext.activeConfig = config;
-        try {
-          for (const commandId of config.commands) {
-            let command = (this.obsidian as any).commands?.findCommand(commandId);
-            if (!command) {
-              const prefixedId = `elocuency:${commandId}`;
-              command = (this.obsidian as any).commands?.findCommand(prefixedId);
-              if (command) {
-                (this.obsidian as any).commands.executeCommandById(prefixedId);
-                continue;
+      TemplateContext.activeConfig = config;
+      try {
+        for (const commandId of config.commands) {
+          let command = (this.obsidian as any).commands?.findCommand(commandId);
+          let finalCommandId = commandId;
+
+          if (!command) {
+            finalCommandId = `elocuency:${commandId}`;
+            command = (this.obsidian as any).commands?.findCommand(finalCommandId);
+          }
+
+          if (command) {
+            try {
+              console.log(`[ApplyTemplateCommand] Executing ${finalCommandId}`);
+              if (command.callback) {
+                await command.callback();
+              } else if (command.editorCallback) {
+                // Requires editor.
+                const activeView = getActiveMarkdownView(this.obsidian);
+                if (activeView && activeView.file === file) {
+                  await command.editorCallback(activeView.editor, activeView);
+                } else {
+                  console.warn(`[ApplyTemplateCommand] skipping editor command ${finalCommandId} because view is not active for file.`);
+                }
+              } else if (command.checkCallback) {
+                await command.checkCallback(false);
+              } else {
+                (this.obsidian as any).commands.executeCommandById(finalCommandId);
               }
+            } catch (e: any) {
+              console.error(`Error executing command ${finalCommandId}:`, e);
+              showMessage(`Error executing command ${finalCommandId}: ${e.message}`);
             }
-
-            if (command) {
-              (this.obsidian as any).commands.executeCommandById(commandId);
-            } else {
-              console.warn(`Command not found: ${commandId}`);
-              showMessage(`Command not found: ${commandId}`);
-            }
+          } else {
+            console.warn(`Command not found: ${commandId}`);
+            showMessage(`Command not found: ${commandId}`);
           }
-        } finally {
-          TemplateContext.activeConfig = null;
         }
+      } finally {
+        TemplateContext.activeConfig = null;
       }
-
-    });
-
+    }
+    console.log('[ApplyTemplateCommand] End');
   }
 
   private buildPrompt(
@@ -234,6 +267,6 @@ export class ApplyTemplateCommand {
     delete frontmatterCopy.tags;
     const frontmatterJson = JSON.stringify(frontmatterCopy, null, 2);
     // Include the body in the prompt so the LLM has context
-    return `Nota de obsidian:'${title}'\n\nFrontmatter:'${frontmatterJson}'\n\nContenido actual de la nota:\n${currentBody}\n\nInstrucción:\n${promptTemplate}\n\n`;
+    return `Nota de obsidian:'${title}'\n\nFrontmatter:'${frontmatterJson}'\n\nContenido actual de la nota:\n${currentBody}\n\nInstrucción:\n${promptTemplate}\n\nIMPORTANTE: Tu respuesta debe ser un objeto JSON VÁLIDO con las siguientes claves:\n- "frontmatter": Objeto con los metadatos actualizados o nuevos (Opcional).\n- "body": String con el contenido del cuerpo de la nota (markdown).\n\nNO DEVUELVAS NADA MÁS QUE EL JSON. Los nombres de personas los envuelves entre '[[<persona>]]'`;
   }
 }

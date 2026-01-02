@@ -24,9 +24,11 @@ export class AddPlaceIdFromUrlCommand {
     }
 
     async execute(file?: TFile) {
+        console.log('[AddPlaceIdFromUrlCommand] Start');
         const view = getActiveMarkdownView(this.app, file);
         if (!view?.file) {
             showMessage('Abre una nota de markdown para añadir el Place ID.');
+            console.log('[AddPlaceIdFromUrlCommand] End (No active view)');
             return;
         }
 
@@ -45,6 +47,7 @@ export class AddPlaceIdFromUrlCommand {
                 await this.processUrl(url, activeFile, view);
             }
         ).open();
+        console.log('[AddPlaceIdFromUrlCommand] End');
     }
 
     private async processUrl(url: string, file: TFile, view: MarkdownView) {

@@ -6,6 +6,7 @@ export const FrontmatterKeys = {
     LugarId: "Lugar Id",
     Lugares: "Lugares",
     Lugar: "Lugar",
+    SedePrincipal: "Sede principal",
     Latitud: "Latitud",
     Longitud: "Longitud",
     Url: "Url",
@@ -63,6 +64,7 @@ export const FrontmatterRegistry: Record<string, FrontmatterFieldConfig> = {
         key: FrontmatterKeys.Pais,
         description: "País soberano",
         type: 'string',
+        isRelocateField: true,
         asLink: true
     },
     [FrontmatterKeys.LugarId]: {
@@ -82,6 +84,13 @@ export const FrontmatterRegistry: Record<string, FrontmatterFieldConfig> = {
         description: "Lugar relacionado",
         type: 'string',
         isRelocateField: true,
+        asLink: true
+    },
+    [FrontmatterKeys.SedePrincipal]: {
+        key: FrontmatterKeys.SedePrincipal,
+        description: "Sede principal",
+        isRelocateField: true,
+        type: 'string',
         asLink: true
     },
     [FrontmatterKeys.Latitud]: {

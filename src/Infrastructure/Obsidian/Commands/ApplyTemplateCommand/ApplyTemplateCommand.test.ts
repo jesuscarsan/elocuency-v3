@@ -101,6 +101,7 @@ describe('ApplyTemplateCommand', () => {
         const callArgs = mockLlm.requestEnrichment.mock.calls[0][0];
         expect(callArgs.prompt).toContain("Nota de obsidian:'My Note'");
 
+
         const updatedContent = await context.app.vault.read(targetFile);
         console.log('DEBUG: updatedContent:', updatedContent);
 

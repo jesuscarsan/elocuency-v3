@@ -27,19 +27,21 @@ export class LocationPathBuilder {
         const parts = ['Lugares', continent, pais];
 
         // Region logic
-        // Include if: Country is Spain OR Region is Famous OR Folder exists
-        const regionPath = [...parts, region].join('/');
-        const regionExists = this.folderExists(regionPath);
-
-        if (pais === 'España' || isRegionFamous || regionExists) {
-            if (region) parts.push(region);
-        }
+        if (region) parts.push(region);
 
         // Province logic
         if (provincia) parts.push(provincia);
 
         // Municipality logic (Folder)
-        if (municipio) parts.push(municipio);
+        if (municipio) {
+            let municipioFolder = municipio;
+            const isCitySameAsProvince = provincia && municipio.localeCompare(provincia, undefined, { sensitivity: 'base' }) === 0;
+
+            if (isCitySameAsProvince && provincia) {
+                municipioFolder = `${provincia} (Ciudad)`;
+            }
+            parts.push(municipioFolder);
+        }
 
         // File name logic (Disambiguation & Correction)
         let fileName = `${placeNameTrimmed}.md`;
@@ -51,14 +53,32 @@ export class LocationPathBuilder {
             const isSameName = placeNameTrimmed.localeCompare(municipio, undefined, { sensitivity: 'base' }) === 0;
 
             if (isSameName) {
-                fileName = `${municipio}.md`;
-                if (municipio === provincia) {
-                    fileName = `${municipio} (Ciudad).md`;
+                // If it's the same name, use the proper municipality casing
+                let cleanName = municipio;
+                if (provincia && municipio.localeCompare(provincia, undefined, { sensitivity: 'base' }) === 0) {
+                    cleanName = `${provincia} (Ciudad)`;
                 }
+                fileName = `${cleanName}.md`;
             }
         }
 
-        return normalizePath([...parts, fileName].join('/'));
+
+        // Ensure the note is always inside a folder with the same name
+        const cleanParts = parts.filter(p => !!p && p.length > 0);
+        const lastFolder = cleanParts.length > 0 ? cleanParts[cleanParts.length - 1] : '';
+        const targetFolderName = fileName.replace(/\.md$/, '');
+
+        // Comparison should probably be exact or case-insensitive depending on OS, 
+        // but typically "Same Name" implies exact match or at least visually identical.
+        // We'll use exact match for simple string equality to decide if we need a new folder.
+        // However, if we just renamed the file to 'San Sebastián.md' (lines 50-62), 
+        // and the folder is 'San Sebastián' (line 37), they match.
+
+        if (lastFolder !== targetFolderName) {
+            cleanParts.push(targetFolderName);
+        }
+
+        return normalizePath([...cleanParts, fileName].join('/'));
     }
 
     private folderExists(path: string): boolean {

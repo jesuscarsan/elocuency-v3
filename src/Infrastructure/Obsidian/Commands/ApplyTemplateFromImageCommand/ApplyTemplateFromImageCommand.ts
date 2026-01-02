@@ -40,6 +40,7 @@ export class ApplyTemplateFromImageCommand {
     ) { }
 
     async execute(targetFile?: TFile) {
+        console.log('[ApplyTemplateFromImageCommand] Start');
         const view = getActiveMarkdownView(this.obsidian, targetFile);
         // Note: We might allow running without active view if we create a new file,
         // but ApplyTemplate logic heavily relies on merging with active note.
@@ -47,6 +48,7 @@ export class ApplyTemplateFromImageCommand {
         // "Derived from Apply Template" suggests similar UX.
         if (!view?.file) {
             showMessage('Open a markdown note to apply a template.');
+            console.log('[ApplyTemplateFromImageCommand] End (No active view)');
             return;
         }
 
@@ -226,6 +228,7 @@ export class ApplyTemplateFromImageCommand {
             }
 
         }).open();
+        console.log('[ApplyTemplateFromImageCommand] End');
     }
 
     private buildPrompt(

@@ -12,9 +12,11 @@ export class AddImagesCommand {
     ) { }
 
     async execute(targetFile?: TFile) {
+        console.log('[AddImagesCommand] Start');
         const view = getActiveMarkdownView(this.app, targetFile);
         if (!view?.file) {
             showMessage('Open a markdown note to add images.');
+            console.log('[AddImagesCommand] End (No active view)');
             return;
         }
         const file = view.file;
@@ -57,5 +59,6 @@ export class AddImagesCommand {
                 showMessage('Error al buscar imágenes.');
             }
         });
+        console.log('[AddImagesCommand] End');
     }
 }

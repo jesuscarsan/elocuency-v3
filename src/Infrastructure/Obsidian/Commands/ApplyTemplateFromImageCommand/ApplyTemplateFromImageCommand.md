@@ -1,6 +1,6 @@
 # Apply Template From Image Command
 
-Variante de [Apply Template Command](./ApplyTemplateCommand.md) que utiliza imágenes como fuente principal de información para la IA.
+Variante de [Apply Template Command](../ApplyTemplateCommand/ApplyTemplateCommand.md) que utiliza imágenes como fuente principal de información para la IA.
 
 ## ¿Cómo funciona?
 

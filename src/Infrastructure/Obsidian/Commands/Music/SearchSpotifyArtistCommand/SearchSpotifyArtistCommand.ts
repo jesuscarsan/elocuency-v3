@@ -27,8 +27,10 @@ export class SearchSpotifyArtistCommand implements Command {
     }
 
     async execute(view: MarkdownView) {
+        console.log('[SearchSpotifyArtistCommand] Start');
         if (!this.spotifyAdapter.isAuthenticated()) {
             this.onAuthRequired();
+            console.log('[SearchSpotifyArtistCommand] End (Auth required)');
             return;
         }
 
@@ -45,6 +47,7 @@ export class SearchSpotifyArtistCommand implements Command {
 
             if (artists.length === 0) {
                 showMessage('No artists found on Spotify.');
+                console.log('[SearchSpotifyArtistCommand] End (No artists found)');
                 return;
             }
 
@@ -62,6 +65,7 @@ export class SearchSpotifyArtistCommand implements Command {
             console.error(error);
             showMessage('Error searching Spotify actions.');
         }
+        console.log('[SearchSpotifyArtistCommand] End');
     }
 
     private async updateFrontmatter(file: TFile, artist: MusicArtist) {

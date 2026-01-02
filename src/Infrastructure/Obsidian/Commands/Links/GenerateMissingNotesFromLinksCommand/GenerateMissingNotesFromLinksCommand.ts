@@ -28,9 +28,11 @@ export class GenerateMissingNotesFromLinksCommand {
   ) { }
 
   async execute(file?: TFile): Promise<void> {
+    console.log('[GenerateMissingNotesFromLinksCommand] Start');
     const activeFile = file ?? this.app.workspace.getActiveFile();
     if (!activeFile) {
       new Notice('No active file found to generate missing notes for.');
+      console.log('[GenerateMissingNotesFromLinksCommand] End (No active file)');
       return;
     }
 
@@ -48,6 +50,7 @@ export class GenerateMissingNotesFromLinksCommand {
 
     if (unresolvedEntries.length === 0) {
       new Notice('No unresolved links found in this note.');
+      console.log('[GenerateMissingNotesFromLinksCommand] End (No unresolved links)');
       return;
     }
 
@@ -127,6 +130,7 @@ export class GenerateMissingNotesFromLinksCommand {
     }
 
     showMessage(this.buildNoticeNew(createdPaths.length, skippedPaths.length, linkedPaths.length));
+    console.log('[GenerateMissingNotesFromLinksCommand] End');
   }
 
   private findSimilarFiles(linkName: string): TFile[] {

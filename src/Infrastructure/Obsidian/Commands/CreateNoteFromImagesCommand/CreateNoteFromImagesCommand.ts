@@ -16,6 +16,7 @@ export class CreateNoteFromImagesCommand {
     ) { }
 
     async execute(file?: TFile) {
+        console.log('[CreateNoteFromImagesCommand] Start');
         new ImageSourceModal(this.app, async (source) => {
             if (source.type === 'path') {
                 await this.processFromPath(source.path, file);
@@ -27,6 +28,7 @@ export class CreateNoteFromImagesCommand {
                 await this.processFromBlob(source.blob, file);
             }
         }).open();
+        console.log('[CreateNoteFromImagesCommand] End');
     }
 
     private async processFromBlob(blob: Blob, targetFile?: TFile) {

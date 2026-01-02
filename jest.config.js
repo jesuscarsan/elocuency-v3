@@ -5,6 +5,7 @@ module.exports = {
   moduleNameMapper: {
     '^obsidian$': '<rootDir>/src/__mocks__/obsidian.ts',
     '^src/(.*)$': '<rootDir>/src/$1',
+    '^@/(.*)$': '<rootDir>/src/$1',
   },
   testMatch: ['**/?(*.)+(spec|test).[tj]s?(x)'],
   moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json', 'node'],

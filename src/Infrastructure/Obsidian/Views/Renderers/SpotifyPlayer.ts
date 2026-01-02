@@ -20,7 +20,7 @@ export function registerSpotifyRenderer(plugin: Plugin) {
         }
 
         const type = frontmatter.type?.toLowerCase();
-        console.log('[SpotifyPlayer] Note type:', type);
+        // console.log('[SpotifyPlayer] Note type:', type);
         const validTypes = ['singer', 'cantante', 'song', 'canción'];
 
         if (!validTypes.includes(type)) {

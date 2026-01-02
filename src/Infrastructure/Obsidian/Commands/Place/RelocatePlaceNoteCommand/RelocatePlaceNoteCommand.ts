@@ -1,10 +1,11 @@
 import { App as ObsidianApp, TFile, TFolder } from 'obsidian';
 import { executeInEditMode, getActiveMarkdownView } from '@/Infrastructure/Obsidian/Utils/ViewMode';
-import { showMessage, LocationPathBuilder, splitFrontmatter, parseFrontmatter, moveFile } from '@/Infrastructure/Obsidian/Utils';
-import { PlaceEnrichmentService } from '@/Application/Services/PlaceEnrichmentService';
-import { GeocodingPort, GeocodingResponse } from '@/Domain/Ports/GeocodingPort';
-import { LlmPort } from '@/Domain/Ports/LlmPort';
+import { showMessage, LocationPathBuilder, splitFrontmatter, parseFrontmatter, moveFile, ensureFolderNotes } from '@/Infrastructure/Obsidian/Utils';
+import { GeocodingResponse } from '@/Domain/Ports/GeocodingPort';
 
+/**
+ * Ver './RelocatePlaceNoteCommand.md' para más información.
+ */
 export class RelocatePlaceNoteCommand {
     private pathBuilder: LocationPathBuilder;
 
@@ -15,9 +16,11 @@ export class RelocatePlaceNoteCommand {
     }
 
     async execute(file?: TFile) {
+        console.log('[RelocatePlaceNoteCommand] Start');
         const view = getActiveMarkdownView(this.app, file);
         if (!view?.file) {
             showMessage('Abre una nota para organizar.');
+            console.log('[RelocatePlaceNoteCommand] End (No active view)');
             return;
         }
 
@@ -116,10 +119,15 @@ export class RelocatePlaceNoteCommand {
                 } else {
                     showMessage('La nota ya está en la ubicación correcta.');
                 }
+
+                // Ensure structural consistency: every folder in path has a note
+                await ensureFolderNotes(this.app, newPath);
+
             } catch (err) {
                 console.error(err);
                 showMessage(`Error al organizar la nota: ${err}`);
             }
         });
+        console.log('[RelocatePlaceNoteCommand] End');
     }
 }

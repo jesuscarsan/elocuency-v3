@@ -34,6 +34,9 @@ export class GoogleGeminiAdapter implements LlmPort {
   async requestEnrichment(params: LlmParams): Promise<LlmResponse | null> {
     const { prompt } = params;
     console.log('Prompt:', prompt);
+
+    // ...
+
     const rawText = await this.generate(
       prompt,
       GEMINI_JSON_GENERATION_CONFIG,

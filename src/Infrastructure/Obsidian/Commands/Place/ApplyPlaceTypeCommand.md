@@ -1,6 +1,6 @@
 # Apply Place Type Command
 
-Este comando es una versión extendida de [Apply Geocoder Command](./ApplyGeocoderCommand.md) que además clasifica el tipo de lugar.
+Este comando es una versión extendida de [Apply Geocoder Command](./EnrichPlaceCommand/ApplyGeocoderCommand.md) que además clasifica el tipo de lugar.
 
 ## ¿Cómo funciona?
 

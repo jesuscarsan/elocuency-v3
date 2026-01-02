@@ -24,9 +24,11 @@ export class EnrichPlaceCommand {
     }
 
     async execute(file?: TFile) {
+        console.log('[EnrichPlaceCommand] Start');
         const view = getActiveMarkdownView(this.app, file);
         if (!view?.file) {
             showMessage('Abre una nota de markdown para enriquecer el lugar.');
+            console.log('[EnrichPlaceCommand] End (No active view)');
             return;
         }
 
@@ -127,6 +129,7 @@ export class EnrichPlaceCommand {
                 showMessage('No hubo cambios en la nota.');
             }
         });
+        console.log('[EnrichPlaceCommand] End');
     }
 
     private async askUserForTag(): Promise<string | null> {

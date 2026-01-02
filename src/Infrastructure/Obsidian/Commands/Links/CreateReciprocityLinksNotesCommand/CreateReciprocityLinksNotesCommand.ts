@@ -14,9 +14,11 @@ export class CreateReciprocityLinksNotesCommand {
     constructor(private readonly app: App) { }
 
     async execute(file?: TFile): Promise<void> {
+        console.log('[CreateReciprocityLinksNotesCommand] Start');
         const view = getActiveMarkdownView(this.app, file);
         if (!view?.file) {
             showMessage('No active file');
+            console.log('[CreateReciprocityLinksNotesCommand] End (No active file)');
             return;
         }
 
@@ -27,6 +29,7 @@ export class CreateReciprocityLinksNotesCommand {
 
             await this.processReciprocityFields(activeFile);
         });
+        console.log('[CreateReciprocityLinksNotesCommand] End');
     }
 
     private async processReciprocityFields(sourceFile: TFile): Promise<void> {

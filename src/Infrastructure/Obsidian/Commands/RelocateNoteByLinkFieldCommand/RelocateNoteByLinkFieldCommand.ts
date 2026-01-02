@@ -1,4 +1,4 @@
-import { App, TFile, getAllTags } from 'obsidian';
+import { App, TFile, getAllTags, parseYaml } from 'obsidian';
 import { executeInEditMode, getActiveMarkdownView } from '@/Infrastructure/Obsidian/Utils/ViewMode';
 import { FrontmatterRegistry } from '@/Domain/Constants/FrontmatterRegistry';
 import { showMessage, moveFile } from '@/Infrastructure/Obsidian/Utils';
@@ -7,9 +7,11 @@ export class RelocateNoteByLinkFieldCommand {
     constructor(private readonly app: App) { }
 
     async execute(targetFile?: TFile): Promise<void> {
+        console.log('[RelocateNoteByLinkFieldCommand] Start');
         const view = getActiveMarkdownView(this.app, targetFile);
         if (!view?.file) {
             showMessage('No active file');
+            console.log('[RelocateNoteByLinkFieldCommand] End (No active view)');
             return;
         }
 
@@ -94,29 +96,75 @@ export class RelocateNoteByLinkFieldCommand {
                 return;
             }
 
-            // Check if note is a "Persona" and target is "Lugares"
-            const tags = getAllTags(this.app.metadataCache.getFileCache(activeFile)!) || [];
+            // CACHE BASED TAGS
+            const cache = this.app.metadataCache.getFileCache(activeFile);
+            let tags: string[] = [];
+            if (cache) {
+                tags = getAllTags(cache) || [];
+            }
+            console.log('RelocateNote: Cache found:', !!cache);
+            console.log('RelocateNote: getAllTags result:', tags);
 
-            // Check frontmatter tags explicitly to handle list/string variations
-            const fmTags = frontmatter['tags'] || frontmatter['tag'];
-            const fmTagList = Array.isArray(fmTags) ? fmTags : (fmTags ? [fmTags] : []);
+            // FRONTMATTER BASED TAGS (CACHE)
+            const fmTags = frontmatter['tags'] || frontmatter['Tags'] || frontmatter['tag'];
+            let fmTagList = Array.isArray(fmTags) ? fmTags : (fmTags ? [fmTags] : []);
+            console.log('RelocateNote: Frontmatter tags (cache):', fmTagList);
 
-            const isPersona = tags.some(tag => tag.startsWith('#Personas/') || tag === '#Personas') ||
-                fmTagList.some((tag: string) => {
-                    // Handle potential non-string values gracefully
-                    if (typeof tag !== 'string') return false;
-                    const cleanTag = tag.trim().replace(/^#/, '');
-                    return cleanTag === 'Personas' || cleanTag.startsWith('Personas/');
-                });
+            // MANUAL FALLBACK: PARSE EDITOR CONTENT
+            // Use this if cache seems empty but we suspect tags might exist, or just always as a safety net
+            try {
+                const content = view.editor.getValue();
+                const match = content.match(/^---\n([\s\S]*?)\n---/);
+                if (match) {
+                    const yamlRaw = match[1];
+                    const parsed = parseYaml(yamlRaw);
+                    if (parsed) {
+                        const manualTags = parsed['tags'] || parsed['Tags'] || parsed['tag'];
+                        const manualTagList = Array.isArray(manualTags) ? manualTags : (manualTags ? [manualTags] : []);
+                        if (manualTagList.length > 0) {
+                            console.log('RelocateNote: Manual YAML parse found tags:', manualTagList);
+                            // Merge distinct tags
+                            fmTagList = [...new Set([...fmTagList, ...manualTagList])];
+                        }
+                    }
+                }
+            } catch (e) {
+                console.error('RelocateNote: Manual YAML parsing failed', e);
+            }
+
+            const allTags = [...tags, ...fmTagList];
+            console.log('RelocateNote: Combined tag list final:', allTags);
+
+            const isPersona = allTags.some(tag => {
+                if (tag === null || tag === undefined) return false;
+                const normalized = String(tag).trim().toLowerCase().replace(/^#/, '');
+                return normalized === 'personas' || normalized.startsWith('personas/');
+            });
+
+            console.log('RelocateNote: isPersona final decision:', isPersona);
+
+            const isObra = allTags.some(tag => {
+                if (tag === null || tag === undefined) return false;
+                const normalized = String(tag).trim().toLowerCase().replace(/^#/, '');
+                return normalized === 'obras' || normalized.startsWith('obras/');
+            });
+            console.log('RelocateNote: isObra final decision:', isObra);
             const isTargetLugar = targetFolder.path.startsWith('Lugares');
 
             let finalFolderPath = targetFolder.path;
 
-            if (isPersona && isTargetLugar) {
-                finalFolderPath = `${targetFolder.path}/(Personas)`;
-                const folderExists = await this.app.vault.adapter.exists(finalFolderPath);
-                if (!folderExists) {
-                    await this.app.vault.createFolder(finalFolderPath);
+            if (isTargetLugar) {
+                if (isPersona) {
+                    finalFolderPath = `${targetFolder.path}/(Personas)`;
+                } else if (isObra) {
+                    finalFolderPath = `${targetFolder.path}/(Obras)`;
+                }
+
+                if (finalFolderPath !== targetFolder.path) {
+                    const folderExists = await this.app.vault.adapter.exists(finalFolderPath);
+                    if (!folderExists) {
+                        await this.app.vault.createFolder(finalFolderPath);
+                    }
                 }
             }
 
@@ -137,5 +185,6 @@ export class RelocateNoteByLinkFieldCommand {
                 showMessage(`Failed to move note: ${error}`);
             }
         });
+        console.log('[RelocateNoteByLinkFieldCommand] End');
     }
 }

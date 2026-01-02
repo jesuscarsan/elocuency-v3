@@ -11,10 +11,12 @@ export class AnalyzeAndLinkEntitiesCommand {
     ) { }
 
     async execute(targetFile?: TFile) {
+        console.log('[AnalyzeAndLinkEntitiesCommand] Start');
         const view = getActiveMarkdownView(this.app, targetFile);
 
         if (!view?.file) {
             showMessage('Open a markdown note to analyze.');
+            console.log('[AnalyzeAndLinkEntitiesCommand] End (No active view)');
             return;
         }
 
@@ -31,6 +33,7 @@ export class AnalyzeAndLinkEntitiesCommand {
 
             if (!entities || !Array.isArray(entities)) {
                 showMessage('AI response invalid or empty.');
+                console.log('[AnalyzeAndLinkEntitiesCommand] End (Invalid response)');
                 return;
             }
 
@@ -38,6 +41,7 @@ export class AnalyzeAndLinkEntitiesCommand {
 
             if (highRelevanceEntities.length === 0) {
                 showMessage('No relevant entities found.');
+                console.log('[AnalyzeAndLinkEntitiesCommand] End (No relevant entities)');
                 return;
             }
 
@@ -54,6 +58,7 @@ export class AnalyzeAndLinkEntitiesCommand {
             console.error('Error analyzing entities:', error);
             showMessage('Error analyzing entities.');
         }
+        console.log('[AnalyzeAndLinkEntitiesCommand] End');
     }
 
     private buildPrompt(title: string, content: string): string {

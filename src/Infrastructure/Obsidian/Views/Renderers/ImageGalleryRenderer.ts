@@ -39,7 +39,7 @@ export function registerImageGalleryRenderer(plugin: Plugin) {
             return;
         }
 
-        console.log('[ImageGalleryRenderer] Rendering gallery for:', file.basename);
+        // console.log('[ImageGalleryRenderer] Rendering gallery for:', file.basename);
 
         const container = element.createDiv({ cls: 'elo-image-gallery-container' });
         container.style.marginTop = '10px';

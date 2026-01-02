@@ -11,19 +11,23 @@ export class GenerateHeaderMetadataCommand {
     }
 
     async execute(targetFile?: TFile): Promise<void> {
+        console.log('[GenerateHeaderMetadataCommand] Start');
         const activeView = getActiveMarkdownView(this.app, targetFile);
         if (!activeView) {
             showMessage("No active markdown view");
+            console.log('[GenerateHeaderMetadataCommand] End (No active view)');
             return;
         }
 
         const file = activeView.file;
         if (!file) {
             showMessage("No active file");
+            console.log('[GenerateHeaderMetadataCommand] End (No active file)');
             return;
         }
 
         await this.processFile(file);
+        console.log('[GenerateHeaderMetadataCommand] End');
     }
 
     private async processFile(file: TFile): Promise<void> {

@@ -161,3 +161,42 @@ export async function moveFile(app: App, file: TFile, targetPath: string): Promi
   // Perform the move
   await app.fileManager.renameFile(file, targetPath);
 }
+
+export async function ensureFolderNotes(app: App, filePath: string): Promise<void> {
+  const normalized = normalizePath(filePath);
+  const parts = normalized.split('/');
+
+  // If path is just "File.md", no parent folders to check.
+  if (parts.length <= 1) return;
+
+  // Iterate logic:
+  // Path: A/B/C/C.md
+  // Iterations:
+  // 1. currentPath = "A". Verify "A/A.md" exists.
+  // 2. currentPath = "A/B". Verify "A/B/B.md" exists.
+  // 3. currentPath = "A/B/C". Verify "A/B/C/C.md" exists (if C != C.md logic isn't circular).
+
+  // We stop before the last part (the file itself) if we only care about PARENTS.
+  // But usage suggests "create path -> verify ALL folders include a note".
+  // The last part is the file itself. The parent of the file is the holding folder.
+
+  // Let's iterate up to length - 1 (the directories).
+  let currentPath = '';
+
+  for (let i = 0; i < parts.length - 1; i++) {
+    const part = parts[i];
+    currentPath = currentPath ? `${currentPath}/${part}` : part;
+
+    const folderNotePath = `${currentPath}/${part}.md`;
+    const exists = await pathExists(app, folderNotePath);
+
+    if (!exists) {
+      try {
+        // Create empty note
+        await app.vault.create(folderNotePath, '');
+      } catch (e) {
+        console.error(`Failed to create folder note at ${folderNotePath}`, e);
+      }
+    }
+  }
+}

@@ -7,10 +7,11 @@ export * from './ApplyTemplateFromImageCommand/ApplyTemplateFromImageCommand';
 export * from './CreateNoteFromImagesCommand/CreateNoteFromImagesCommand';
 export * from './Links/CreateReciprocityLinksNotesCommand/CreateReciprocityLinksNotesCommand';
 export * from './EnhanceByAiCommand/EnhanceByAiCommand';
-export * from './EnhanceNoteCommand/EnhanceNoteCommand';
 export * from './GenerateHeaderMetadataCommand/GenerateHeaderMetadataCommand';
 export * from './Links/GenerateMissingNotesFromLinksCommand/GenerateMissingNotesFromLinksCommand';
 export * from './RelocateNoteByLinkFieldCommand/RelocateNoteByLinkFieldCommand';
 export * from './Music/SearchSpotifyArtistCommand/SearchSpotifyArtistCommand';
 export * from './Place/AddPlaceIdFromUrlCommand/AddPlaceIdFromUrlCommand';
 export * from './Links/AnalyzeAndLinkEntitiesCommand/AnalyzeAndLinkEntitiesCommand';
+export * from './Links/GenerateMissingNotesFromObrasCommand/GenerateMissingNotesFromObrasCommand';
+

@@ -22,9 +22,11 @@ export class EnhanceByAiCommand {
     ) { }
 
     async execute(targetFile?: TFile) {
+        console.log('[EnhanceByAiCommand] Start');
         const view = getActiveMarkdownView(this.app, targetFile);
         if (!view?.file) {
             showMessage('Open a markdown note to enhance it.');
+            console.log('[EnhanceByAiCommand] End (No active view)');
             return;
         }
 
@@ -97,6 +99,7 @@ export class EnhanceByAiCommand {
                 }
             }
         });
+        console.log('[EnhanceByAiCommand] End');
     }
 
     private buildPrompt(title: string, settingPrompt: string, frontmatter: any, body: string, includeFrontmatter: boolean, customCommands?: string | string[]): string {

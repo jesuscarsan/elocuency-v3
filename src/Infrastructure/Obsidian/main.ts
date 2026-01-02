@@ -9,7 +9,6 @@ import {
   RelocatePlaceNoteCommand,
   ApplyStreamBriefCommand,
   GenerateMissingNotesFromLinksCommand,
-  EnhanceNoteCommand,
   EnhanceByAiCommand,
 
   AddImagesCommand,
@@ -144,77 +143,67 @@ export default class ObsidianExtension extends Plugin {
       {
         id: 'ApplyTemplateCommand',
         name: 'Nota: Aplica plantilla',
-        callback: (file?: TFile) => {
+        callback: async (file?: TFile) => {
           const applyTemplateCommand = new ApplyTemplateCommand(
             this.llm,
             imageSearch,
             this.app,
             this.settings,
           );
-          applyTemplateCommand.execute(file);
+          await applyTemplateCommand.execute(file);
         },
       },
       {
         id: 'ApplyStreamBriefCommand',
         name: 'Nota: Añade resumen',
-        callback: (file?: TFile) => {
+        callback: async (file?: TFile) => {
           const applyStreamBriefCommand = new ApplyStreamBriefCommand(
             this.llm,
             this.app,
           );
-          applyStreamBriefCommand.execute(file);
-        },
-      },
-      {
-        id: 'EnhanceNoteCommand',
-        name: 'Nota: Enriquece con plantilla y IA (ELIMINAR)',
-        callback: (file?: TFile) => {
-          const activeFile = file || this.app.workspace.getActiveFile();
-          if (activeFile) {
-            new EnhanceNoteCommand(this, this.llm).execute(activeFile);
-          }
+          await applyStreamBriefCommand.execute(file);
         },
       },
       {
         id: 'EnhanceByAiCommand',
         name: 'Nota: Enriquece con IA',
-        callback: (file?: TFile) => {
-          new EnhanceByAiCommand(this.app, this.settings, this.llm).execute(file);
+        callback: async (file?: TFile) => {
+          await new EnhanceByAiCommand(this.app, this.settings, this.llm).execute(file);
         },
       },
       {
         id: 'AddImagesCommand',
         name: 'Nota: Añade imágenes [AddImagesCommand]',
-        callback: (file?: TFile) => {
-          new AddImagesCommand(this.app, imageSearch).execute(file);
+        callback: async (file?: TFile) => {
+          await new AddImagesCommand(this.app, imageSearch).execute(file);
         },
       },
       {
         id: 'CreateNoteFromImagesCommand',
         name: 'Nota: Crea nota a partir de imágenes [CreateNoteFromImagesCommand]',
-        callback: (file?: TFile) => {
-          new CreateNoteFromImagesCommand(this.app, geminiImages).execute(file);
+        callback: async (file?: TFile) => {
+          await new CreateNoteFromImagesCommand(this.app, geminiImages).execute(file);
         }
       },
       {
         id: 'ApplyTemplateFromImageCommand',
         name: 'Nota: Aplica plantilla a partir de imágenes [ApplyTemplateFromImageCommand]',
-        callback: (file?: TFile) => {
-          new ApplyTemplateFromImageCommand(geminiImages, this.app, this.settings).execute(file);
+        callback: async (file?: TFile) => {
+          await new ApplyTemplateFromImageCommand(geminiImages, this.app, this.settings).execute(file);
         }
       },
       {
         id: 'generate-header-metadata',
         name: 'Nota: Genera metadatos de encabezado',
-        callback: (file?: TFile) => {
-          new GenerateHeaderMetadataCommand(this.app).execute(file);
+        callback: async (file?: TFile) => {
+          await new GenerateHeaderMetadataCommand(this.app).execute(file);
         }
       },
       {
         id: 'RelocateNoteByLinkFieldCommand',
         name: 'Nota: Reubica [RelocateNoteByLinkFieldCommand]',
-        callback: (file?: TFile) => {
-          new RelocateNoteByLinkFieldCommand(this.app).execute(file);
+        callback: async (file?: TFile) => {
+          await new RelocateNoteByLinkFieldCommand(this.app).execute(file);
         }
       },
 
@@ -232,37 +221,37 @@ export default class ObsidianExtension extends Plugin {
       {
         id: 'CreateReciprocityLinksNotesCommand',
         name: 'Links: Crea links reciprocos [CreateReciprocityLinksNotesCommand]',
-        callback: (file?: TFile) => {
-          new CreateReciprocityLinksNotesCommand(this.app).execute(file);
+        callback: async (file?: TFile) => {
+          await new CreateReciprocityLinksNotesCommand(this.app).execute(file);
         }
       },
       {
         id: 'AnalyzeAndLinkEntitiesCommand',
         name: 'Links: Analiza y enlaza entidades [AnalyzeAndLinkEntitiesCommand]',
-        callback: (file?: TFile) => {
-          new AnalyzeAndLinkEntitiesCommand(this.app, this.llm).execute(file);
+        callback: async (file?: TFile) => {
+          await new AnalyzeAndLinkEntitiesCommand(this.app, this.llm).execute(file);
         }
       },
 
       {
         id: 'EnrichPlaceCommand',
         name: 'Lugares: Enriquece Nota',
-        callback: (file?: TFile) => {
-          new EnrichPlaceCommand(geocoder, this.llm, this.app).execute(file);
+        callback: async (file?: TFile) => {
+          await new EnrichPlaceCommand(geocoder, this.llm, this.app).execute(file);
         },
       },
       {
         id: 'RelocatePlaceNoteCommand',
         name: 'Lugares: Reubica Nota',
-        callback: (file?: TFile) => {
-          new RelocatePlaceNoteCommand(this.app, geocoder, this.llm).execute(file);
+        callback: async (file?: TFile) => {
+          await new RelocatePlaceNoteCommand(this.app).execute(file);
         },
       },
       {
         id: 'AddPlaceIdFromUrlCommand',
         name: 'Lugares: Añadir Place Id desde URL',
-        callback: (file?: TFile) => {
-          new AddPlaceIdFromUrlCommand(geocoder, this.llm, this.app).execute(file);
+        callback: async (file?: TFile) => {
+          await new AddPlaceIdFromUrlCommand(geocoder, this.llm, this.app).execute(file);
         },
       },
 
