@@ -19,7 +19,8 @@ import {
   CreateNoteFromImagesCommand,
   ApplyTemplateFromImageCommand,
   GenerateHeaderMetadataCommand,
-  AddPlaceIdFromUrlCommand
+  AddPlaceIdFromUrlCommand,
+  GenerateMissingNotesFromListFieldCommand
 } from '@/Infrastructure/Obsidian/Commands';
 import { GoogleGeminiAdapter } from '../Adapters/GoogleGeminiAdapter/GoogleGeminiAdapter';
 import { GoogleMapsAdapter } from '../Adapters/GoogleMapsAdapter/GoogleMapsAdapter';
@@ -68,6 +69,7 @@ import { ObsidianSettingsAdapter } from '../Adapters/ObsidianSettingsAdapter';
 
 import { ObsidianHeaderDataRepository } from '../Adapters/ObsidianHeaderDataRepository';
 import { HeaderDataService } from '../../Application/Services/HeaderDataService';
+import { ImageEnricherService } from './Services/ImageEnricherService';
 
 export default class ObsidianExtension extends Plugin {
   settings: UnresolvedLinkGeneratorSettings = DEFAULT_SETTINGS;
@@ -115,6 +117,7 @@ export default class ObsidianExtension extends Plugin {
       this.settings.googleCustomSearchApiKey ?? '',
       this.settings.googleCustomSearchEngineId ?? ''
     );
+    const imageEnricher = new ImageEnricherService(imageSearch);
 
     this.spotifyAdapter = new SpotifyAdapter(
       this.settings.spotifyClientId,
@@ -146,7 +149,7 @@ export default class ObsidianExtension extends Plugin {
         callback: async (file?: TFile) => {
           const applyTemplateCommand = new ApplyTemplateCommand(
             this.llm,
-            imageSearch,
+            imageEnricher,
             this.app,
             this.settings,
           );
@@ -175,7 +178,7 @@ export default class ObsidianExtension extends Plugin {
         id: 'AddImagesCommand',
         name: 'Nota: Añade imágenes [AddImagesCommand]',
         callback: async (file?: TFile) => {
-          await new AddImagesCommand(this.app, imageSearch).execute(file);
+          await new AddImagesCommand(this.app, imageEnricher).execute(file);
         },
       },
       {
@@ -232,6 +235,14 @@ export default class ObsidianExtension extends Plugin {
           await new AnalyzeAndLinkEntitiesCommand(this.app, this.llm).execute(file);
         }
       },
+      {
+        id: 'GenerateMissingNotesFromListFieldCommand',
+        name: 'Links: Genera notas faltantes desde campo lista',
+        callback: async (file?: TFile) => {
+          await new GenerateMissingNotesFromListFieldCommand(this.app, this.settings, this.llm, imageEnricher).execute(file);
+        }
+      },
+
 
       {
         id: 'EnrichPlaceCommand',

@@ -15,7 +15,7 @@ import {
   splitFrontmatter,
 } from '@/Infrastructure/Obsidian/Utils/Frontmatter';
 import type { LlmPort } from '@/Domain/Ports/LlmPort';
-import type { ImageSearchPort } from '@/Domain/Ports/ImageSearchPort';
+import type { ImageEnricherService } from '@/Infrastructure/Obsidian/Services/ImageEnricherService';
 import { FrontmatterKeys } from '@/Domain/Constants/FrontmatterRegistry';
 import {
   getAllTemplateConfigs,
@@ -32,7 +32,7 @@ import { TemplateContext } from '@/Infrastructure/Obsidian/Utils/TemplateContext
 export class ApplyTemplateCommand {
   constructor(
     private readonly llm: LlmPort,
-    private readonly imageSearch: ImageSearchPort,
+    private readonly imageEnricher: ImageEnricherService,
     private readonly obsidian: ObsidianApp,
     private readonly settings: UnresolvedLinkGeneratorSettings,
   ) { }
@@ -123,16 +123,12 @@ export class ApplyTemplateCommand {
 
         // Check for empty image URLs
         if (updatedFrontmatter && Array.isArray(updatedFrontmatter[FrontmatterKeys.ImagenesUrls]) && (updatedFrontmatter[FrontmatterKeys.ImagenesUrls] as any[]).length === 0) {
-          showMessage('Buscando imágenes...');
-          const images = await this.imageSearch.searchImages(file.basename, 3);
+          const images = await this.imageEnricher.searchImages(file.basename, 3);
           if (images.length > 0) {
             updatedFrontmatter = {
               ...updatedFrontmatter,
               [FrontmatterKeys.ImagenesUrls]: images,
             };
-            showMessage(`Se encontraron ${images.length} imágenes.`);
-          } else {
-            showMessage('No se encontraron imágenes.');
           }
         }
 
@@ -201,15 +197,18 @@ export class ApplyTemplateCommand {
     // Handle !!commands (Execute commands)
     if (config.commands && Array.isArray(config.commands)) {
       // Find view for file if open
-      const leaf = this.obsidian.workspace.getLeavesOfType('markdown').find(leaf => (leaf.view as MarkdownView).file === file);
-      if (leaf) {
-        this.obsidian.workspace.setActiveLeaf(leaf, { focus: true });
+      let leaf = this.obsidian.workspace.getLeavesOfType('markdown').find(leaf => (leaf.view as MarkdownView).file === file);
+
+      // If not open, we must open it to support editor commands.
+      // We open in a new tab to avoid disrupting current view if possible, or just reuse.
+      if (!leaf) {
+        console.log(`[ApplyTemplateCommand] Opening file ${file.path} to execute commands.`);
+        leaf = this.obsidian.workspace.getLeaf(true);
+        await leaf.openFile(file);
       }
 
-      // If no view is open, some commands might fail.
-      // We log a warning but proceed.
-      if (!leaf) {
-        console.warn(`[ApplyTemplateCommand] No active view found for ${file.path}. Some commands might fail.`);
+      if (leaf) {
+        this.obsidian.workspace.setActiveLeaf(leaf, { focus: true });
       }
 
       TemplateContext.activeConfig = config;
@@ -230,7 +229,7 @@ export class ApplyTemplateCommand {
                 await command.callback();
               } else if (command.editorCallback) {
                 // Requires editor.
-                const activeView = getActiveMarkdownView(this.obsidian);
+                const activeView = (leaf?.view as MarkdownView);
                 if (activeView && activeView.file === file) {
                   await command.editorCallback(activeView.editor, activeView);
                 } else {
@@ -267,6 +266,6 @@ export class ApplyTemplateCommand {
     delete frontmatterCopy.tags;
     const frontmatterJson = JSON.stringify(frontmatterCopy, null, 2);
     // Include the body in the prompt so the LLM has context
-    return `Nota de obsidian:'${title}'\n\nFrontmatter:'${frontmatterJson}'\n\nContenido actual de la nota:\n${currentBody}\n\nInstrucción:\n${promptTemplate}\n\nIMPORTANTE: Tu respuesta debe ser un objeto JSON VÁLIDO con las siguientes claves:\n- "frontmatter": Objeto con los metadatos actualizados o nuevos (Opcional).\n- "body": String con el contenido del cuerpo de la nota (markdown).\n\nNO DEVUELVAS NADA MÁS QUE EL JSON. Los nombres de personas los envuelves entre '[[<persona>]]'`;
+    return `Nota de obsidian:'${title}'\n\nFrontmatter:'${frontmatterJson}'\n\nContenido actual de la nota:\n${currentBody}\n\nInstrucción:\n${promptTemplate}\n\nIMPORTANTE: Tu respuesta debe ser un objeto JSON VÁLIDO con las siguientes claves:\n- "frontmatter": Objeto con los metadatos actualizados o nuevos (Opcional).\n- "body": String con el contenido del cuerpo de la nota (markdown).\n\nNO DEVUELVAS NADA MÁS QUE EL JSON. En los campos 'Obras' y 'Países' y todos los nombres propios, devuélvelos como links the markdown estilo: [[nombre]]`;
   }
 }

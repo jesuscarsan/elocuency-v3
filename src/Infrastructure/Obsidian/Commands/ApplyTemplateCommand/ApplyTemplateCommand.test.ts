@@ -2,7 +2,7 @@ import { App, TFile, TFolder, Modal } from 'obsidian';
 import { ApplyTemplateCommand } from './ApplyTemplateCommand';
 import { TestContext } from '@/Infrastructure/Testing/TestContext';
 import { LlmPort } from '@/Domain/Ports/LlmPort';
-import { ImageSearchPort } from '@/Domain/Ports/ImageSearchPort';
+import { ImageEnricherService } from '@/Infrastructure/Obsidian/Services/ImageEnricherService';
 import { UnresolvedLinkGeneratorSettings } from '@/Infrastructure/Obsidian/settings';
 import { GenericFuzzySuggestModal } from '@/Infrastructure/Obsidian/Views/Modals/GenericFuzzySuggestModal';
 import { TemplateMatch } from '@/Infrastructure/Obsidian/Utils/TemplateConfig';
@@ -30,7 +30,7 @@ describe('ApplyTemplateCommand', () => {
     let context: TestContext;
     let command: ApplyTemplateCommand;
     let mockLlm: jest.Mocked<LlmPort>;
-    let mockImageSearch: jest.Mocked<ImageSearchPort>;
+    let mockImageEnricher: jest.Mocked<ImageEnricherService>;
     let settings: UnresolvedLinkGeneratorSettings;
 
     beforeEach(() => {
@@ -59,16 +59,16 @@ describe('ApplyTemplateCommand', () => {
             requestJson: jest.fn()
         } as unknown as jest.Mocked<LlmPort>;
 
-        mockImageSearch = {
+        mockImageEnricher = {
             searchImages: jest.fn().mockResolvedValue([])
-        };
+        } as unknown as jest.Mocked<ImageEnricherService>;
 
         settings = {
         } as any;
 
         command = new ApplyTemplateCommand(
             mockLlm,
-            mockImageSearch,
+            mockImageEnricher,
             context.app as any,
             settings
         );

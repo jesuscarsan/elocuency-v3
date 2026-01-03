@@ -15,7 +15,7 @@ Este es el comando principal para aplicar plantillas inteligentes a las notas.
 5.  **Organización y Post-procesado**:
     *   Si la plantilla define `!!path`, mueve la nota a esa ruta.
     *   Si la plantilla define `!!commands`, ejecuta esos comandos de Obsidian secuencialmente.
-    *   Ejecuta `PersonasNoteOrganizer` para organizar notas de personas si aplica.
+    *   Si la plantila define `Imagenes urls`, ejecuta el command "AddImages".
 
 ## Configuración de Plantillas
 
@@ -23,6 +23,7 @@ Las plantillas pueden tener claves especiales en su frontmatter (que se eliminan
 *   `!!prompt`: Instrucción para la IA.
 *   `!!path`: Ruta destino para mover la nota.
 *   `!!commands`: Lista de IDs de comandos a ejecutar.
+*   `Imagenes urls`: Lista de URLs de imágenes.
 
 ## Ejemplo
 
@@ -30,4 +31,3 @@ Usar una plantilla "Persona" que tiene un prompt "Extrae fecha de nacimiento y p
 1.  Creas nota `[[Elon Musk]]`.
 2.  Aplicas plantilla "Persona".
 3.  Gemini rellena `Fecha nacimiento: 1971-06-28` y `Profesion: Empresario`.
-4.  La nota se mueve a `Personas/E/Elon Musk.md` (si así lo configura el organizador o la ruta).

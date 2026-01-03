@@ -12,7 +12,7 @@ Este comando se utiliza para mover la nota de un lugar a la carpeta correspondie
 El comando intenta crear una estructura lógica:
 `[Carpeta Raíz de Lugares] / [Continente] / [País] / [Región/Comunidad] / [Provincia] / [Municipio] / Nota.md`
 
-Si es un Pais:
+Si es un País:
 `[Carpeta Raíz de Lugares] / [Continente] / [País] / [País].md`
 
 Si es una Region/Comunidad:

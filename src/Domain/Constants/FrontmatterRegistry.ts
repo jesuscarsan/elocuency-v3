@@ -3,6 +3,7 @@ export const FrontmatterKeys = {
     Provincia: "Provincia",
     Region: "Region",
     Pais: "País",
+    Paises: "Países",
     LugarId: "Lugar Id",
     Lugares: "Lugares",
     Lugar: "Lugar",
@@ -64,6 +65,13 @@ export const FrontmatterRegistry: Record<string, FrontmatterFieldConfig> = {
         key: FrontmatterKeys.Pais,
         description: "País soberano",
         type: 'string',
+        isRelocateField: true,
+        asLink: true
+    },
+    [FrontmatterKeys.Paises]: {
+        key: FrontmatterKeys.Paises,
+        description: "Países soberanos",
+        type: 'array',
         isRelocateField: true,
         asLink: true
     },

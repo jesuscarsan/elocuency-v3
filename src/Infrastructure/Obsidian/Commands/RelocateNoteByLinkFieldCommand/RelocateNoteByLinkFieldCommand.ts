@@ -1,6 +1,7 @@
 import { App, TFile, getAllTags, parseYaml } from 'obsidian';
 import { executeInEditMode, getActiveMarkdownView } from '@/Infrastructure/Obsidian/Utils/ViewMode';
 import { FrontmatterRegistry } from '@/Domain/Constants/FrontmatterRegistry';
+import { TagFolderMappingRegistry } from '@/Domain/Constants/TagFolderMappingRegistry';
 import { showMessage, moveFile } from '@/Infrastructure/Obsidian/Utils';
 
 export class RelocateNoteByLinkFieldCommand {
@@ -135,30 +136,30 @@ export class RelocateNoteByLinkFieldCommand {
             const allTags = [...tags, ...fmTagList];
             console.log('RelocateNote: Combined tag list final:', allTags);
 
-            const isPersona = allTags.some(tag => {
-                if (tag === null || tag === undefined) return false;
-                const normalized = String(tag).trim().toLowerCase().replace(/^#/, '');
-                return normalized === 'personas' || normalized.startsWith('personas/');
-            });
+            const normalizedTags = new Set(
+                allTags
+                    .filter(t => t !== null && t !== undefined)
+                    .map(t => String(t).trim().toLowerCase().replace(/^#/, ''))
+            );
 
-            console.log('RelocateNote: isPersona final decision:', isPersona);
+            let targetFolderSuffix: string | undefined;
 
-            const isObra = allTags.some(tag => {
-                if (tag === null || tag === undefined) return false;
-                const normalized = String(tag).trim().toLowerCase().replace(/^#/, '');
-                return normalized === 'obras' || normalized.startsWith('obras/');
-            });
-            console.log('RelocateNote: isObra final decision:', isObra);
+            // Iterate registry keys in order to respect priority (more specific tags first)
+            for (const [tagKey, folderSuffix] of Object.entries(TagFolderMappingRegistry)) {
+                if (normalizedTags.has(tagKey.toLowerCase())) {
+                    targetFolderSuffix = folderSuffix;
+                    break;
+                }
+            }
+
+            console.log('RelocateNote: determined suffix:', targetFolderSuffix);
+
             const isTargetLugar = targetFolder.path.startsWith('Lugares');
 
             let finalFolderPath = targetFolder.path;
 
-            if (isTargetLugar) {
-                if (isPersona) {
-                    finalFolderPath = `${targetFolder.path}/(Personas)`;
-                } else if (isObra) {
-                    finalFolderPath = `${targetFolder.path}/(Obras)`;
-                }
+            if (isTargetLugar && targetFolderSuffix) {
+                finalFolderPath = `${targetFolder.path}/${targetFolderSuffix}`;
 
                 if (finalFolderPath !== targetFolder.path) {
                     const folderExists = await this.app.vault.adapter.exists(finalFolderPath);

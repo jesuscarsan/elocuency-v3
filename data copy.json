@@ -36,8 +36,8 @@
       "targetFolder": "Lugares/Negocio"
     },
     {
-      "templateFilename": "Pais.md",
-      "targetFolder": "Lugares/Pais"
+      "templateFilename": "País.md",
+      "targetFolder": "Lugares/País"
     },
     {
       "templateFilename": "Eventos (Fiestas, ...).md",

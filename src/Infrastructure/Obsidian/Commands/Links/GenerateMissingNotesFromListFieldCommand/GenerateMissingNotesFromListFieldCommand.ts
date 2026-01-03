@@ -12,27 +12,27 @@ import { GenericFuzzySuggestModal } from '@/Infrastructure/Obsidian/Views/Modals
 import { ApplyTemplateCommand } from '../../ApplyTemplateCommand/ApplyTemplateCommand';
 import { parseFrontmatter, splitFrontmatter } from '@/Infrastructure/Obsidian/Utils/Frontmatter';
 import { LlmPort } from '@/Domain/Ports/LlmPort';
-import { ImageSearchPort } from '@/Domain/Ports/ImageSearchPort';
+import { ImageEnricherService } from '@/Infrastructure/Obsidian/Services/ImageEnricherService';
 
-export class GenerateMissingNotesFromObrasCommand {
+export class GenerateMissingNotesFromListFieldCommand {
     private applyTemplateCommand: ApplyTemplateCommand;
 
     constructor(
         private readonly app: App,
         private readonly settings: UnresolvedLinkGeneratorSettings,
         private readonly llm: LlmPort,
-        private readonly imageSearch: ImageSearchPort,
+        private readonly imageEnricher: ImageEnricherService,
     ) {
         this.applyTemplateCommand = new ApplyTemplateCommand(
             llm,
-            imageSearch,
+            imageEnricher,
             app,
             settings
         );
     }
 
     async execute(file?: TFile): Promise<void> {
-        console.log('[GenerateMissingNotesFromObrasCommand] Start');
+        console.log('[GenerateMissingNotesFromListFieldCommand] Start');
         const activeFile = file ?? this.app.workspace.getActiveFile();
         if (!activeFile) {
             showMessage('No active file found.');
@@ -43,47 +43,71 @@ export class GenerateMissingNotesFromObrasCommand {
         const split = splitFrontmatter(content);
         const frontmatter = parseFrontmatter(split.frontmatterText);
 
-        if (!frontmatter || !frontmatter['Obras']) {
-            showMessage('No "Obras" field found in the frontmatter.');
+        if (!frontmatter) {
+            showMessage('No frontmatter found.');
             return;
         }
 
-        let obrasLinks: string[] = [];
-
-        // Parse Obras field: it can be a list of strings like ["[[Obra1]]", "[[Obra2]]"] or just strings if the parser handled it already
-        const obrasField = frontmatter['Obras'];
-
-        if (Array.isArray(obrasField)) {
-            obrasLinks = obrasField.map(link => this.extractLinkText(link)).filter(l => l !== null) as string[];
-        } else if (typeof obrasField === 'string') {
-            // Could be a comma separated list or a single link? 
-            // Or if it's a valid list in YAML it should be parsed as array.
-            // If it's "[[Obra1]], [[Obra2]]" string, we might need to regex.
-            // Assuming well formed list for now.
-            const extracted = this.extractLinkText(obrasField);
-            if (extracted) obrasLinks.push(extracted);
+        // 1. Identify list fields
+        const listFields: string[] = [];
+        for (const [key, value] of Object.entries(frontmatter)) {
+            if (Array.isArray(value)) {
+                listFields.push(key);
+            }
         }
 
-        if (obrasLinks.length === 0) {
-            showMessage('No links found in "Obras".');
+        if (listFields.length === 0) {
+            showMessage('No list fields found in the frontmatter.');
             return;
         }
 
+        // 2. Prompt user to select a field
+        let selectedField: string | null = null;
+
+        selectedField = await new Promise<string | null>((resolve) => {
+            new GenericFuzzySuggestModal<string>(
+                this.app,
+                listFields,
+                (item: string) => item,
+                () => { },
+                resolve
+            ).open();
+        });
+
+        if (!selectedField) {
+            // User cancelled or no selection
+            return;
+        }
+
+        // 3. Extract links from the selected field
+        let links: string[] = [];
+        const fieldData = frontmatter[selectedField];
+
+        if (Array.isArray(fieldData)) {
+            links = fieldData.map(link => this.extractLinkText(link)).filter(l => l !== null) as string[];
+        }
+
+        if (links.length === 0) {
+            showMessage(`No links found in "${selectedField}".`);
+            return;
+        }
+
+        // 4. Check for missing notes
         const missingNotes: string[] = [];
-        for (const link of obrasLinks) {
+        for (const link of links) {
             if (!this.linkExists(link)) {
                 missingNotes.push(link);
             }
         }
 
         if (missingNotes.length === 0) {
-            showMessage('All notes in "Obras" already exist.');
+            showMessage(`All notes in "${selectedField}" already exist.`);
             return;
         }
 
-        showMessage(`Found ${missingNotes.length} missing notes. Select template...`);
+        showMessage(`Found ${missingNotes.length} missing notes in "${selectedField}". Select template...`);
 
-        // Ask for template
+        // 5. Ask for template
         const matches = await getAllTemplateConfigs(this.app);
         if (matches.length === 0) {
             showMessage('No templates found.');
@@ -96,7 +120,7 @@ export class GenerateMissingNotesFromObrasCommand {
             new GenericFuzzySuggestModal<TemplateMatch>(
                 this.app,
                 matches,
-                (item) => item.templateFile.basename,
+                (item: TemplateMatch) => item.templateFile.basename,
                 () => { },
                 resolve
             ).open();
@@ -111,8 +135,6 @@ export class GenerateMissingNotesFromObrasCommand {
 
         for (const noteName of missingNotes) {
             try {
-                // Create file in current folder (or root if active file path is weird)
-                // Or maybe follow some convention. User said: "cifrarlo igual que GenerateMissingNotesFromLinksCommand"? No, user request was specific about "aplicarle una template"
                 // Default: Same folder as active note.
                 const parentPath = activeFile.parent ? activeFile.parent.path : '';
                 const newFilePath = normalizePath(`${parentPath}/${noteName}.md`);
@@ -137,7 +159,7 @@ export class GenerateMissingNotesFromObrasCommand {
         }
 
         showMessage(`Finished generating notes.`);
-        console.log('[GenerateMissingNotesFromObrasCommand] End');
+        console.log('[GenerateMissingNotesFromListFieldCommand] End');
     }
 
     private extractLinkText(text: string): string | null {

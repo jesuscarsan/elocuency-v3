@@ -1,5 +1,5 @@
 import { App as ObsidianApp, MarkdownView, Notice, TFile } from 'obsidian';
-import type { ImageSearchPort } from '@/Domain/Ports/ImageSearchPort';
+import type { ImageEnricherService } from '@/Infrastructure/Obsidian/Services/ImageEnricherService';
 import { FrontmatterKeys } from '@/Domain/Constants/FrontmatterRegistry';
 import { showMessage } from '@/Infrastructure/Obsidian/Utils/Messages';
 import { formatFrontmatterBlock, parseFrontmatter, splitFrontmatter } from '@/Infrastructure/Obsidian/Utils/Frontmatter';
@@ -8,7 +8,7 @@ import { executeInEditMode, getActiveMarkdownView } from '../../Utils/ViewMode';
 export class AddImagesCommand {
     constructor(
         private readonly app: ObsidianApp,
-        private readonly imageSearch: ImageSearchPort,
+        private readonly imageEnricher: ImageEnricherService,
     ) { }
 
     async execute(targetFile?: TFile) {
@@ -33,16 +33,13 @@ export class AddImagesCommand {
                 return;
             }
 
-            showMessage(`Buscando imágenes para: ${file.basename}...`);
+            const images = await this.imageEnricher.searchImages(file.basename, 3);
+
+            if (images.length === 0) {
+                return;
+            }
 
             try {
-                const images = await this.imageSearch.searchImages(file.basename, 3);
-
-                if (images.length === 0) {
-                    showMessage('No se encontraron imágenes.');
-                    return;
-                }
-
                 const updatedFrontmatter = {
                     ...frontmatter,
                     [FrontmatterKeys.ImagenesUrls]: images,
@@ -56,7 +53,7 @@ export class AddImagesCommand {
 
             } catch (error) {
                 console.error(error);
-                showMessage('Error al buscar imágenes.');
+                showMessage('Error al guardar imágenes.');
             }
         });
         console.log('[AddImagesCommand] End');

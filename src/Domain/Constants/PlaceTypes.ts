@@ -18,7 +18,7 @@ export const PlaceTypes = [
     "Lugares/Municipios",
     "Lugares/Provincias",
     "Lugares/Regiones",
-    "Lugares/Paises",
+    "Lugares/Países",
     "Lugares/Ciudades",
     "Lugares/Continentes",
     "Lugares/Barrios",

@@ -70,7 +70,7 @@ describe('RelocatePlaceNoteCommand', () => {
             Municipio: 'Mun',
             Provincia: 'Prov',
             Region: 'Reg',
-            País: 'Pais',
+            País: 'País',
         };
         (parseFrontmatter as jest.Mock).mockReturnValue(mockFrontmatter);
 

@@ -13,5 +13,5 @@ export * from './RelocateNoteByLinkFieldCommand/RelocateNoteByLinkFieldCommand';
 export * from './Music/SearchSpotifyArtistCommand/SearchSpotifyArtistCommand';
 export * from './Place/AddPlaceIdFromUrlCommand/AddPlaceIdFromUrlCommand';
 export * from './Links/AnalyzeAndLinkEntitiesCommand/AnalyzeAndLinkEntitiesCommand';
-export * from './Links/GenerateMissingNotesFromObrasCommand/GenerateMissingNotesFromObrasCommand';
+export * from './Links/GenerateMissingNotesFromListFieldCommand/GenerateMissingNotesFromListFieldCommand';
 

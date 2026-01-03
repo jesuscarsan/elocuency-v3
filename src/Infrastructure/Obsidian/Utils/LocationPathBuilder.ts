@@ -23,7 +23,7 @@ export class LocationPathBuilder {
 
         const { continent, isRegionFamous } = metadata;
 
-        // Base path: Lugares/Continente/Pais
+        // Base path: Lugares/Continente/País
         const parts = ['Lugares', continent, pais];
 
         // Region logic

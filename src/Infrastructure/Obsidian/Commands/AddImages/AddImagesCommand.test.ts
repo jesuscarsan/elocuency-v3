@@ -1,24 +1,24 @@
 import { App, TFile, MarkdownView } from 'obsidian';
 import { AddImagesCommand } from './AddImagesCommand';
 import { TestContext } from '../../../Testing/TestContext';
-import { ImageSearchPort } from '@/Domain/Ports/ImageSearchPort';
+import { ImageEnricherService } from '@/Infrastructure/Obsidian/Services/ImageEnricherService';
 import { FrontmatterKeys } from '@/Domain/Constants/FrontmatterRegistry';
 
 describe('AddImagesCommand', () => {
     let context: TestContext;
     let command: AddImagesCommand;
-    let mockImageSearch: jest.Mocked<ImageSearchPort>;
+    let mockImageEnricher: jest.Mocked<ImageEnricherService>;
 
     beforeEach(() => {
         context = new TestContext();
 
-        mockImageSearch = {
+        mockImageEnricher = {
             searchImages: jest.fn().mockResolvedValue([])
-        };
+        } as unknown as jest.Mocked<ImageEnricherService>;
 
         command = new AddImagesCommand(
             context.app as any,
-            mockImageSearch
+            mockImageEnricher
         );
     });
 
@@ -34,7 +34,7 @@ describe('AddImagesCommand', () => {
 
         // Mock Search Result
         const images = ['http://img1.jpg', 'http://img2.jpg'];
-        mockImageSearch.searchImages.mockResolvedValue(images);
+        mockImageEnricher.searchImages.mockResolvedValue(images);
 
         await command.execute();
 
@@ -58,7 +58,7 @@ describe('AddImagesCommand', () => {
         await command.execute();
 
         // Search should NOT be called
-        expect(mockImageSearch.searchImages).not.toHaveBeenCalled();
+        expect(mockImageEnricher.searchImages).not.toHaveBeenCalled();
 
         const updatedContent = await context.app.vault.read(file);
         expect(updatedContent).toContain('existing.jpg');
