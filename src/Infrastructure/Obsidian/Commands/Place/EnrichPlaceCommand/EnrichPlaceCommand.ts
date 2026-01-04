@@ -1,6 +1,7 @@
 import { App as ObsidianApp, MarkdownView, SuggestModal, TFile } from 'obsidian';
 import { PlaceEnrichmentService } from '@/Application/Services/PlaceEnrichmentService';
-import { PlaceTypes } from '@/Domain/Constants/PlaceTypes';
+import { PlaceTypes, PlaceTypeRegistry, PlaceType } from '@/Domain/Constants/PlaceTypes';
+
 import { FrontmatterKeys } from '@/Domain/Constants/FrontmatterRegistry';
 import type { GeocodingPort, GeocodingResponse } from '@/Domain/Ports/GeocodingPort';
 import type { LlmPort } from '@/Domain/Ports/LlmPort';
@@ -76,13 +77,30 @@ export class EnrichPlaceCommand {
 
             // 2. Classify Place Type
             // Reuse logic from ApplyPlaceTypeCommand: AI Classification -> User Disambiguation
-            const classification = await this.enrichmentService.classifyPlace(searchName);
-            let selectedTag: string | null = classification?.suggestedTag ?? null;
 
-            if (!classification?.isConfident || !selectedTag || selectedTag === 'Other') {
-                selectedTag = await this.askUserForTag();
-            } else {
-                showMessage(`Tipo detectado: ${selectedTag}`);
+            // First check if we already have a tag in the frontmatter
+            let selectedTag: string | null = null;
+            if (currentFrontmatter && currentFrontmatter[FrontmatterKeys.Tags]) {
+                const rawTags = currentFrontmatter[FrontmatterKeys.Tags];
+                const tags: string[] = Array.isArray(rawTags) ? rawTags : [rawTags as string];
+
+                // Find the first valid PlaceType tag
+                const found = tags.find((t: string) => PlaceTypes.includes(t as any));
+                if (found) {
+                    selectedTag = found;
+                    showMessage(`Tipo detectado en frontmatter: ${selectedTag}`);
+                }
+            }
+
+            if (!selectedTag) {
+                const classification = await this.enrichmentService.classifyPlace(searchName);
+                selectedTag = classification?.suggestedTag ?? null;
+
+                if (!classification?.isConfident || !selectedTag || selectedTag === 'Other') {
+                    selectedTag = await this.askUserForTag();
+                } else {
+                    showMessage(`Tipo detectado por IA: ${selectedTag}`);
+                }
             }
 
             if (!selectedTag) {
@@ -90,11 +108,18 @@ export class EnrichPlaceCommand {
                 return;
             }
 
-            showMessage(`Obteniendo detalles completos y datos extendidos...`);
+            // Map selectedTag to a search suffix for disambiguation using the Registry
+            let placeTypeSuffix: string | undefined;
+            if (selectedTag) {
+                const config = PlaceTypeRegistry[selectedTag as PlaceType];
+                placeTypeSuffix = config?.geocodingSuffix;
+            }
+
+            showMessage(`Obteniendo detalles completos y datos extendidos...${placeTypeSuffix ? ` (Tipo: ${placeTypeSuffix})` : ''}`);
 
             // 3. Enrich Data
             // Reuse logic from ApplyGeocoderCommand: Fetch refined details, metadata, summary
-            const enriched = await this.enrichmentService.enrichPlace(searchName, undefined, placeId);
+            const enriched = await this.enrichmentService.enrichPlace(searchName, undefined, placeId, placeTypeSuffix);
 
             if (!enriched) {
                 showMessage('No se pudieron obtener datos enriquecidos.');

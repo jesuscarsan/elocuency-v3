@@ -33,3 +33,15 @@ export const PlaceTypes = [
 ] as const;
 
 export type PlaceType = (typeof PlaceTypes)[number];
+
+export interface PlaceTypeConfig {
+    geocodingSuffix?: string;
+}
+
+export const PlaceTypeRegistry: Partial<Record<PlaceType, PlaceTypeConfig>> = {
+    "Lugares/Provincias": { geocodingSuffix: "Provincia" },
+    "Lugares/Regiones": { geocodingSuffix: "Region" },
+    "Lugares/Países": { geocodingSuffix: "Pais" },
+    "Lugares/Municipios": { geocodingSuffix: "Municipio" },
+    "Lugares/Ciudades": { geocodingSuffix: "Ciudad" },
+};

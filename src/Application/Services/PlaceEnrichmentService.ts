@@ -17,12 +17,13 @@ export class PlaceEnrichmentService {
         private llm: LlmPort
     ) { }
 
-    async enrichPlace(placeName: string, promptPlaceDetails?: GeocodingResponse, placeId?: string): Promise<{ refinedDetails: GeocodingResponse, metadata: PlaceMetadata, summary: string, tags: string[] } | null> {
+    async enrichPlace(placeName: string, promptPlaceDetails?: GeocodingResponse, placeId?: string, placeType?: string): Promise<{ refinedDetails: GeocodingResponse, metadata: PlaceMetadata, summary: string, tags: string[] } | null> {
         let placeDetails: GeocodingResponse | null | undefined = promptPlaceDetails;
 
         if (!placeDetails) {
+            const searchName = placeType ? `${placeName.trim()} ${placeType}` : placeName.trim();
             placeDetails = await this.geocoder.requestPlaceDetails({
-                placeName: placeName.trim(),
+                placeName: searchName,
                 placeId: placeId
             });
         }
@@ -48,8 +49,8 @@ export class PlaceEnrichmentService {
            - If it is a Region -> provincia="", municipio=""
            - If it is a Province -> municipio=""
         3. 'pais' must be the sovereign country (e.g. "Reino Unido" for England).
-        4. If the place is a Country, provide its Capital City in the 'capital' field of refinedDetails.
-        
+        4. If the place is a Country, provide its Capital City in the 'capital' field of refinedDetails, and add the 'continent' field of refinedDetails.
+    
         Rules for metadata:
         1. Continent (in Spanish).
         2. isRegionFamous (boolean).
@@ -70,6 +71,7 @@ export class PlaceEnrichmentService {
                 "region": "...",
                 "pais": "...",
                 "capital": "...", // Only if it is a country
+                "continent": "...", // Only if it is a country
                 "googlePlaceId": "...",
                 "lat": 0.0,
                 "lng": 0.0
