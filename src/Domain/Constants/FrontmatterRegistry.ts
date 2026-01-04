@@ -1,4 +1,8 @@
+import { CommandEnum } from "./CommandIds";
+
 export const FrontmatterKeys = {
+    EloCommands: "!!commands",
+    EloPrompt: "!!prompt",
     Municipio: "Municipio",
     Provincia: "Provincia",
     Region: "Region",
@@ -15,8 +19,6 @@ export const FrontmatterKeys = {
     Capital: "Capital",
     Tags: "tags",
     ImagenesUrls: "Imagenes urls",
-    AiCommands: "!!commands",
-    AiPrompt: "!!prompt",
     Conocidos: "Conocidos",
     Hijos: "Hijos",
     Padres: "Padres",
@@ -40,9 +42,24 @@ export interface FrontmatterFieldConfig {
     asLink?: boolean;
     reciprocityField?: FrontmatterKey;
     isRelocateField?: boolean;
+    commands?: string[];
 }
 
+
 export const FrontmatterRegistry: Record<string, FrontmatterFieldConfig> = {
+    // Internal fields:
+    [FrontmatterKeys.EloCommands]: {
+        key: FrontmatterKeys.EloCommands,
+        description: "Comandos adicionales para la IA",
+        type: 'array'
+    },
+    [FrontmatterKeys.EloPrompt]: {
+        key: FrontmatterKeys.EloPrompt,
+        description: "Prompt personalizado para la IA",
+        type: 'string'
+    },
+
+    // User fields:
     [FrontmatterKeys.Municipio]: {
         key: FrontmatterKeys.Municipio,
         description: "Nombre del municipio, ciudad o pueblo",
@@ -66,7 +83,7 @@ export const FrontmatterRegistry: Record<string, FrontmatterFieldConfig> = {
         description: "País soberano",
         type: 'string',
         isRelocateField: true,
-        asLink: true
+        asLink: true,
     },
     [FrontmatterKeys.Paises]: {
         key: FrontmatterKeys.Paises,
@@ -78,21 +95,24 @@ export const FrontmatterRegistry: Record<string, FrontmatterFieldConfig> = {
     [FrontmatterKeys.LugarId]: {
         key: FrontmatterKeys.LugarId,
         description: "Identificador único del lugar (ej. Google Place ID)",
-        type: 'string'
+        type: 'string',
+        commands: [CommandEnum.RelocateNoteByLinkField]
     },
     [FrontmatterKeys.Lugares]: {
         key: FrontmatterKeys.Lugares,
         description: "Lugares relacionados",
         type: 'array',
         isRelocateField: true,
-        asLink: true
+        asLink: true,
+        commands: [CommandEnum.RelocateNoteByLinkField]
     },
     [FrontmatterKeys.Lugar]: {
         key: FrontmatterKeys.Lugar,
         description: "Lugar relacionado",
         type: 'string',
         isRelocateField: true,
-        asLink: true
+        asLink: true,
+        commands: [CommandEnum.RelocateNoteByLinkField]
     },
     [FrontmatterKeys.SedePrincipal]: {
         key: FrontmatterKeys.SedePrincipal,
@@ -114,8 +134,9 @@ export const FrontmatterRegistry: Record<string, FrontmatterFieldConfig> = {
     [FrontmatterKeys.Url]: {
         key: FrontmatterKeys.Url,
         description: "URL de la web, video, streaming, ...",
-        type: 'string'
+        type: 'string',
     },
+
     [FrontmatterKeys.SpotifyUri]: {
         key: FrontmatterKeys.SpotifyUri,
         description: "URI de Spotify",
@@ -137,85 +158,85 @@ export const FrontmatterRegistry: Record<string, FrontmatterFieldConfig> = {
         description: "Lista de URLs de imágenes del lugar",
         type: 'array'
     },
-    [FrontmatterKeys.AiCommands]: {
-        key: FrontmatterKeys.AiCommands,
-        description: "Comandos adicionales para la IA",
-        type: 'array'
-    },
-    [FrontmatterKeys.AiPrompt]: {
-        key: FrontmatterKeys.AiPrompt,
-        description: "Prompt personalizado para la IA",
-        type: 'string'
-    },
     [FrontmatterKeys.Conocidos]: {
         key: FrontmatterKeys.Conocidos,
         description: "Lista de conocidos",
         type: 'array',
         reciprocityField: FrontmatterKeys.Conocidos,
-        asLink: true
+        asLink: true,
+        commands: [CommandEnum.RelocateNoteByLinkField]
     },
     [FrontmatterKeys.Hijos]: {
         key: FrontmatterKeys.Hijos,
         description: "Hijos de la persona",
         type: 'array',
         reciprocityField: FrontmatterKeys.Padres,
-        asLink: true
+        asLink: true,
+        commands: [CommandEnum.RelocateNoteByLinkField]
     },
     [FrontmatterKeys.Padres]: {
         key: FrontmatterKeys.Padres,
         description: "Padres de la persona",
         type: 'array',
         reciprocityField: FrontmatterKeys.Hijos,
-        asLink: true
+        asLink: true,
+        commands: [CommandEnum.RelocateNoteByLinkField]
     },
     [FrontmatterKeys.Parejas]: {
         key: FrontmatterKeys.Parejas,
         description: "Parejas actuales",
         type: 'array',
         reciprocityField: FrontmatterKeys.Parejas,
-        asLink: true
+        asLink: true,
+        commands: [CommandEnum.RelocateNoteByLinkField]
     },
     [FrontmatterKeys.Exparejas]: {
         key: FrontmatterKeys.Exparejas,
         description: "Exparejas",
         type: 'array',
         reciprocityField: FrontmatterKeys.Exparejas,
-        asLink: true
+        asLink: true,
+        commands: [CommandEnum.RelocateNoteByLinkField]
     },
     [FrontmatterKeys.Hermanos]: {
         key: FrontmatterKeys.Hermanos,
         description: "Hermanos",
         type: 'array',
         reciprocityField: FrontmatterKeys.Hermanos,
-        asLink: true
+        asLink: true,
+        commands: [CommandEnum.RelocateNoteByLinkField]
     },
     [FrontmatterKeys.Familiares]: {
         key: FrontmatterKeys.Familiares,
         description: "Otros familiares",
         type: 'array',
         reciprocityField: FrontmatterKeys.Familiares,
-        asLink: true
+        asLink: true,
+        commands: [CommandEnum.RelocateNoteByLinkField]
     },
     [FrontmatterKeys.CompanerosTrabajo]: {
         key: FrontmatterKeys.CompanerosTrabajo,
         description: "Compañeros de trabajo",
         type: 'array',
         reciprocityField: FrontmatterKeys.CompanerosTrabajo,
-        asLink: true
+        asLink: true,
+        commands: [CommandEnum.RelocateNoteByLinkField]
     },
     [FrontmatterKeys.Jefes]: {
         key: FrontmatterKeys.Jefes,
         description: "Jefes directos",
         type: 'array',
         reciprocityField: FrontmatterKeys.Empleados,
-        asLink: true
+        asLink: true,
+        commands: [CommandEnum.RelocateNoteByLinkField]
     },
     [FrontmatterKeys.Empleados]: {
         key: FrontmatterKeys.Empleados,
         description: "Empleados a cargo",
         type: 'array',
         reciprocityField: FrontmatterKeys.Jefes,
-        asLink: true
+        asLink: true,
+        commands: [CommandEnum.RelocateNoteByLinkField]
     },
     [FrontmatterKeys.EstilosMusicales]: {
         key: FrontmatterKeys.EstilosMusicales,

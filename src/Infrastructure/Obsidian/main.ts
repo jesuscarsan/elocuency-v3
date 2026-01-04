@@ -22,7 +22,9 @@ import {
   AddPlaceIdFromUrlCommand,
   GenerateMissingNotesFromListFieldCommand
 } from '@/Infrastructure/Obsidian/Commands';
+import { CommandEnum } from '@/Domain/Constants/CommandIds';
 import { GoogleGeminiAdapter } from '../Adapters/GoogleGeminiAdapter/GoogleGeminiAdapter';
+
 import { GoogleMapsAdapter } from '../Adapters/GoogleMapsAdapter/GoogleMapsAdapter';
 import { GoogleImageSearchAdapter } from '../Adapters/GoogleImageSearchAdapter/GoogleImageSearchAdapter';
 import {
@@ -70,6 +72,8 @@ import { ObsidianSettingsAdapter } from '../Adapters/ObsidianSettingsAdapter';
 import { ObsidianHeaderDataRepository } from '../Adapters/ObsidianHeaderDataRepository';
 import { HeaderDataService } from '../../Application/Services/HeaderDataService';
 import { ImageEnricherService } from './Services/ImageEnricherService';
+import { FrontmatterEventService } from './Services/FrontmatterEventService';
+
 
 export default class ObsidianExtension extends Plugin {
   settings: UnresolvedLinkGeneratorSettings = DEFAULT_SETTINGS;
@@ -138,13 +142,17 @@ export default class ObsidianExtension extends Plugin {
     const settingsAdapter = new ObsidianSettingsAdapter(this);
     this.musicService = new MusicService(this.spotifyAdapter, settingsAdapter);
 
+    // Initialize Frontmatter Event Service
+    new FrontmatterEventService(this.app);
+
     // --- Command Definitions ---
+
     // We define them here to access local variables (geocoder, geminiImages, etc)
     // and populate the noteCommands array.
 
     this.noteCommands = [
       {
-        id: 'ApplyTemplateCommand',
+        id: CommandEnum.ApplyTemplate,
         name: 'Nota: Aplica plantilla',
         callback: async (file?: TFile) => {
           const applyTemplateCommand = new ApplyTemplateCommand(
@@ -157,7 +165,7 @@ export default class ObsidianExtension extends Plugin {
         },
       },
       {
-        id: 'ApplyStreamBriefCommand',
+        id: CommandEnum.ApplyStreamBrief,
         name: 'Nota: Añade resumen',
         callback: async (file?: TFile) => {
           const applyStreamBriefCommand = new ApplyStreamBriefCommand(
@@ -168,42 +176,42 @@ export default class ObsidianExtension extends Plugin {
         },
       },
       {
-        id: 'EnhanceByAiCommand',
+        id: CommandEnum.EnhanceByAi,
         name: 'Nota: Enriquece con IA',
         callback: async (file?: TFile) => {
           await new EnhanceByAiCommand(this.app, this.settings, this.llm).execute(file);
         },
       },
       {
-        id: 'AddImagesCommand',
+        id: CommandEnum.AddImages,
         name: 'Nota: Añade imágenes [AddImagesCommand]',
         callback: async (file?: TFile) => {
           await new AddImagesCommand(this.app, imageEnricher).execute(file);
         },
       },
       {
-        id: 'CreateNoteFromImagesCommand',
+        id: CommandEnum.CreateNoteFromImages,
         name: 'Nota: Crea nota a partir de imágenes [CreateNoteFromImagesCommand]',
         callback: async (file?: TFile) => {
           await new CreateNoteFromImagesCommand(this.app, geminiImages).execute(file);
         }
       },
       {
-        id: 'ApplyTemplateFromImageCommand',
+        id: CommandEnum.ApplyTemplateFromImage,
         name: 'Nota: Aplica plantilla a partir de imágenes [ApplyTemplateFromImageCommand]',
         callback: async (file?: TFile) => {
           await new ApplyTemplateFromImageCommand(geminiImages, this.app, this.settings).execute(file);
         }
       },
       {
-        id: 'generate-header-metadata',
+        id: CommandEnum.GenerateHeaderMetadata,
         name: 'Nota: Genera metadatos de encabezado',
         callback: async (file?: TFile) => {
           await new GenerateHeaderMetadataCommand(this.app).execute(file);
         }
       },
       {
-        id: 'RelocateNoteByLinkFieldCommand',
+        id: CommandEnum.RelocateNoteByLinkField,
         name: 'Nota: Reubica [RelocateNoteByLinkFieldCommand]',
         callback: async (file?: TFile) => {
           await new RelocateNoteByLinkFieldCommand(this.app).execute(file);
@@ -211,7 +219,7 @@ export default class ObsidianExtension extends Plugin {
       },
 
       {
-        id: 'GenerateMissingNotesFromLinksCommand',
+        id: CommandEnum.GenerateMissingNotesFromLinks,
         name: 'Links: Create notas para links sin notas [GenerateMissingNotesFromLinksCommand]',
         callback: async (file?: TFile) => {
           const generateMissingNotesCommand = new GenerateMissingNotesFromLinksCommand(
@@ -222,21 +230,21 @@ export default class ObsidianExtension extends Plugin {
         },
       },
       {
-        id: 'CreateReciprocityLinksNotesCommand',
+        id: CommandEnum.CreateReciprocityLinksNotes,
         name: 'Links: Crea links reciprocos [CreateReciprocityLinksNotesCommand]',
         callback: async (file?: TFile) => {
           await new CreateReciprocityLinksNotesCommand(this.app).execute(file);
         }
       },
       {
-        id: 'AnalyzeAndLinkEntitiesCommand',
+        id: CommandEnum.AnalyzeAndLinkEntities,
         name: 'Links: Analiza y enlaza entidades [AnalyzeAndLinkEntitiesCommand]',
         callback: async (file?: TFile) => {
           await new AnalyzeAndLinkEntitiesCommand(this.app, this.llm).execute(file);
         }
       },
       {
-        id: 'GenerateMissingNotesFromListFieldCommand',
+        id: CommandEnum.GenerateMissingNotesFromListField,
         name: 'Links: Genera notas faltantes desde campo lista',
         callback: async (file?: TFile) => {
           await new GenerateMissingNotesFromListFieldCommand(this.app, this.settings, this.llm, imageEnricher).execute(file);
@@ -245,21 +253,21 @@ export default class ObsidianExtension extends Plugin {
 
 
       {
-        id: 'EnrichPlaceCommand',
+        id: CommandEnum.EnrichPlace,
         name: 'Lugares: Enriquece Nota',
         callback: async (file?: TFile) => {
           await new EnrichPlaceCommand(geocoder, this.llm, this.app).execute(file);
         },
       },
       {
-        id: 'RelocatePlaceNoteCommand',
+        id: CommandEnum.RelocatePlaceNote,
         name: 'Lugares: Reubica Nota',
         callback: async (file?: TFile) => {
           await new RelocatePlaceNoteCommand(this.app).execute(file);
         },
       },
       {
-        id: 'AddPlaceIdFromUrlCommand',
+        id: CommandEnum.AddPlaceIdFromUrl,
         name: 'Lugares: Añadir Place Id desde URL',
         callback: async (file?: TFile) => {
           await new AddPlaceIdFromUrlCommand(geocoder, this.llm, this.app).execute(file);
@@ -267,7 +275,7 @@ export default class ObsidianExtension extends Plugin {
       },
 
       {
-        id: 'SearchSpotifyTrack',
+        id: CommandEnum.SearchSpotifyTrack,
         name: 'Spotify: Busca canción',
         callback: () => {
           // Ensure adapter has latest credentials
@@ -282,7 +290,7 @@ export default class ObsidianExtension extends Plugin {
         }
       },
       {
-        id: 'ImportPlaylistTracks',
+        id: CommandEnum.ImportPlaylistTracks,
         name: 'Spotify: Importa canciones de playlist',
         callback: async () => {
           this.spotifyAdapter.updateCredentials(this.settings.spotifyClientId, this.settings.spotifyAccessToken);
@@ -296,7 +304,7 @@ export default class ObsidianExtension extends Plugin {
         }
       },
       {
-        id: 'SearchSpotifyArtistCommand',
+        id: CommandEnum.SearchSpotifyArtist,
         name: 'Spotify: Busca artista',
         callback: () => {
           // Ensure adapter has latest credentials
