@@ -1,7 +1,7 @@
 import { App, MarkdownView, TFile, Notice } from 'obsidian';
 import { LlmPort } from '@/Domain/Ports/LlmPort';
 import { showMessage } from '@/Infrastructure/Obsidian/Utils/Messages';
-import { getActiveMarkdownView } from '@/Infrastructure/Obsidian/Utils/ViewMode';
+import { getActiveMarkdownView, executeInEditMode } from '@/Infrastructure/Obsidian/Utils/ViewMode';
 import { EntitySelectionModal, Entity } from '@/Infrastructure/Obsidian/Views/Modals/EntitySelectionModal';
 
 export class AnalyzeAndLinkEntitiesCommand {
@@ -47,7 +47,9 @@ export class AnalyzeAndLinkEntitiesCommand {
 
             new EntitySelectionModal(this.app, highRelevanceEntities, (selectedEntities) => {
                 if (selectedEntities.length > 0) {
-                    this.processEntities(selectedEntities, editor);
+                    executeInEditMode(view, async () => {
+                        this.processEntities(selectedEntities, view.editor);
+                    });
                     showMessage(`Processed ${selectedEntities.length} entities.`);
                 } else {
                     showMessage('No entities selected.');
@@ -120,9 +122,11 @@ CRITICAL: Return ONLY the JSON Array. No markdown formatting around it.
             // Find all occurrences. check index. if index is inside [[...]], skip.
 
             const escapedName = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-            // Match whole word, Case Insensitive? Maybe better to respect the case returned by AI or exact match?
-            // The AI was asked for "exact string occurrence", so we try exact match first or simple global ignore case
-            const regex = new RegExp(`\\b${escapedName}\\b`, 'g');
+            // Use lookarounds for Unicode letters to support non-ASCII characters (e.g. Spanish accents)
+            // \b is not unicode aware in JS normally without 'u' flag suitable for this.
+            // (?<!\p{L}) : Not preceded by a Unicode Letter
+            // (?!\p{L}) : Not followed by a Unicode Letter
+            const regex = new RegExp(`(?<!\\p{L})${escapedName}(?!\\p{L})`, 'gu');
 
             content = content.replace(regex, (match: string, offset: number, string: string) => {
                 // Check if we are inside a link: [[...match...]] or [match](...)

@@ -15,7 +15,7 @@ export class EntitySelectionModal extends Modal {
         private onConfirm: (selected: Entity[]) => void
     ) {
         super(app);
-        this.selectedEntities = new Set(entities);
+        this.selectedEntities = new Set(entities.filter(e => e.relevance === 'High'));
     }
 
     onOpen() {
@@ -28,7 +28,7 @@ export class EntitySelectionModal extends Modal {
                 .setName(`${entity.name} (${entity.type})`)
                 .setDesc(`Relevance: ${entity.relevance}`)
                 .addToggle(toggle => toggle
-                    .setValue(true)
+                    .setValue(entity.relevance === 'High')
                     .onChange(value => {
                         if (value) {
                             this.selectedEntities.add(entity);
