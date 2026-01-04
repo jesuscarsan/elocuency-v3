@@ -1,4 +1,4 @@
-import { App, TFile, TFolder, Modal } from 'obsidian';
+import { App, TFile, TFolder, Modal, requestUrl } from 'obsidian';
 import { ApplyTemplateCommand } from './ApplyTemplateCommand';
 import { TestContext } from '@/Infrastructure/Testing/TestContext';
 import { LlmPort } from '@/Domain/Ports/LlmPort';
@@ -72,6 +72,7 @@ describe('ApplyTemplateCommand', () => {
             context.app as any,
             settings
         );
+        (requestUrl as jest.Mock).mockClear();
     });
 
     test('should apply template to a note', async () => {
@@ -127,5 +128,37 @@ describe('ApplyTemplateCommand', () => {
         // We might need to spy on the module or check that no changes happened.
         const content = await context.app.vault.read(targetFile);
         expect(content).toBe('# Content');
+    });
+    test('should fetch promptUrl content and include it in prompt', async () => {
+        // Setup
+        await context.createFolder('Templates');
+        await context.createFolder('Notes');
+        await context.createFile('Templates/Url Template.md', '---\ntags: [template]\n"!!prompt": Summarize this\n---\n# Template Content\n');
+
+        const targetFile = await context.createFile('Notes/Url Note.md', '---\n"!!promptUrl": "http://example.com/info"\n---\n# Original Content');
+
+        const leaf = context.app.workspace.getLeaf(true);
+        await leaf.openFile(targetFile);
+
+        // Mock requestUrl response
+        (requestUrl as jest.Mock).mockResolvedValue({
+            text: 'Content from URL'
+        });
+
+        // Mock LLM response
+        mockLlm.requestEnrichment.mockResolvedValue({
+            frontmatter: { summary: 'Summary with URL context' },
+            body: 'AI Generated Content'
+        });
+
+        // Execute
+        await command.execute();
+
+        // Verify
+        expect(requestUrl).toHaveBeenCalledWith('http://example.com/info');
+
+        expect(mockLlm.requestEnrichment).toHaveBeenCalled();
+        const callArgs = mockLlm.requestEnrichment.mock.calls[0][0];
+        expect(callArgs.prompt).toContain('Contexto adicional (URL):\nContent from URL');
     });
 });

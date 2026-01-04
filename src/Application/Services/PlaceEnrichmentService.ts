@@ -32,12 +32,12 @@ export class PlaceEnrichmentService {
             return null;
         }
 
-        return this.getEnrichedData(placeName.trim(), placeDetails);
+        return this.getEnrichedData(placeName.trim(), placeDetails, placeType);
     }
 
-    private async getEnrichedData(placeName: string, rawDetails: GeocodingResponse): Promise<{ refinedDetails: GeocodingResponse, metadata: PlaceMetadata, summary: string, tags: string[] } | null> {
+    private async getEnrichedData(placeName: string, rawDetails: GeocodingResponse, placeType?: string): Promise<{ refinedDetails: GeocodingResponse, metadata: PlaceMetadata, summary: string, tags: string[] } | null> {
         const prompt = `
-        I have a place named "${placeName}".
+        I have a place named "${placeName}"${placeType ? ` (Type: ${placeType})` : ''}.
         Raw Geocoding Data: ${JSON.stringify(rawDetails)}.
 
         Please refine this data and provide metadata.

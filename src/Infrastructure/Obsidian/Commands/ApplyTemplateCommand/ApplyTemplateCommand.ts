@@ -3,6 +3,7 @@ import {
   MarkdownView,
   TFile,
   normalizePath,
+  requestUrl,
 } from 'obsidian';
 import { showMessage } from '@/Infrastructure/Obsidian/Utils/Messages';
 import {
@@ -106,7 +107,21 @@ export class ApplyTemplateCommand {
     let finalContent = recomposedSegments.join('\n\n');
 
     if (config.prompt) {
-      const prompt = this.buildPrompt(file.basename, mergedFrontmatter, config.prompt, normalizedBody);
+      let urlContext = '';
+      if (mergedFrontmatter && mergedFrontmatter['!!promptUrl']) {
+        const url = mergedFrontmatter['!!promptUrl'] as string;
+        try {
+          console.log(`[ApplyTemplateCommand] Fetching content from ${url}`);
+          const response = await requestUrl(url);
+          urlContext = response.text;
+          console.log(`[ApplyTemplateCommand] Fetched ${urlContext.length} chars from ${url}`);
+        } catch (e) {
+          console.error(`[ApplyTemplateCommand] Failed to fetch promptUrl: ${url}`, e);
+          showMessage(`Failed to fetch content from ${url}`);
+        }
+      }
+
+      const prompt = this.buildPrompt(file.basename, mergedFrontmatter, config.prompt, normalizedBody, urlContext);
 
 
       console.log('[ApplyTemplateCommand] Requesting enrichment with prompt:', prompt);
@@ -261,11 +276,12 @@ export class ApplyTemplateCommand {
     currentFrontmatter: Record<string, unknown> | null,
     promptTemplate: string,
     currentBody: string = '',
+    urlContext: string = '',
   ): string {
     const frontmatterCopy = currentFrontmatter ? { ...currentFrontmatter } : {};
     delete frontmatterCopy.tags;
     const frontmatterJson = JSON.stringify(frontmatterCopy, null, 2);
     // Include the body in the prompt so the LLM has context
-    return `Nota de obsidian:'${title}'\n\nFrontmatter:'${frontmatterJson}'\n\nContenido actual de la nota:\n${currentBody}\n\nInstrucción:\n${promptTemplate}\n\nIMPORTANTE: Tu respuesta debe ser un objeto JSON VÁLIDO con las siguientes claves:\n- "frontmatter": Objeto con los metadatos actualizados o nuevos (Opcional).\n- "body": String con el contenido del cuerpo de la nota (markdown).\n\nNO DEVUELVAS NADA MÁS QUE EL JSON. En los campos 'Obras' y 'Países' y todos los nombres propios, devuélvelos como links the markdown estilo: [[nombre]]`;
+    return `Nota de obsidian:'${title}'\n\nFrontmatter:'${frontmatterJson}'\n\nContenido actual de la nota:\n${currentBody}\n\nContexto adicional (URL):\n${urlContext}\n\nInstrucción:\n${promptTemplate}\n\nIMPORTANTE: Tu respuesta debe ser un objeto JSON VÁLIDO con las siguientes claves:\n- "frontmatter": Objeto con los metadatos actualizados o nuevos (Opcional).\n- "body": String con el contenido del cuerpo de la nota (markdown).\n\nNO DEVUELVAS NADA MÁS QUE EL JSON. En los campos 'Obras' y 'Países' y todos los nombres propios, devuélvelos como links the markdown estilo: [[nombre]]`;
   }
 }
