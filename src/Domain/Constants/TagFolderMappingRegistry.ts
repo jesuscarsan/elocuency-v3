@@ -10,4 +10,5 @@ export const TagFolderMappingRegistry: Record<string, string> = {
     "Obras/Libros": "(Obras-Libros)",
     "Obras/Bebidas": "(Gastronomía)",
     "Obras/Comidas": "(Gastronomía)",
+    "Obras/Canales-Stream": "(Medios)",
 };

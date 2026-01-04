@@ -5,7 +5,7 @@ export const FrontmatterKeys = {
     EloPrompt: "!!prompt",
     Municipio: "Municipio",
     Provincia: "Provincia",
-    Region: "Region",
+    Region: "Región",
     Pais: "País",
     Paises: "Países",
     LugarId: "Lugar Id",

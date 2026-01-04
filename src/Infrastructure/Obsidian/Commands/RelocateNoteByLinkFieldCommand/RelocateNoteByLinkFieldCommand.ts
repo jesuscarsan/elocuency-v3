@@ -169,6 +169,13 @@ export class RelocateNoteByLinkFieldCommand {
                 }
             }
 
+
+            // Si la nota esta en una carpeta con el mismo nombre, no hace el relocate (es folder note ya ubicada)
+            if (activeFile.parent?.name === activeFile.basename) {
+                console.log('RelocateNote: Note is in a folder with the same name (Folder Note), skipping relocation.');
+                return;
+            }
+
             console.log('RelocateteNoteCommand: From', activeFile.parent?.path);
             console.log('RelocateteNoteCommand: To', finalFolderPath);
 

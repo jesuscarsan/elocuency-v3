@@ -4,7 +4,7 @@ Este comando asegura que una nota de lugar esté vinculada unívocamente a Googl
 
 ## ¿Cómo funciona?
 
-1.  **Construcción de Consulta**: Combina el nombre de la nota con la información geográfica que ya tenga en el frontmatter (`Municipio`, `Region`, `País`) para hacer una búsqueda precisa.
+1.  **Construcción de Consulta**: Combina el nombre de la nota con la información geográfica que ya tenga en el frontmatter (`Municipio`, `Región`, `País`) para hacer una búsqueda precisa.
 2.  **Búsqueda en Google Maps**: Solicita los detalles del lugar a la API.
 3.  **Actualización**:
     *   Guarda el `Place ID` único de Google en el campo `Lugar Id` (con prefijo `google-maps-id:`).

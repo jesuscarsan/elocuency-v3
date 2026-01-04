@@ -1,6 +1,6 @@
 {
   "name": "elo-obsidian-ext",
-  "version": "0.1.63",
+  "version": "0.1.64",
   "description": "Obsidian helper extension.",
   "main": "build/main.js",
   "scripts": {

@@ -2,6 +2,7 @@ import { App as ObsidianApp, TFile, TFolder } from 'obsidian';
 import { executeInEditMode, getActiveMarkdownView } from '@/Infrastructure/Obsidian/Utils/ViewMode';
 import { showMessage, LocationPathBuilder, splitFrontmatter, parseFrontmatter, moveFile, ensureFolderNotes } from '@/Infrastructure/Obsidian/Utils';
 import { GeocodingResponse } from '@/Domain/Ports/GeocodingPort';
+import { FrontmatterKeys } from '@/Domain/Constants/FrontmatterRegistry';
 
 /**
  * Ver './RelocatePlaceNoteCommand.md' para más información.
@@ -49,10 +50,10 @@ export class RelocatePlaceNoteCommand {
 
             // Directly map frontmatter to GeocodingResponse structure
             const details: GeocodingResponse = {
-                municipio: getString('Municipio'),
-                provincia: getString('Provincia'),
-                region: getString('Region'),
-                pais: getString('País'),
+                municipio: getString(FrontmatterKeys.Municipio),
+                provincia: getString(FrontmatterKeys.Provincia),
+                region: getString(FrontmatterKeys.Region),
+                pais: getString(FrontmatterKeys.Pais),
             };
 
             // Clean up empty strings if needed, though LocationPathBuilder handles empty checks slightly differently (using optional chaining), 
@@ -61,7 +62,7 @@ export class RelocatePlaceNoteCommand {
             // Extract continent from País link if usually formatted like [[Lugares/Europe/Spain|Spain]]
             // We need to catch 'Europe' from that path.
             let continent = '';
-            let paisRaw = frontmatter['País'];
+            let paisRaw = frontmatter[FrontmatterKeys.Pais];
 
             // Handle array case for País
             if (Array.isArray(paisRaw)) {
@@ -104,7 +105,7 @@ export class RelocatePlaceNoteCommand {
             }
 
             const mockMetadata: any = {
-                tags: frontmatter['tags'] || [],
+                tags: frontmatter[FrontmatterKeys.Tags] || [],
                 continent: continent
             };
 
