@@ -81,7 +81,7 @@ Extract:
 Return a JSON ARRAY of objects. Each object must have:
 - "name": The exact string occurrence in the text (case-sensitive preference, but normalize if needed).
 - "type": "Person", "Place", or "Concept".
-- "relevance": "High" (crucial to understand the note), "Medium" (important context), "Low" (mentioned in passing).
+- "relevance": "High" (is important for general knowledge), "Medium" (is medium important for general knowledge), "Low" (is not important for general knowledge).
 
 Example Output:
 [
@@ -97,63 +97,47 @@ CRITICAL: Return ONLY the JSON Array. No markdown formatting around it.
         let content = editor.getValue();
 
         // Sort entities by length (descending) to avoid replacing substrings of longer names first
-        // e.g. replacing "Apple" inside "Apple Pie" if "Apple" is processed first.
         entities.sort((a, b) => b.name.length - a.name.length);
 
         const cache = this.app.metadataCache;
 
+        // Find frontmatter end index
+        const frontmatterRegex = /^---\n([\s\S]*?)\n---\n/;
+        const frontmatterMatch = content.match(frontmatterRegex);
+        const frontmatterEndIndex = frontmatterMatch ? frontmatterMatch[0].length : 0;
+
         for (const entity of entities) {
             const name = entity.name;
-            // distinct regex to find the name NOT already inside a link
-            // Look for 'name' that is NOT preceded by '[[' or '|' and NOT followed by ']]'
-            // This is a naive regex approach. For robust link replacement, improved parsing is better, 
-            // but for this command, a regex replacement on whole words is a good start.
-
-            // Regex explanation:
-            // (?<!\[\[|\|) : Not preceded by "[[" or "|"
-            // \b : Word boundary (start)
-            // ${escapeRegExp(name)} : The entity name
-            // \b : Word boundary (end)
-            // (?![^\[]*\]\]) : Not inside a link (simple heuristic: not followed by closing brackets without opening ones). 
-            // NOTE: The lookahead check (?![^\[]*\]\]) is tricky and can be slow or inaccurate with nested structures.
-            // Simplified approach: match the word, check if it's linking.
-
-            // Let's use a simpler replacement strategy:
-            // Find all occurrences. check index. if index is inside [[...]], skip.
-
             const escapedName = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-            // Use lookarounds for Unicode letters to support non-ASCII characters (e.g. Spanish accents)
-            // \b is not unicode aware in JS normally without 'u' flag suitable for this.
-            // (?<!\p{L}) : Not preceded by a Unicode Letter
-            // (?!\p{L}) : Not followed by a Unicode Letter
+            // Use lookarounds for Unicode letters to support non-ASCII characters
             const regex = new RegExp(`(?<!\\p{L})${escapedName}(?!\\p{L})`, 'gu');
 
             content = content.replace(regex, (match: string, offset: number, string: string) => {
-                // Check if we are inside a link: [[...match...]] or [match](...)
+                // Check if we are inside a link
                 if (this.isInsideLink(string, offset, match.length)) {
                     return match;
                 }
 
-                // Check if file exists to decide on format [[Name]] or [[Name|Name]]? 
-                // Detailed check:
+                const isInsideFrontmatter = offset < frontmatterEndIndex;
                 const linkDest = cache.getFirstLinkpathDest(name, '');
+                let linkText = `[[${match}]]`;
 
-                if (linkDest) {
-                    // File exists!
-                    // If the filename is exactly the match, use [[match]]
-                    // If filename is different, use [[filename|match]]
-                    // But getFirstLinkpathDest returns the TFile. basename is the filename without extension.
-                    if (linkDest.basename === match) {
-                        return `[[${match}]]`;
-                    } else {
-                        // Use alias format
-                        return `[[${linkDest.basename}|${match}]]`;
-                    }
-                } else {
-                    // File does not exist. 
-                    // Should we link it anyway? YES, if relevance is High/Medium.
-                    return `[[${match}]]`;
+                if (linkDest && linkDest.basename !== match) {
+                    linkText = `[[${linkDest.basename}|${match}]]`;
                 }
+
+                if (isInsideFrontmatter) {
+                    // Check if already quoted
+                    const charBefore = offset > 0 ? string[offset - 1] : '';
+                    const charAfter = offset + match.length < string.length ? string[offset + match.length] : '';
+
+                    if ((charBefore === '"' && charAfter === '"') || (charBefore === "'" && charAfter === "'")) {
+                        return linkText;
+                    }
+                    return `"${linkText}"`;
+                }
+
+                return linkText;
             });
         }
 
