@@ -411,6 +411,7 @@ class GoogleMapsSuggestModal extends FuzzySuggestModal<GoogleGeocodeResult> {
   ) {
     super(app);
     this.resolve = resolve;
+    console.log('[GoogleMapsSuggestModal] Created with results:', results.length);
   }
 
   getItems(): GoogleGeocodeResult[] {
@@ -422,12 +423,15 @@ class GoogleMapsSuggestModal extends FuzzySuggestModal<GoogleGeocodeResult> {
   }
 
   onChooseItem(item: GoogleGeocodeResult, evt: MouseEvent | KeyboardEvent): void {
+    console.log('[GoogleMapsSuggestModal] onChooseItem called', item);
     this.isSelected = true;
     this.resolve(item);
   }
 
   onClose(): void {
+    console.log('[GoogleMapsSuggestModal] onClose called. isSelected:', this.isSelected);
     if (!this.isSelected) {
+      console.log('[GoogleMapsSuggestModal] resolving with NULL');
       this.resolve(null);
     }
   }

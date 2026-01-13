@@ -131,6 +131,11 @@ export class ApplyTemplateCommand {
       console.log('[ApplyTemplateCommand] Enrichment received:', enrichment);
 
       if (enrichment) {
+        if (enrichment.frontmatter) {
+          delete enrichment.frontmatter.tags;
+          delete enrichment.frontmatter.tag;
+        }
+
         let updatedFrontmatter = mergeFrontmatterSuggestions(
           mergedFrontmatter,
           enrichment.frontmatter,

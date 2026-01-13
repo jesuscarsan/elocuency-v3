@@ -18,7 +18,7 @@ export const FrontmatterKeys = {
     SpotifyUri: "Spotify uri",
     Capital: "Capital",
     Tags: "tags",
-    ImagenesUrls: "Imagenes urls",
+    ImagenesUrls: "Imágenes urls",
     Conocidos: "Conocidos",
     Hijos: "Hijos",
     Padres: "Padres",
@@ -31,6 +31,7 @@ export const FrontmatterKeys = {
     Empleados: "Empleados",
     EstilosMusicales: "Estilos musicales",
     SpotifyPopularity: "Spotify popularidad",
+    Fotos: "Fotos",
 } as const;
 
 export type FrontmatterKey = (typeof FrontmatterKeys)[keyof typeof FrontmatterKeys];
@@ -80,17 +81,19 @@ export const FrontmatterRegistry: Record<string, FrontmatterFieldConfig> = {
     },
     [FrontmatterKeys.Pais]: {
         key: FrontmatterKeys.Pais,
-        description: "País soberano",
+        description: "País",
         type: 'string',
         isRelocateField: true,
         asLink: true,
+        commands: [CommandEnum.RelocateNoteByLinkField]
     },
     [FrontmatterKeys.Paises]: {
         key: FrontmatterKeys.Paises,
-        description: "Países soberanos",
+        description: "Países",
         type: 'array',
         isRelocateField: true,
-        asLink: true
+        asLink: true,
+        commands: [CommandEnum.RelocateNoteByLinkField]
     },
     [FrontmatterKeys.LugarId]: {
         key: FrontmatterKeys.LugarId,
@@ -164,7 +167,7 @@ export const FrontmatterRegistry: Record<string, FrontmatterFieldConfig> = {
         type: 'array',
         reciprocityField: FrontmatterKeys.Conocidos,
         asLink: true,
-        commands: [CommandEnum.RelocateNoteByLinkField]
+        commands: [CommandEnum.CreateReciprocityLinksNotes]
     },
     [FrontmatterKeys.Hijos]: {
         key: FrontmatterKeys.Hijos,
@@ -172,7 +175,7 @@ export const FrontmatterRegistry: Record<string, FrontmatterFieldConfig> = {
         type: 'array',
         reciprocityField: FrontmatterKeys.Padres,
         asLink: true,
-        commands: [CommandEnum.RelocateNoteByLinkField]
+        commands: [CommandEnum.CreateReciprocityLinksNotes]
     },
     [FrontmatterKeys.Padres]: {
         key: FrontmatterKeys.Padres,
@@ -180,7 +183,7 @@ export const FrontmatterRegistry: Record<string, FrontmatterFieldConfig> = {
         type: 'array',
         reciprocityField: FrontmatterKeys.Hijos,
         asLink: true,
-        commands: [CommandEnum.RelocateNoteByLinkField]
+        commands: [CommandEnum.CreateReciprocityLinksNotes]
     },
     [FrontmatterKeys.Parejas]: {
         key: FrontmatterKeys.Parejas,
@@ -188,7 +191,7 @@ export const FrontmatterRegistry: Record<string, FrontmatterFieldConfig> = {
         type: 'array',
         reciprocityField: FrontmatterKeys.Parejas,
         asLink: true,
-        commands: [CommandEnum.RelocateNoteByLinkField]
+        commands: [CommandEnum.CreateReciprocityLinksNotes]
     },
     [FrontmatterKeys.Exparejas]: {
         key: FrontmatterKeys.Exparejas,
@@ -196,7 +199,7 @@ export const FrontmatterRegistry: Record<string, FrontmatterFieldConfig> = {
         type: 'array',
         reciprocityField: FrontmatterKeys.Exparejas,
         asLink: true,
-        commands: [CommandEnum.RelocateNoteByLinkField]
+        commands: [CommandEnum.CreateReciprocityLinksNotes]
     },
     [FrontmatterKeys.Hermanos]: {
         key: FrontmatterKeys.Hermanos,
@@ -204,7 +207,7 @@ export const FrontmatterRegistry: Record<string, FrontmatterFieldConfig> = {
         type: 'array',
         reciprocityField: FrontmatterKeys.Hermanos,
         asLink: true,
-        commands: [CommandEnum.RelocateNoteByLinkField]
+        commands: [CommandEnum.CreateReciprocityLinksNotes]
     },
     [FrontmatterKeys.Familiares]: {
         key: FrontmatterKeys.Familiares,
@@ -212,7 +215,7 @@ export const FrontmatterRegistry: Record<string, FrontmatterFieldConfig> = {
         type: 'array',
         reciprocityField: FrontmatterKeys.Familiares,
         asLink: true,
-        commands: [CommandEnum.RelocateNoteByLinkField]
+        commands: [CommandEnum.CreateReciprocityLinksNotes]
     },
     [FrontmatterKeys.CompanerosTrabajo]: {
         key: FrontmatterKeys.CompanerosTrabajo,
@@ -220,7 +223,7 @@ export const FrontmatterRegistry: Record<string, FrontmatterFieldConfig> = {
         type: 'array',
         reciprocityField: FrontmatterKeys.CompanerosTrabajo,
         asLink: true,
-        commands: [CommandEnum.RelocateNoteByLinkField]
+        commands: [CommandEnum.CreateReciprocityLinksNotes]
     },
     [FrontmatterKeys.Jefes]: {
         key: FrontmatterKeys.Jefes,
@@ -228,7 +231,7 @@ export const FrontmatterRegistry: Record<string, FrontmatterFieldConfig> = {
         type: 'array',
         reciprocityField: FrontmatterKeys.Empleados,
         asLink: true,
-        commands: [CommandEnum.RelocateNoteByLinkField]
+        commands: [CommandEnum.CreateReciprocityLinksNotes]
     },
     [FrontmatterKeys.Empleados]: {
         key: FrontmatterKeys.Empleados,
@@ -236,7 +239,7 @@ export const FrontmatterRegistry: Record<string, FrontmatterFieldConfig> = {
         type: 'array',
         reciprocityField: FrontmatterKeys.Jefes,
         asLink: true,
-        commands: [CommandEnum.RelocateNoteByLinkField]
+        commands: [CommandEnum.CreateReciprocityLinksNotes]
     },
     [FrontmatterKeys.EstilosMusicales]: {
         key: FrontmatterKeys.EstilosMusicales,
@@ -247,5 +250,10 @@ export const FrontmatterRegistry: Record<string, FrontmatterFieldConfig> = {
         key: FrontmatterKeys.SpotifyPopularity,
         description: "Popularidad del artista en Spotify (0-100)",
         type: 'number'
+    },
+    [FrontmatterKeys.Fotos]: {
+        key: FrontmatterKeys.Fotos,
+        description: "Lista de fotos enlazadas",
+        type: 'array'
     }
 };

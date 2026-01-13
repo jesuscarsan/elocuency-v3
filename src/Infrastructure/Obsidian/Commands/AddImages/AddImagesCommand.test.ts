@@ -39,7 +39,7 @@ describe('AddImagesCommand', () => {
         await command.execute();
 
         const updatedContent = await context.app.vault.read(file);
-        // "Imagenes urls" key should be present
+        // "Imágenes urls" key should be present
         expect(updatedContent).toContain(FrontmatterKeys.ImagenesUrls);
         expect(updatedContent).toContain('http://img1.jpg');
         expect(updatedContent).toContain('http://img2.jpg');

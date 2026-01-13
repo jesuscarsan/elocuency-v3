@@ -38,6 +38,18 @@ export class RelocatePlaceNoteCommand {
                 return;
             }
 
+            const rawTags = frontmatter[FrontmatterKeys.Tags];
+            const tags: string[] = Array.isArray(rawTags)
+                ? rawTags
+                : (typeof rawTags === 'string' ? rawTags.split(',').map(t => t.trim()) : []);
+
+            const hasLugaresTag = tags.some(tag => tag.startsWith('Lugares/'));
+            if (!hasLugaresTag) {
+                showMessage('Este comando solo se aplica a notas que tengan un tag que empiece por "Lugares/".');
+                console.log('[RelocatePlaceNoteCommand] End (No "Lugares/" tag)');
+                return;
+            }
+
             // Directly map frontmatter to GeocodingResponse structure
             // Helper to safely get string from frontmatter and strip wiki-links
             const getString = (key: string): string => {

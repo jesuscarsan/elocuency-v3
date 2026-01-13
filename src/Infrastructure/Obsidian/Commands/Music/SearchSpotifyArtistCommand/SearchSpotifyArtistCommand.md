@@ -12,7 +12,7 @@ Este comando conecta tu nota con datos reales de Spotify.
 4.  **Enriquecimiento**: Actualiza el frontmatter con:
     *   `Spotify uri`: Enlace interno de Spotify.
     *   `Estilos musicales`: Géneros asociados.
-    *   `Imagenes urls`: Fotos del artista.
+    *   `Imágenes urls`: Fotos del artista.
     *   `Spotify popularidad`: Índice de 0 a 100.
 5.  **Renombrado**: Si el nombre de la nota no coincide exactamente con el nombre oficial del artista en Spotify, renombra el archivo para corregirlo.
 

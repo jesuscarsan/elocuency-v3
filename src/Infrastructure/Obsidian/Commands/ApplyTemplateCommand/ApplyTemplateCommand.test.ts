@@ -161,4 +161,45 @@ describe('ApplyTemplateCommand', () => {
         const callArgs = mockLlm.requestEnrichment.mock.calls[0][0];
         expect(callArgs.prompt).toContain('Contexto adicional (URL):\nContent from URL');
     });
+
+    test('should filter out tags from prompt and ignore tags from LLM response', async () => {
+        // Setup
+        await context.createFolder('Templates');
+        await context.createFile('Templates/Tag filter.md', '---\n"!!prompt": Add metadata\n---\n');
+
+        // 1. Verify Prompt filtering: Note HAS tags
+        const noteWithTags = await context.createFile('Notes/WithTags.md', '---\ntags: [secret]\n---\n# Content');
+        let leaf = context.app.workspace.getLeaf(true);
+        await leaf.openFile(noteWithTags);
+
+        mockLlm.requestEnrichment.mockResolvedValue({ frontmatter: {}, body: '' }); // dummy
+        await command.execute();
+
+        let callArgs = mockLlm.requestEnrichment.mock.calls[0][0];
+        const promptMatch = callArgs.prompt.match(/Frontmatter:'([\s\S]*?)'/);
+        expect(promptMatch).not.toBeNull();
+        if (promptMatch) {
+            let promptJson = JSON.parse(promptMatch[1]);
+            expect(promptJson.tags).toBeUndefined();
+            expect(promptJson.tag).toBeUndefined();
+        }
+
+        mockLlm.requestEnrichment.mockClear();
+
+        // 2. Verify Response filtering: Note has NO tags, LLM returns tags
+        const noteNoTags = await context.createFile('Notes/NoTags.md', '---\nsummary: original\n---\n# Content');
+        leaf = context.app.workspace.getLeaf(true);
+        await leaf.openFile(noteNoTags);
+
+        mockLlm.requestEnrichment.mockResolvedValue({
+            frontmatter: { tags: ['injected'], tag: 'injected_single' },
+            body: 'Body'
+        });
+
+        await command.execute();
+
+        const content = await context.app.vault.read(noteNoTags);
+        expect(content).not.toContain('injected');
+        expect(content).toContain('summary: original');
+    });
 });

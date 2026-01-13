@@ -28,7 +28,11 @@ export const PlaceTypes = [
     "Lugares/Casas",
     "Lugares/Oficinas",
     "Lugares/Pisos",
-    "Lugares/Calles"
+    "Lugares/Calles",
+    "Lugares/Islas",
+    "Lugares/Tiendas-de-ropa",
+    "Eventos/Festivales-de-cine",
+    "Eventos/Festivales-de-musica",
 
 ] as const;
 

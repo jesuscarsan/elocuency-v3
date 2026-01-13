@@ -17,4 +17,6 @@ export enum CommandEnum {
     SearchSpotifyTrack = 'SearchSpotifyTrack',
     ImportPlaylistTracks = 'ImportPlaylistTracks',
     SearchSpotifyArtist = 'SearchSpotifyArtistCommand',
+    InsertLinkToSelectedPhoto = 'InsertLinkToSelectedPhotoCommand',
+    OpenLinkedPhoto = 'OpenLinkedPhotoCommand',
 }

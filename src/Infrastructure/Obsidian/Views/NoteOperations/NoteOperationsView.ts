@@ -11,6 +11,8 @@ export const VIEW_TYPE_NOTE_OPERATIONS = 'note-operations-view';
 export class NoteOperationsView extends ItemView {
     private plugin: ObsidianExtension;
     private selectedCommandId: string = '';
+    private executeButton: ButtonComponent | null = null;
+    private isExecuting: boolean = false;
 
     // Audio Services
     private audioRecorder: AudioRecorder;
@@ -72,14 +74,14 @@ export class NoteOperationsView extends ItemView {
 
 
         // Execute Button
-        const button = new ButtonComponent(controlsContainer);
-        button
+        this.executeButton = new ButtonComponent(controlsContainer);
+        this.executeButton
             .setButtonText('Ejecutar Command')
             .setCta()
             .onClick(() => {
                 this.executeSelectedCommand();
             });
-        button.buttonEl.style.width = '100%';
+        this.executeButton.buttonEl.style.width = '100%';
 
         // --- Push-to-Talk Microphone ---
         const micContainer = container.createDiv();
@@ -224,29 +226,48 @@ export class NoteOperationsView extends ItemView {
         }
     }
 
-    private executeSelectedCommand() {
+    private async executeSelectedCommand() {
         if (!this.selectedCommandId) {
             showMessage('No command selected');
             return;
         }
 
+        if (this.isExecuting) return;
+
         const commands = this.plugin.getNoteCommands();
         const cmd = commands.find(c => c.id === this.selectedCommandId);
 
         if (cmd && cmd.callback) {
-            // Try to get active view, fallback to last active markdown file
-            let view = getActiveMarkdownView(this.app);
-            let targetFile = view?.file;
-
-            if (!targetFile) {
-                targetFile = this.plugin.getLastActiveMarkdownFile() ?? undefined;
+            this.isExecuting = true;
+            if (this.executeButton) {
+                this.executeButton.setDisabled(true);
+                this.executeButton.setButtonText('Ejecutando...');
             }
 
-            if (targetFile) {
-                cmd.callback(targetFile);
-                showMessage(`Executed: ${cmd.name}`);
-            } else {
-                showMessage('No active markdown file to contextually execute command.');
+            try {
+                // Try to get active view, fallback to last active markdown file
+                let view = getActiveMarkdownView(this.app);
+                let targetFile = view?.file;
+
+                if (!targetFile) {
+                    targetFile = this.plugin.getLastActiveMarkdownFile() ?? undefined;
+                }
+
+                if (targetFile) {
+                    await cmd.callback(targetFile);
+                    showMessage(`Executed: ${cmd.name}`);
+                } else {
+                    showMessage('No active markdown file to contextually execute command.');
+                }
+            } catch (error) {
+                console.error("Error executing command:", error);
+                showMessage(`Error executing command: ${error}`);
+            } finally {
+                this.isExecuting = false;
+                if (this.executeButton) {
+                    this.executeButton.setDisabled(false);
+                    this.executeButton.setButtonText('Ejecutar Command');
+                }
             }
         } else {
             showMessage('Command not found or invalid');

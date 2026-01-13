@@ -37,7 +37,7 @@ export class EnhanceByAiCommand {
             const split = splitFrontmatter(content);
             const frontmatter = parseFrontmatter(split.frontmatterText) || {};
 
-            const customPrompt = frontmatter[FrontmatterKeys.AiPrompt];
+            const customPrompt = frontmatter[FrontmatterKeys.EloPrompt];
             const customCommands = frontmatter[FrontmatterKeys.EloCommands];
 
             let promptToUse = '';
@@ -71,7 +71,7 @@ export class EnhanceByAiCommand {
             if (file) {
                 // Filter out internal keys for the prompt context
                 const frontmatterForContext = { ...frontmatter };
-                delete frontmatterForContext[FrontmatterKeys.AiPrompt];
+                delete frontmatterForContext[FrontmatterKeys.EloPrompt];
                 delete frontmatterForContext[FrontmatterKeys.EloCommands];
 
                 const prompt = this.buildPrompt(file.basename, promptToUse as string, frontmatterForContext, split.body, includeFrontmatter, customCommands as string | string[]);

@@ -52,7 +52,7 @@ const buildOptions = {
   target: 'es2018',
   format: 'cjs',
   sourcemap: watch,
-  external: ['obsidian', 'fs', 'path'],
+  external: ['obsidian', 'fs', 'path', 'child_process'],
   plugins: [copyPlugin],
   logLevel: 'info',
   banner: {

@@ -20,8 +20,12 @@ import {
   ApplyTemplateFromImageCommand,
   GenerateHeaderMetadataCommand,
   AddPlaceIdFromUrlCommand,
-  GenerateMissingNotesFromListFieldCommand
+  GenerateMissingNotesFromListFieldCommand,
+  InsertLinkToSelectedPhotoCommand,
+  OpenLinkedPhotoCommand
 } from '@/Infrastructure/Obsidian/Commands';
+
+
 import { CommandEnum } from '@/Domain/Constants/CommandIds';
 import { GoogleGeminiAdapter } from '../Adapters/GoogleGeminiAdapter/GoogleGeminiAdapter';
 
@@ -315,6 +319,20 @@ export default class ObsidianExtension extends Plugin {
             this.spotifyAdapter,
             () => new SpotifyAuthModal(this.app, this.musicService).open()
           ).checkCallback(false);
+        }
+      },
+      {
+        id: CommandEnum.InsertLinkToSelectedPhoto,
+        name: 'Photos: Insertar Link a Foto Seleccionada',
+        callback: async (file?: TFile) => {
+          await new InsertLinkToSelectedPhotoCommand(this.app).execute(file);
+        }
+      },
+      {
+        id: CommandEnum.OpenLinkedPhoto,
+        name: 'Photos: Abrir Foto Enlazada',
+        callback: async (file?: TFile) => {
+          await new OpenLinkedPhotoCommand(this.app).execute(file);
         }
       },
       // {

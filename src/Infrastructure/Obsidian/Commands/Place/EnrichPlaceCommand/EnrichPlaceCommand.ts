@@ -117,9 +117,13 @@ export class EnrichPlaceCommand {
 
             showMessage(`Obteniendo detalles completos y datos extendidos...${placeTypeSuffix ? ` (Tipo: ${placeTypeSuffix})` : ''}`);
 
+            // Determine if we should exclude tags from enrichment (if they already exist)
+            const existingTags = currentFrontmatter?.[FrontmatterKeys.Tags];
+            const hasTags = Array.isArray(existingTags) ? existingTags.length > 0 : !!existingTags;
+
             // 3. Enrich Data
             // Reuse logic from ApplyGeocoderCommand: Fetch refined details, metadata, summary
-            const enriched = await this.enrichmentService.enrichPlace(searchName, undefined, placeId, placeTypeSuffix);
+            const enriched = await this.enrichmentService.enrichPlace(searchName, undefined, placeId, placeTypeSuffix, hasTags);
 
             if (!enriched) {
                 showMessage('No se pudieron obtener datos enriquecidos.');

@@ -14,4 +14,6 @@ export * from './Music/SearchSpotifyArtistCommand/SearchSpotifyArtistCommand';
 export * from './Place/AddPlaceIdFromUrlCommand/AddPlaceIdFromUrlCommand';
 export * from './Links/AnalyzeAndLinkEntitiesCommand/AnalyzeAndLinkEntitiesCommand';
 export * from './Links/GenerateMissingNotesFromListFieldCommand/GenerateMissingNotesFromListFieldCommand';
-
+export * from './Links/GenerateMissingNotesFromListFieldCommand/GenerateMissingNotesFromListFieldCommand';
+export * from './Photos/InsertLinkToSelectedPhotoCommand';
+export * from './Photos/OpenLinkedPhotoCommand';

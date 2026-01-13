@@ -17,7 +17,7 @@ export class PlaceEnrichmentService {
         private llm: LlmPort
     ) { }
 
-    async enrichPlace(placeName: string, promptPlaceDetails?: GeocodingResponse, placeId?: string, placeType?: string): Promise<{ refinedDetails: GeocodingResponse, metadata: PlaceMetadata, summary: string, tags: string[] } | null> {
+    async enrichPlace(placeName: string, promptPlaceDetails?: GeocodingResponse, placeId?: string, placeType?: string, excludeTags: boolean = false): Promise<{ refinedDetails: GeocodingResponse, metadata: PlaceMetadata, summary: string, tags: string[] } | null> {
         let placeDetails: GeocodingResponse | null | undefined = promptPlaceDetails;
 
         if (!placeDetails) {
@@ -32,10 +32,18 @@ export class PlaceEnrichmentService {
             return null;
         }
 
-        return this.getEnrichedData(placeName.trim(), placeDetails, placeType);
+        return this.getEnrichedData(placeName.trim(), placeDetails, placeType, excludeTags);
     }
 
-    private async getEnrichedData(placeName: string, rawDetails: GeocodingResponse, placeType?: string): Promise<{ refinedDetails: GeocodingResponse, metadata: PlaceMetadata, summary: string, tags: string[] } | null> {
+    private async getEnrichedData(placeName: string, rawDetails: GeocodingResponse, placeType?: string, excludeTags: boolean = false): Promise<{ refinedDetails: GeocodingResponse, metadata: PlaceMetadata, summary: string, tags: string[] } | null> {
+        const tagsRules = excludeTags ? '' : `
+        Rules for tags:
+        1. Choose 0 or more tags that is this place from the following list: ${JSON.stringify(PlaceTypes)}.
+        2. ONLY use tags from this list.
+        `;
+
+        const tagsField = excludeTags ? '' : `"tags": ["Lugares/..."]`;
+
         const prompt = `
         I have a place named "${placeName}"${placeType ? ` (Type: ${placeType})` : ''}.
         Raw Geocoding Data: ${JSON.stringify(rawDetails)}.
@@ -59,9 +67,7 @@ export class PlaceEnrichmentService {
         1. Write a SINGLE paragraph (approx 50-80 words) summarizing the most relevant aspects of this place (history, significance, tourism).
         2. In Spanish.
 
-        Rules for tags:
-        1. Choose 0 or more tags that is this place from the following list: ${JSON.stringify(PlaceTypes)}.
-        2. ONLY use tags from this list.
+        ${tagsRules}
 
         Return ONLY a JSON object:
         {
@@ -81,7 +87,7 @@ export class PlaceEnrichmentService {
                 "isRegionFamous": true/false
             },
             "summary": "...",
-            "tags": ["Lugares/..."]
+            ${tagsField}
         }
         `;
 
