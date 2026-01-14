@@ -5,28 +5,86 @@ import { getActiveMarkdownView } from '@/Infrastructure/Obsidian/Utils/ViewMode'
 export class OpenLinkedPhotoCommand {
     constructor(private readonly app: ObsidianApp) { }
 
+    private async tryGetFromFrontmatter(view: any): Promise<{ id: string, name: string } | null> {
+        const file = view.file;
+        if (!file) return null;
+
+        // We use the cache because getting text line from frontmatter visually is hard
+        const cache = this.app.metadataCache.getFileCache(file);
+        const frontmatter = cache?.frontmatter;
+
+        if (!frontmatter) return null;
+
+        const candidates: string[] = [];
+
+        const addCandidates = (key: string) => {
+            const val = frontmatter[key];
+            if (Array.isArray(val)) {
+                candidates.push(...val);
+            } else if (typeof val === 'string') {
+                candidates.push(val);
+            }
+        };
+
+        addCandidates('!!images');
+        addCandidates('Imagenes urls');
+
+        if (candidates.length === 0) return null;
+
+        // Parse ID/Name from the stored link
+        // Parse ID/Name from the stored link
+        // Link format: elo-bridge://id=...&name=...
+        const regex = /elo-bridge:\/\/id=([^&]+)&name=(.+)/;
+
+        for (const candidate of candidates) {
+            const match = candidate.match(regex);
+            if (match) {
+                return {
+                    id: decodeURIComponent(match[1]),
+                    name: decodeURIComponent(match[2])
+                };
+            }
+        }
+
+        return null;
+    }
+
     async execute(file?: TFile) {
         const view = getActiveMarkdownView(this.app, file);
         if (!view) {
-            showMessage('Abre una nota y coloca el cursor sobre un link de foto.');
+            showMessage('Abre una nota.');
             return;
         }
 
         const editor = view.editor;
         const cursor = editor.getCursor();
         const line = editor.getLine(cursor.line);
-        // Regex to match (photo-locator?id=...&name=...)
-        // Matches standard markdown link syntax with our specific scheme
-        const linkRegex = /photo-locator\?id=([^&]+)&name=([^)]+)/;
+
+        // 1. Try Line Regex
+        // 1. Try Line Regex
+        const linkRegex = /elo-bridge:\/\/id=([^&]+)&name=(.+)/;
+        console.log('[Elocuency] Checking line:', line);
         const match = line.match(linkRegex);
 
-        if (!match) {
-            showMessage('No se encontró un link de foto válido en la línea actual.');
-            return;
-        }
+        let id = '';
+        let name = '';
 
-        const id = decodeURIComponent(match[1]);
-        const name = decodeURIComponent(match[2]);
+        if (match) {
+            id = decodeURIComponent(match[1]);
+            name = decodeURIComponent(match[2]);
+        } else {
+            // 2. Fallback: Check Frontmatter
+            console.log('[Elocuency] No link in line, checking Frontmatter...');
+            const fromFrontmatter = await this.tryGetFromFrontmatter(view);
+            if (fromFrontmatter) {
+                id = fromFrontmatter.id;
+                name = fromFrontmatter.name;
+                showMessage(`Abriendo foto principal: ${name}`);
+            } else {
+                showMessage('No se encontró link de foto (línea o metadatos).');
+                return;
+            }
+        }
 
         if (Platform.isMobile) {
             this.handleMobile(name);

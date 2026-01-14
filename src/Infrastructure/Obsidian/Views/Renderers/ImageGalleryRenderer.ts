@@ -17,13 +17,38 @@ export function registerImageGalleryRenderer(plugin: Plugin) {
             return;
         }
 
-        const imageUrlsRaw = frontmatter[FrontmatterKeys.ImagenesUrls];
-        if (!imageUrlsRaw || !Array.isArray(imageUrlsRaw) || imageUrlsRaw.length === 0) {
+        const imagesRaw = frontmatter[FrontmatterKeys.EloImages] || [];
+
+        // Parse Photos (elo-bridge format) -> URLs
+        // Format: elo-bridge://id=...&name=... or straight http/https
+        const allImages: string[] = [];
+        if (Array.isArray(imagesRaw)) {
+            // console.log('[ImageGalleryRenderer] Found Photos field:', imagesRaw);
+            const regex = /elo-bridge:\/\/id=([^&]+)/;
+            imagesRaw.forEach((entry: string) => {
+                if (entry.startsWith('elo-bridge://')) {
+                    const match = entry.match(regex);
+                    if (match && match[1]) {
+                        const id = match[1];
+                        const url = `http://localhost:27345/image?id=${id}`;
+                        // console.log('[ImageGalleryRenderer] Generated URL from bridge link:', url);
+                        allImages.push(url);
+                    } else {
+                        console.log('[ImageGalleryRenderer] Failed to parse bridge link:', entry);
+                    }
+                } else if (entry.startsWith('http')) {
+                    allImages.push(entry);
+                }
+            });
+        }
+
+        if (allImages.length === 0) {
             return;
         }
 
         // Avoid rendering multiple times
         if (element.querySelector('.elo-image-gallery-container')) {
+            console.log('[ImageGalleryRenderer] Gallery already exists, skipping.');
             return;
         }
 
@@ -40,6 +65,7 @@ export function registerImageGalleryRenderer(plugin: Plugin) {
         }
 
         // console.log('[ImageGalleryRenderer] Rendering gallery for:', file.basename);
+        console.log('[ImageGalleryRenderer] Rendering gallery for:', file.basename, 'with images:', allImages);
 
         const container = element.createDiv({ cls: 'elo-image-gallery-container' });
         container.style.marginTop = '10px';
@@ -49,7 +75,7 @@ export function registerImageGalleryRenderer(plugin: Plugin) {
         container.style.gridTemplateColumns = 'repeat(auto-fill, minmax(200px, 1fr))';
         container.style.width = '100%';
 
-        imageUrlsRaw.forEach((url: string) => {
+        allImages.forEach((url: string) => {
             // Basic URL validation
             if (typeof url !== 'string' || !url.startsWith('http')) return;
 

@@ -53,8 +53,11 @@ export class InsertLinkToSelectedPhotoCommand {
 
             showMessage(`Foto detectada: ${name}`);
 
-            // Construct link: [📸 Name](photo-locator?id=UUID&name=Name)
-            const link = `[📸 ${name}](photo-locator?id=${encodeURIComponent(id)}&name=${encodeURIComponent(name)})`;
+            // Construct link: elo-bridge://id=UUID&name=Name
+            // Use local bridge to display image, and custom protocol to open it.
+            // We must manually encode '(' and ')' because encodeURIComponent doesn't, and they break the markdown link parsing if not escaped.
+            const safeName = encodeURIComponent(name).replace(/\(/g, '%28').replace(/\)/g, '%29');
+            const link = `elo-bridge://id=${encodeURIComponent(id)}&name=${safeName}`;
 
             // Insert into Frontmatter "Fotos" field using existing Utils logic
             await executeInEditMode(view, async () => {
@@ -65,7 +68,7 @@ export class InsertLinkToSelectedPhotoCommand {
                 const split = splitFrontmatter(content);
                 const currentFrontmatter = parseFrontmatter(split.frontmatterText) || {};
 
-                const currentPhotos = currentFrontmatter[FrontmatterKeys.Fotos];
+                const currentPhotos = currentFrontmatter[FrontmatterKeys.EloImages];
                 let newPhotos: string[] = [];
 
                 if (Array.isArray(currentPhotos)) {
@@ -78,7 +81,7 @@ export class InsertLinkToSelectedPhotoCommand {
                 newPhotos.push(link);
 
                 // Update frontmatter
-                currentFrontmatter[FrontmatterKeys.Fotos] = newPhotos;
+                currentFrontmatter[FrontmatterKeys.EloImages] = newPhotos;
 
                 const frontmatterBlock = formatFrontmatterBlock(currentFrontmatter);
                 const normalizedBody = split.body.replace(/^[\n\r]+/, '');

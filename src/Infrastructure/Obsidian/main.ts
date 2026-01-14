@@ -1,4 +1,6 @@
-import { Plugin, TFile, MarkdownView } from 'obsidian';
+import { Plugin, TFile, MarkdownView, Platform } from 'obsidian';
+import { spawn, ChildProcess } from 'child_process';
+import * as path from 'path';
 import {
   DEFAULT_SETTINGS,
   UnresolvedLinkGeneratorSettings,
@@ -77,6 +79,7 @@ import { ObsidianHeaderDataRepository } from '../Adapters/ObsidianHeaderDataRepo
 import { HeaderDataService } from '../../Application/Services/HeaderDataService';
 import { ImageEnricherService } from './Services/ImageEnricherService';
 import { FrontmatterEventService } from './Services/FrontmatterEventService';
+import { BridgeService } from './Services/BridgeService';
 
 
 export default class ObsidianExtension extends Plugin {
@@ -88,6 +91,8 @@ export default class ObsidianExtension extends Plugin {
   // Registry of commands to be shared with NoteOperationsView
   public noteCommands: { id: string, name: string, callback: (file?: TFile) => any }[] = [];
 
+  // private photosBridgeProcess: ChildProcess | null = null; // Moved to BridgeService
+  public bridgeService!: BridgeService;
   private lastActiveMarkdownFile: TFile | null = null;
 
   public getLastActiveMarkdownFile(): TFile | null {
@@ -145,6 +150,9 @@ export default class ObsidianExtension extends Plugin {
 
     const settingsAdapter = new ObsidianSettingsAdapter(this);
     this.musicService = new MusicService(this.spotifyAdapter, settingsAdapter);
+
+    // Initialize Bridge Service
+    this.bridgeService = new BridgeService(this.settings);
 
     // Initialize Frontmatter Event Service
     new FrontmatterEventService(this.app);
@@ -342,6 +350,20 @@ export default class ObsidianExtension extends Plugin {
       //     this.activateView();
       //   }
       // },
+      {
+        id: 'start-photos-bridge',
+        name: 'Photos: Iniciar Bridge (Manual)',
+        callback: () => {
+          this.bridgeService.startBridge(true); // Forced start
+        }
+      },
+      {
+        id: 'stop-photos-bridge',
+        name: 'Photos: Detener Bridge',
+        callback: () => {
+          this.bridgeService.stopBridge();
+        }
+      }
     ];
 
     // Register all commands
@@ -402,11 +424,19 @@ export default class ObsidianExtension extends Plugin {
     this.addRibbonIcon('microphone', 'Note Operations', () => {
       this.activateNoteOperationsView();
     });
+
+    // Start PhotosBridge if on Desktop (macOS) AND enabled
+    if (Platform.isDesktop && this.settings.autoStartBridge) {
+      this.bridgeService.startBridge();
+    }
   }
 
   onunload() {
     console.log('Elocuency plugin unloaded');
+    this.bridgeService.stopBridge();
   }
+
+
 
   async loadSettings() {
     const data = await this.loadData();
@@ -417,6 +447,9 @@ export default class ObsidianExtension extends Plugin {
 
   async saveSettings() {
     await this.saveData(this.settings);
+    if (this.bridgeService) {
+      this.bridgeService.updateSettings(this.settings);
+    }
   }
 
   public getNoteCommands() {

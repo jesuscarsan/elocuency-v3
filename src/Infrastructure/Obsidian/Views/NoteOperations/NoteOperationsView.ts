@@ -118,6 +118,53 @@ export class NoteOperationsView extends ItemView {
             e.preventDefault();
             this.handleStopRecording(e);
         });
+
+        // --- Bridge Control ---
+        const bridgeContainer = container.createDiv();
+        bridgeContainer.style.marginTop = '20px';
+        bridgeContainer.style.borderTop = '1px solid var(--background-modifier-border)';
+        bridgeContainer.style.paddingTop = '10px';
+
+        bridgeContainer.createEl('h3', { text: 'Bridge Control (Photos)' });
+
+        const bridgeControls = bridgeContainer.createDiv();
+        bridgeControls.style.display = 'flex';
+        bridgeControls.style.gap = '10px';
+
+        const startBtn = new ButtonComponent(bridgeControls)
+            .setButtonText('Iniciar Bridge')
+            .onClick(() => {
+                this.plugin.bridgeService.startBridge(true);
+                this.updateBridgeStatus(statusIndicator);
+            });
+
+        const stopBtn = new ButtonComponent(bridgeControls)
+            .setButtonText('Detener Bridge')
+            .setWarning() // distinct style
+            .onClick(() => {
+                this.plugin.bridgeService.stopBridge();
+                this.updateBridgeStatus(statusIndicator);
+            });
+
+        const statusIndicator = bridgeContainer.createDiv();
+        this.updateBridgeStatus(statusIndicator);
+    }
+
+    private updateBridgeStatus(el: HTMLElement) {
+        const isRunning = this.plugin.bridgeService.isRunning();
+        el.empty();
+        el.style.marginTop = '10px';
+        el.style.display = 'flex';
+        el.style.alignItems = 'center';
+        el.style.gap = '8px';
+
+        const dot = el.createSpan();
+        dot.style.width = '10px';
+        dot.style.height = '10px';
+        dot.style.borderRadius = '50%';
+        dot.style.backgroundColor = isRunning ? 'var(--color-green)' : 'var(--color-red)';
+
+        el.createSpan({ text: isRunning ? 'Estado: Ejecutándose' : 'Estado: Detenido' });
     }
 
     private async handleStartRecording(e: Event) {

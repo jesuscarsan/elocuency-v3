@@ -23,6 +23,8 @@ export interface UnresolvedLinkGeneratorSettings {
   geminiLiveUserMode: 'voice_text' | 'text_only' | 'voice_only';
   geminiLiveRole: string;
   geminiLiveLocalVoice: string; // URI of the local voice
+  autoStartBridge: boolean;
+  photosBridgePath: string;
 }
 
 
@@ -47,6 +49,8 @@ export const DEFAULT_SETTINGS: UnresolvedLinkGeneratorSettings = {
   geminiLiveUserMode: 'voice_text',
   geminiLiveRole: '', // Default to empty string
   geminiLiveLocalVoice: '',
+  autoStartBridge: false, // Default to false as requested by user ("more control")
+  photosBridgePath: '/Users/joshua/my-docs/code/elo-mac-bridge/EloMacBridge.app/Contents/MacOS/elo-mac-bridge',
 };
 
 

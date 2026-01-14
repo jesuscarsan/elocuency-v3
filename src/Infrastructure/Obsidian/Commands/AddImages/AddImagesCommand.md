@@ -5,9 +5,9 @@ Este comando busca y añade imágenes automáticamente a la nota actual basándo
 ## ¿Cómo funciona?
 
 1.  **Lectura del Título**: Utiliza el nombre del archivo (nota) como término de búsqueda.
-2.  **Verificación Previa**: Comprueba si la nota ya tiene imágenes en el campo `Imágenes urls` del frontmatter. Si ya tiene, se detiene para evitar duplicados.
+2.  **Verificación Previa**: Comprueba si la nota ya tiene imágenes en el campo `"!!images"` del frontmatter. Si ya tiene, se detiene para evitar duplicados.
 3.  **Búsqueda de Imágenes**: Utiliza Google Custom Search para encontrar imágenes relacionadas con el título.
-4.  **Actualización del Frontmatter**: Añade las URLs de las 3 primeras imágenes encontradas al campo `Imágenes urls`.
+4.  **Actualización del Frontmatter**: Añade las URLs de las 3 primeras imágenes encontradas al campo `"!!images"`.
 
 ## Requisitos
 
@@ -21,7 +21,7 @@ Si tienes una nota llamada `[[Torre Eiffel]]`, al ejecutar el comando:
 1.  Buscará "Torre Eiffel" en Google Images.
 2.  Añadirá 3 enlaces de imágenes al frontmatter:
     ```yaml
-    Imágenes urls:
+    "!!images":
       - "https://ejemplo.com/imagen1.jpg"
       - "https://ejemplo.com/imagen2.jpg"
       - "https://ejemplo.com/imagen3.jpg"

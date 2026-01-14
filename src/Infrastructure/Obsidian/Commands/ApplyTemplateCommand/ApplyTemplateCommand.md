@@ -11,11 +11,11 @@ Este es el comando principal para aplicar plantillas inteligentes a las notas.
 3.  **Enriquecimiento con IA (Opcional)**:
     *   Si la plantilla define un `!!prompt` en su configuración, envía este prompt junto con el título y frontmatter de la nota a Gemini.
     *   Gemini devuelve sugerencias para rellenar campos del frontmatter y contenido para el cuerpo.
-4.  **Imágenes (Opcional)**: Si tras el proceso el campo `Imágenes urls` está vacío, busca imágenes automáticamente (similar a [Add Images Command](../AddImages/AddImagesCommand.md)).
+4.  **Imágenes (Opcional)**: Si tras el proceso el campo `"!!images"` está vacío, busca imágenes automáticamente (similar a [Add Images Command](../AddImages/AddImagesCommand.md)).
 5.  **Organización y Post-procesado**:
     *   Si la plantilla define `!!path`, mueve la nota a esa ruta.
     *   Si la plantilla define `!!commands`, ejecuta esos comandos de Obsidian secuencialmente.
-    *   Si la plantila define `Imágenes urls`, ejecuta el command "AddImages".
+    *   Si la plantila define `"!!images"`, ejecuta el command "AddImages".
 
 ## Configuración de Plantillas
 
@@ -23,7 +23,7 @@ Las plantillas pueden tener claves especiales en su frontmatter (que se eliminan
 *   `!!prompt`: Instrucción para la IA.
 *   `!!path`: Ruta destino para mover la nota.
 *   `!!commands`: Lista de IDs de comandos a ejecutar.
-*   `Imágenes urls`: Lista de URLs de imágenes.
+*   `"!!images"`: Lista de URLs de imágenes.
 
 ## Ejemplo
 

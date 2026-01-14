@@ -3,6 +3,7 @@ import { CommandEnum } from "./CommandIds";
 export const FrontmatterKeys = {
     EloCommands: "!!commands",
     EloPrompt: "!!prompt",
+    EloImages: "!!images",
     Municipio: "Municipio",
     Provincia: "Provincia",
     Region: "Región",
@@ -18,7 +19,6 @@ export const FrontmatterKeys = {
     SpotifyUri: "Spotify uri",
     Capital: "Capital",
     Tags: "tags",
-    ImagenesUrls: "Imágenes urls",
     Conocidos: "Conocidos",
     Hijos: "Hijos",
     Padres: "Padres",
@@ -31,7 +31,6 @@ export const FrontmatterKeys = {
     Empleados: "Empleados",
     EstilosMusicales: "Estilos musicales",
     SpotifyPopularity: "Spotify popularidad",
-    Fotos: "Fotos",
 } as const;
 
 export type FrontmatterKey = (typeof FrontmatterKeys)[keyof typeof FrontmatterKeys];
@@ -156,11 +155,7 @@ export const FrontmatterRegistry: Record<string, FrontmatterFieldConfig> = {
         description: "Etiquetas",
         type: 'array'
     },
-    [FrontmatterKeys.ImagenesUrls]: {
-        key: FrontmatterKeys.ImagenesUrls,
-        description: "Lista de URLs de imágenes del lugar",
-        type: 'array'
-    },
+
     [FrontmatterKeys.Conocidos]: {
         key: FrontmatterKeys.Conocidos,
         description: "Lista de conocidos",
@@ -251,9 +246,9 @@ export const FrontmatterRegistry: Record<string, FrontmatterFieldConfig> = {
         description: "Popularidad del artista en Spotify (0-100)",
         type: 'number'
     },
-    [FrontmatterKeys.Fotos]: {
-        key: FrontmatterKeys.Fotos,
-        description: "Lista de fotos enlazadas",
+    [FrontmatterKeys.EloImages]: {
+        key: FrontmatterKeys.EloImages,
+        description: "Lista de fotos enlazadas (elo-bridge)",
         type: 'array'
     }
 };

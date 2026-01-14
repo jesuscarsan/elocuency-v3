@@ -26,7 +26,7 @@ export class AddImagesCommand {
             const split = splitFrontmatter(currentContent);
             const frontmatter = parseFrontmatter(split.frontmatterText) || {};
 
-            const existingImages = frontmatter[FrontmatterKeys.ImagenesUrls];
+            const existingImages = frontmatter[FrontmatterKeys.EloImages];
 
             if (Array.isArray(existingImages) && existingImages.length > 0) {
                 showMessage('La nota ya tiene imágenes.');
@@ -42,7 +42,7 @@ export class AddImagesCommand {
             try {
                 const updatedFrontmatter = {
                     ...frontmatter,
-                    [FrontmatterKeys.ImagenesUrls]: images,
+                    [FrontmatterKeys.EloImages]: images,
                 };
 
                 const newFrontmatterBlock = formatFrontmatterBlock(updatedFrontmatter);

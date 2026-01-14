@@ -72,7 +72,7 @@ export class SearchSpotifyArtistCommand implements Command {
         await this.app.fileManager.processFrontMatter(file, (frontmatter: any) => {
             frontmatter[FrontmatterKeys.SpotifyUri] = artist.uri;
             frontmatter[FrontmatterKeys.EstilosMusicales] = artist.genres;
-            frontmatter[FrontmatterKeys.ImagenesUrls] = artist.images ? artist.images.map((img) => img.url) : [];
+            frontmatter[FrontmatterKeys.EloImages] = artist.images ? artist.images.map((img) => img.url) : [];
             frontmatter[FrontmatterKeys.SpotifyPopularity] = artist.popularity;
         });
 

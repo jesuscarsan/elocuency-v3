@@ -142,12 +142,12 @@ export class ApplyTemplateCommand {
         );
 
         // Check for empty image URLs
-        if (updatedFrontmatter && Array.isArray(updatedFrontmatter[FrontmatterKeys.ImagenesUrls]) && (updatedFrontmatter[FrontmatterKeys.ImagenesUrls] as any[]).length === 0) {
+        if (updatedFrontmatter && Array.isArray(updatedFrontmatter[FrontmatterKeys.EloImages]) && (updatedFrontmatter[FrontmatterKeys.EloImages] as any[]).length === 0) {
           const images = await this.imageEnricher.searchImages(file.basename, 3);
           if (images.length > 0) {
             updatedFrontmatter = {
               ...updatedFrontmatter,
-              [FrontmatterKeys.ImagenesUrls]: images,
+              [FrontmatterKeys.EloImages]: images,
             };
           }
         }
