@@ -84,4 +84,40 @@ export class BridgeService {
     public isRunning(): boolean {
         return this.photosBridgeProcess !== null;
     }
+
+    public async upsertContact(data: any): Promise<any> {
+        try {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 15000);
+
+            const response = await fetch('http://localhost:27345/contact', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data),
+                signal: controller.signal
+            });
+            clearTimeout(timeoutId);
+
+            if (!response.ok) {
+                throw new Error(`Bridge Error: ${response.statusText}`);
+            }
+            return await response.json();
+        } catch (e) {
+            console.error('Failed to upsert contact:', e);
+            throw e;
+        }
+    }
+
+    public async searchContacts(query: string): Promise<any[]> {
+        try {
+            const response = await fetch(`http://localhost:27345/contacts?query=${encodeURIComponent(query)}`);
+            if (!response.ok) {
+                throw new Error(`Bridge Error: ${response.statusText}`);
+            }
+            return await response.json();
+        } catch (e) {
+            console.error('Failed to search contacts:', e);
+            return [];
+        }
+    }
 }

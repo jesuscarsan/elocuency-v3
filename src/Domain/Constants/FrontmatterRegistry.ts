@@ -3,13 +3,15 @@ import { CommandEnum } from "./CommandIds";
 export const FrontmatterKeys = {
     EloCommands: "!!commands",
     EloPrompt: "!!prompt",
+    EloPromptUrl: "!!promptUrl",
     EloImages: "!!images",
+    EloAppleContactId: "!!appleContactId",
     Municipio: "Municipio",
     Provincia: "Provincia",
+    LugarId: "Lugar Id",
     Region: "Región",
     Pais: "País",
     Paises: "Países",
-    LugarId: "Lugar Id",
     Lugares: "Lugares",
     Lugar: "Lugar",
     SedePrincipal: "Sede principal",
@@ -31,6 +33,9 @@ export const FrontmatterKeys = {
     Empleados: "Empleados",
     EstilosMusicales: "Estilos musicales",
     SpotifyPopularity: "Spotify popularidad",
+    Telefono: "Teléfono",
+    Email: "Email",
+    Cumpleanos: "Cumpleaños",
 } as const;
 
 export type FrontmatterKey = (typeof FrontmatterKeys)[keyof typeof FrontmatterKeys];
@@ -56,6 +61,11 @@ export const FrontmatterRegistry: Record<string, FrontmatterFieldConfig> = {
     [FrontmatterKeys.EloPrompt]: {
         key: FrontmatterKeys.EloPrompt,
         description: "Prompt personalizado para la IA",
+        type: 'string'
+    },
+    [FrontmatterKeys.EloPromptUrl]: {
+        key: FrontmatterKeys.EloPromptUrl,
+        description: "URL de contexto para el prompt",
         type: 'string'
     },
 
@@ -100,18 +110,18 @@ export const FrontmatterRegistry: Record<string, FrontmatterFieldConfig> = {
         type: 'string',
         commands: [CommandEnum.RelocateNoteByLinkField]
     },
-    [FrontmatterKeys.Lugares]: {
-        key: FrontmatterKeys.Lugares,
-        description: "Lugares relacionados",
-        type: 'array',
-        isRelocateField: true,
-        asLink: true,
-        commands: [CommandEnum.RelocateNoteByLinkField]
-    },
     [FrontmatterKeys.Lugar]: {
         key: FrontmatterKeys.Lugar,
         description: "Lugar relacionado",
         type: 'string',
+        isRelocateField: true,
+        asLink: true,
+        commands: [CommandEnum.RelocateNoteByLinkField]
+    },
+    [FrontmatterKeys.Lugares]: {
+        key: FrontmatterKeys.Lugares,
+        description: "Lugares relacionados",
+        type: 'array',
         isRelocateField: true,
         asLink: true,
         commands: [CommandEnum.RelocateNoteByLinkField]
@@ -250,5 +260,25 @@ export const FrontmatterRegistry: Record<string, FrontmatterFieldConfig> = {
         key: FrontmatterKeys.EloImages,
         description: "Lista de fotos enlazadas (elo-bridge)",
         type: 'array'
+    },
+    [FrontmatterKeys.Telefono]: {
+        key: FrontmatterKeys.Telefono,
+        description: "Teléfono de contacto",
+        type: 'string'
+    },
+    [FrontmatterKeys.Email]: {
+        key: FrontmatterKeys.Email,
+        description: "Email de contacto",
+        type: 'string'
+    },
+    [FrontmatterKeys.Cumpleanos]: {
+        key: FrontmatterKeys.Cumpleanos,
+        description: "Cumpleaños (YYYY-MM-DD)",
+        type: 'date'
+    },
+    [FrontmatterKeys.EloAppleContactId]: {
+        key: FrontmatterKeys.EloAppleContactId,
+        description: "ID de contacto en Apple (elo-bridge)",
+        type: 'string'
     }
 };

@@ -24,7 +24,10 @@ import {
   AddPlaceIdFromUrlCommand,
   GenerateMissingNotesFromListFieldCommand,
   InsertLinkToSelectedPhotoCommand,
-  OpenLinkedPhotoCommand
+  OpenLinkedPhotoCommand,
+  EnrichWithPromptUrlCommand,
+  ApplyTemplateWithUrlCommand,
+  SyncCurrentContactCommand
 } from '@/Infrastructure/Obsidian/Commands';
 
 
@@ -165,7 +168,7 @@ export default class ObsidianExtension extends Plugin {
     this.noteCommands = [
       {
         id: CommandEnum.ApplyTemplate,
-        name: 'Nota: Aplica plantilla',
+        name: 'Plantilla: Aplica plantilla',
         callback: async (file?: TFile) => {
           const applyTemplateCommand = new ApplyTemplateCommand(
             this.llm,
@@ -177,54 +180,75 @@ export default class ObsidianExtension extends Plugin {
         },
       },
       {
-        id: CommandEnum.ApplyStreamBrief,
-        name: 'Nota: Añade resumen',
+        id: CommandEnum.ApplyTemplateWithUrl,
+        name: 'Plantilla: Aplica plantilla con URL',
         callback: async (file?: TFile) => {
-          const applyStreamBriefCommand = new ApplyStreamBriefCommand(
+          const command = new ApplyTemplateWithUrlCommand(
             this.llm,
+            imageEnricher,
             this.app,
+            this.settings,
           );
-          await applyStreamBriefCommand.execute(file);
+          await command.execute(file);
         },
       },
+      // {
+      //   id: CommandEnum.ApplyStreamBrief,
+      //   name: 'Nota: Añade resumen',
+      //   callback: async (file?: TFile) => {
+      //     const applyStreamBriefCommand = new ApplyStreamBriefCommand(
+      //       this.llm,
+      //       this.app,
+      //     );
+      //     await applyStreamBriefCommand.execute(file);
+      //   },
+      // },
       {
         id: CommandEnum.EnhanceByAi,
-        name: 'Nota: Enriquece con IA',
+        name: 'IA: Enriquece con IA',
         callback: async (file?: TFile) => {
           await new EnhanceByAiCommand(this.app, this.settings, this.llm).execute(file);
         },
       },
       {
+        id: CommandEnum.EnrichWithPromptUrl,
+        name: 'IA: Enriquecer con url [EnrichWithPromptUrlCommand]',
+        callback: async (file?: TFile) => {
+          await new EnrichWithPromptUrlCommand(this.llm, imageEnricher, this.app, this.settings).execute(file);
+        }
+      },
+
+      {
         id: CommandEnum.AddImages,
-        name: 'Nota: Añade imágenes [AddImagesCommand]',
+        name: 'Imagenes: Añade imágenes [AddImagesCommand]',
         callback: async (file?: TFile) => {
           await new AddImagesCommand(this.app, imageEnricher).execute(file);
         },
       },
       {
         id: CommandEnum.CreateNoteFromImages,
-        name: 'Nota: Crea nota a partir de imágenes [CreateNoteFromImagesCommand]',
+        name: 'Imagenes: Crea nota a partir de imágenes [CreateNoteFromImagesCommand]',
         callback: async (file?: TFile) => {
           await new CreateNoteFromImagesCommand(this.app, geminiImages).execute(file);
         }
       },
       {
         id: CommandEnum.ApplyTemplateFromImage,
-        name: 'Nota: Aplica plantilla a partir de imágenes [ApplyTemplateFromImageCommand]',
+        name: 'Imagenes: Aplica plantilla a partir de imágenes [ApplyTemplateFromImageCommand]',
         callback: async (file?: TFile) => {
           await new ApplyTemplateFromImageCommand(geminiImages, this.app, this.settings).execute(file);
         }
       },
-      {
-        id: CommandEnum.GenerateHeaderMetadata,
-        name: 'Nota: Genera metadatos de encabezado',
-        callback: async (file?: TFile) => {
-          await new GenerateHeaderMetadataCommand(this.app).execute(file);
-        }
-      },
+      // {
+      //   id: CommandEnum.GenerateHeaderMetadata,
+      //   name: 'Nota: Genera metadatos de encabezado',
+      //   callback: async (file?: TFile) => {
+      //     await new GenerateHeaderMetadataCommand(this.app).execute(file);
+      //   }
+      // },
       {
         id: CommandEnum.RelocateNoteByLinkField,
-        name: 'Nota: Reubica [RelocateNoteByLinkFieldCommand]',
+        name: 'Reubica: [RelocateNoteByLinkFieldCommand]',
         callback: async (file?: TFile) => {
           await new RelocateNoteByLinkFieldCommand(this.app).execute(file);
         }
@@ -343,6 +367,13 @@ export default class ObsidianExtension extends Plugin {
           await new OpenLinkedPhotoCommand(this.app).execute(file);
         }
       },
+      {
+        id: CommandEnum.SyncContacts,
+        name: 'Contactos: Sincronizar Personas [SyncCurrentContactCommand]',
+        callback: async (file?: TFile) => {
+          await new SyncCurrentContactCommand(this.app, this.bridgeService).execute(file);
+        }
+      },
       // {
       //   id: 'open-chat-session',
       //   name: 'Chat: Abre sesión',
@@ -351,15 +382,15 @@ export default class ObsidianExtension extends Plugin {
       //   }
       // },
       {
-        id: 'start-photos-bridge',
-        name: 'Photos: Iniciar Bridge (Manual)',
+        id: 'start-bridge',
+        name: 'Bridge: Iniciar Bridge (Manual)',
         callback: () => {
           this.bridgeService.startBridge(true); // Forced start
         }
       },
       {
-        id: 'stop-photos-bridge',
-        name: 'Photos: Detener Bridge',
+        id: 'stop-bridge',
+        name: 'Bridge: Detener Bridge',
         callback: () => {
           this.bridgeService.stopBridge();
         }

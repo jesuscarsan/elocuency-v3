@@ -38,7 +38,7 @@ export class ApplyTemplateCommand {
     private readonly settings: UnresolvedLinkGeneratorSettings,
   ) { }
 
-  async execute(targetFile?: TFile) {
+  async execute(targetFile?: TFile, promptUrl?: string) {
     console.log('[ApplyTemplateCommand] Start');
     const view = getActiveMarkdownView(this.obsidian, targetFile);
 
@@ -77,10 +77,10 @@ export class ApplyTemplateCommand {
       return;
     }
 
-    await this.applyTemplate(file, templateResult);
+    await this.applyTemplate(file, templateResult, promptUrl);
   }
 
-  async applyTemplate(file: TFile, templateResult: TemplateMatch) {
+  async applyTemplate(file: TFile, templateResult: TemplateMatch, predefinedPromptUrl?: string) {
     console.log(`[ApplyTemplateCommand] applying template ${templateResult.templateFile.basename} to ${file.path}`);
     const { config, cleanedContent, templateFile } = templateResult;
 
@@ -106,18 +106,19 @@ export class ApplyTemplateCommand {
 
     let finalContent = recomposedSegments.join('\n\n');
 
+    const promptUrl = config.promptUrl || (mergedFrontmatter && mergedFrontmatter['!!promptUrl'] as string) || predefinedPromptUrl;
+
     if (config.prompt) {
       let urlContext = '';
-      if (mergedFrontmatter && mergedFrontmatter['!!promptUrl']) {
-        const url = mergedFrontmatter['!!promptUrl'] as string;
+      if (promptUrl) {
         try {
-          console.log(`[ApplyTemplateCommand] Fetching content from ${url}`);
-          const response = await requestUrl(url);
+          console.log(`[ApplyTemplateCommand] Fetching content from ${promptUrl}`);
+          const response = await requestUrl(promptUrl);
           urlContext = response.text;
-          console.log(`[ApplyTemplateCommand] Fetched ${urlContext.length} chars from ${url}`);
+          console.log(`[ApplyTemplateCommand] Fetched ${urlContext.length} chars from ${promptUrl}`);
         } catch (e) {
-          console.error(`[ApplyTemplateCommand] Failed to fetch promptUrl: ${url}`, e);
-          showMessage(`Failed to fetch content from ${url}`);
+          console.error(`[ApplyTemplateCommand] Failed to fetch promptUrl: ${promptUrl}`, e);
+          showMessage(`Failed to fetch content from ${promptUrl}`);
         }
       }
 

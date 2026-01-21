@@ -3,7 +3,7 @@ import type { ImageEnricherService } from '@/Infrastructure/Obsidian/Services/Im
 import { FrontmatterKeys } from '@/Domain/Constants/FrontmatterRegistry';
 import { showMessage } from '@/Infrastructure/Obsidian/Utils/Messages';
 import { formatFrontmatterBlock, parseFrontmatter, splitFrontmatter } from '@/Infrastructure/Obsidian/Utils/Frontmatter';
-import { executeInEditMode, getActiveMarkdownView } from '../../Utils/ViewMode';
+import { executeInEditMode, getActiveMarkdownView } from '@/Infrastructure/Obsidian/Utils/ViewMode';
 
 export class AddImagesCommand {
     constructor(

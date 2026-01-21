@@ -1,5 +1,6 @@
 export enum CommandEnum {
     ApplyTemplate = 'ApplyTemplateCommand',
+    ApplyTemplateWithUrl = 'ApplyTemplateWithUrlCommand',
     ApplyStreamBrief = 'ApplyStreamBriefCommand',
     EnhanceByAi = 'EnhanceByAiCommand',
     AddImages = 'AddImagesCommand',
@@ -19,4 +20,6 @@ export enum CommandEnum {
     SearchSpotifyArtist = 'SearchSpotifyArtistCommand',
     InsertLinkToSelectedPhoto = 'InsertLinkToSelectedPhotoCommand',
     OpenLinkedPhoto = 'OpenLinkedPhotoCommand',
+    EnrichWithPromptUrl = 'EnrichWithPromptUrlCommand',
+    SyncContacts = 'SyncContactsCommand',
 }
