@@ -1,5 +1,5 @@
 import { App, TFile, MarkdownView } from 'obsidian';
-import { EnhanceByAiCommand } from '@/Infrastructure/Obsidian/Commands/EnhanceByAiCommand/EnhanceByAiCommand';
+import { EnhanceByAiCommand } from './EnhanceByAiCommand';
 import { TemplateContext } from '@/Infrastructure/Obsidian/Utils/TemplateContext';
 import { TestContext } from '@/Infrastructure/Testing/TestContext';
 import { LlmPort } from '@/Domain/Ports/LlmPort';

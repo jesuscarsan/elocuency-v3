@@ -27,7 +27,11 @@ import {
   OpenLinkedPhotoCommand,
   EnrichWithPromptUrlCommand,
   ApplyTemplateWithUrlCommand,
-  SyncCurrentContactCommand
+  SyncCurrentContactCommand,
+  SyncGoogleContactsCommand,
+  ProcessUnsyncedGoogleContactsCommand,
+  ImportKeepTakeoutCommand,
+  ImportSpotifyPlaylistCommand
 } from '@/Infrastructure/Obsidian/Commands';
 
 
@@ -331,12 +335,12 @@ export default class ObsidianExtension extends Plugin {
         callback: async () => {
           this.spotifyAdapter.updateCredentials(this.settings.spotifyClientId, this.settings.spotifyAccessToken);
 
-          if (!this.spotifyAdapter.isAuthenticated()) {
-            new SpotifyAuthModal(this.app, this.musicService).open();
-            return;
-          }
-
-          new SpotifyPlaylistModal(this.app, this.musicService).open();
+          new ImportSpotifyPlaylistCommand(
+            this.app,
+            this.spotifyAdapter,
+            this.musicService,
+            () => new SpotifyAuthModal(this.app, this.musicService).open()
+          ).checkCallback(false);
         }
       },
       {
@@ -372,6 +376,27 @@ export default class ObsidianExtension extends Plugin {
         name: 'Contactos: Sincronizar Personas [SyncCurrentContactCommand]',
         callback: async (file?: TFile) => {
           await new SyncCurrentContactCommand(this.app, this.bridgeService).execute(file);
+        }
+      },
+      {
+        id: 'elo-sync-google-contacts', // Using explicit ID as it's not in Enum yet, or update Enum.
+        name: 'Contactos: Sincronizar Nota Activa con Google [SyncGoogleContactsCommand]',
+        callback: async (file?: TFile) => {
+          await new SyncGoogleContactsCommand(this.app, this).execute(file);
+        }
+      },
+      {
+        id: 'elo-process-unsynced-google-contacts',
+        name: 'Contactos: Procesar No Sincronizados de Google [ProcessUnsyncedGoogleContactsCommand]',
+        callback: async () => {
+          await new ProcessUnsyncedGoogleContactsCommand(this.app, this).execute();
+        }
+      },
+      {
+        id: 'elo-import-keep-takeout',
+        name: 'Google Keep: Importar desde Takeout',
+        callback: async () => {
+          await new ImportKeepTakeoutCommand(this.app).execute();
         }
       },
       // {

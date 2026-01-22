@@ -1,6 +1,6 @@
 import { App, TFile, MarkdownView } from 'obsidian';
 import { AddImagesCommand } from './AddImagesCommand';
-import { TestContext } from '../../../Testing/TestContext';
+import { TestContext } from '../../../../Testing/TestContext';
 import { ImageEnricherService } from '@/Infrastructure/Obsidian/Services/ImageEnricherService';
 import { FrontmatterKeys } from '@/Domain/Constants/FrontmatterRegistry';
 

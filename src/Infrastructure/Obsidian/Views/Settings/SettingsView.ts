@@ -203,5 +203,49 @@ export class SettingsView extends PluginSettingTab {
       });
 
 
+
+    containerEl.createEl('h3', { text: 'Google Integration (Contacts)' });
+
+    new Setting(containerEl)
+      .setName('Google Client ID')
+      .setDesc('OAuth2 Client ID for Google People API.')
+      .addText((text: TextComponent) => {
+        text
+          .setPlaceholder('Client ID')
+          .setValue(this.plugin.settings.googleClientId)
+          .onChange(async (value: string) => {
+            this.plugin.settings.googleClientId = value.trim();
+            await this.plugin.saveSettings();
+          });
+      });
+
+    new Setting(containerEl)
+      .setName('Google Client Secret')
+      .setDesc('OAuth2 Client Secret.')
+      .addText((text: TextComponent) => {
+        text
+          .setPlaceholder('Client Secret')
+          .setValue(this.plugin.settings.googleClientSecret)
+          .onChange(async (value: string) => {
+            this.plugin.settings.googleClientSecret = value.trim();
+            await this.plugin.saveSettings();
+          });
+        text.inputEl.type = 'password';
+      });
+
+    new Setting(containerEl)
+      .setName('Google Refresh Token')
+      .setDesc('OAuth2 Refresh Token (Get this via OAuth Playground or similar).')
+      .addText((text: TextComponent) => {
+        text
+          .setPlaceholder('Refresh Token')
+          .setValue(this.plugin.settings.googleRefreshToken)
+          .onChange(async (value: string) => {
+            this.plugin.settings.googleRefreshToken = value.trim();
+            await this.plugin.saveSettings();
+          });
+        text.inputEl.type = 'password';
+      });
+
   }
 }

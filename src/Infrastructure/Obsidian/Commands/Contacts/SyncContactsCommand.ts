@@ -81,7 +81,7 @@ export class SyncCurrentContactCommand {
         let selectedCandidate: any = null;
 
         // Fuzzy Match Strategy if ID is missing
-        if (!contactData.id && !contactData.phone && !contactData.email && !contactData.birthday) {
+        if (!contactData.id) {
             const cleanName = file.basename.replace(/\(.*\)/g, "").trim() || file.basename;
             console.log(`[SyncCurrentContact] Searching candidates for: ${cleanName}`);
 
@@ -96,7 +96,7 @@ export class SyncCurrentContactCommand {
 
                     if (selectedCandidate) {
                         contactData.id = selectedCandidate.id;
-                        contactData.name = selectedCandidate.name; // Use contact name
+                        // contactData.name = selectedCandidate.name; // Don't overwrite, we want to enforce the Note Title as the source of truth for the Name
                         new Notice(`Enlazado a: ${selectedCandidate.name}`);
                     } else {
                         // User cancelled or chose to create new

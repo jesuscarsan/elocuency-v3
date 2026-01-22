@@ -1,16 +1,18 @@
 import { App, Modal, Notice } from 'obsidian';
 import { MusicService } from '@/Application/Services/MusicService';
-import { MusicPlaylist } from '@/Domain/Ports/MusicProviderPort';
+import { MusicPlaylist, MusicTrack } from '@/Domain/Ports/MusicProviderPort';
 import { showMessage } from '@/Infrastructure/Obsidian/Utils/Messages';
 
 export class SpotifyPlaylistModal extends Modal {
     private musicService: MusicService;
     private playlists: MusicPlaylist[] = [];
     private selectedPlaylist: MusicPlaylist | null = null;
+    private onImport?: (tracks: MusicTrack[]) => void;
 
-    constructor(app: App, musicService: MusicService) {
+    constructor(app: App, musicService: MusicService, onImport?: (tracks: MusicTrack[]) => void) {
         super(app);
         this.musicService = musicService;
+        this.onImport = onImport;
     }
 
     async onOpen() {
@@ -96,6 +98,17 @@ export class SpotifyPlaylistModal extends Modal {
                 showMessage('Copied all tracks to clipboard');
                 this.close();
             });
+
+            if (this.onImport) {
+                const importBtn = contentEl.createEl('button', { text: 'Import to Note' });
+                importBtn.style.marginBottom = '15px';
+                importBtn.style.marginLeft = '10px';
+                importBtn.classList.add('mod-cta'); // Make it look like a primary action
+                importBtn.addEventListener('click', () => {
+                    this.onImport!(tracks);
+                    this.close();
+                });
+            }
 
             const list = contentEl.createEl('ul');
             list.style.listStyle = 'none';

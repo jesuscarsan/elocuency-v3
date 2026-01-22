@@ -20,3 +20,8 @@ export * from './Photos/InsertLinkToSelectedPhotoCommand';
 export * from './Photos/OpenLinkedPhotoCommand';
 export * from './AI/EnrichWithPromptUrlCommand/EnrichWithPromptUrlCommand';
 export * from './Contacts/SyncContactsCommand';
+export * from './Contacts/SyncGoogleContactsCommand';
+export * from './Contacts/ProcessUnsyncedGoogleContactsCommand';
+export * from './GoogleKeep/ImportKeepTakeoutCommand';
+export * from './Music/ImportSpotifyPlaylistCommand';
+

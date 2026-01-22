@@ -1,53 +1,57 @@
-import { App, Modal, Setting, TextComponent, Notice, ButtonComponent } from 'obsidian';
-import { MusicService } from '@/Application/Services/MusicService';
-import { showMessage } from '@/Infrastructure/Obsidian/Utils/Messages';
+import { App, Modal, Setting } from 'obsidian';
+import { showMessage } from '../../Utils/Messages';
+import { GoogleContactAdapter } from '../../Adapters/GoogleContactAdapter';
 
-export class SpotifyAuthModal extends Modal {
-    musicService: MusicService;
+export class GoogleAuthModal extends Modal {
+    adapter: GoogleContactAdapter;
+    onSuccess: () => void;
 
-    constructor(app: App, musicService: MusicService) {
+    constructor(app: App, adapter: GoogleContactAdapter, onSuccess: () => void) {
         super(app);
-        this.musicService = musicService;
+        this.adapter = adapter;
+        this.onSuccess = onSuccess;
     }
 
     onOpen() {
         const { contentEl } = this;
         contentEl.empty();
 
-        contentEl.createEl('h2', { text: 'Connect to Spotify' });
-        contentEl.createEl('p', { text: 'You need to connect to Spotify to use this feature.' });
+        contentEl.createEl('h2', { text: 'Connect to Google Contacts' });
+        contentEl.createEl('p', { text: 'You need to connect to Google to use this feature.' });
 
+        // Step 1: Authorize
         const step1 = contentEl.createDiv({ cls: 'step-1' });
         step1.createEl('h3', { text: 'Step 1: Authorize' });
-        step1.createEl('p', { text: 'Click the button below to open the validation page. You will be redirected to Google. Copy the URL from the address bar after the redirect.' });
+        step1.createEl('p', { text: 'Click the button below to open the validation page. You will be redirected to Google. Copy the URL or the code from the address bar after the redirect.' });
 
         new Setting(step1)
             .addButton(btn => btn
-                .setButtonText('Connect Spotify')
+                .setButtonText('Connect Google')
                 .setCta()
                 .onClick(async () => {
                     btn.setDisabled(true);
                     btn.setButtonText('Opening Browser...');
 
-                    // Using google.com because user's dashboard has it whitelisted and localhost is restricted/missing.
+                    // Using google.com as redirect URI to capture the code in the URL bar easily
                     const redirectUri = 'https://google.com';
-                    const authUrl = await this.musicService.initiateConnection(redirectUri);
+                    const authUrl = this.adapter.generateAuthUrl(redirectUri);
 
                     if (authUrl) {
                         window.open(authUrl);
                         showMessage('Browser opened. Please login and copy the code.');
-                        // Re-enable after a delay in case they need to retry
+                        // Re-enable after a delay
                         setTimeout(() => {
                             btn.setDisabled(false);
-                            btn.setButtonText('Connect Spotify (Retry)');
+                            btn.setButtonText('Connect Google (Retry)');
                         }, 5000);
                     } else {
                         showMessage('Failed to generate auth URL. Check Client ID.');
                         btn.setDisabled(false);
-                        btn.setButtonText('Connect Spotify');
+                        btn.setButtonText('Connect Google');
                     }
                 }));
 
+        // Step 2: Enter Code
         const step2 = contentEl.createDiv({ cls: 'step-2' });
         step2.createEl('h3', { text: 'Step 2: Enter Code' });
 
@@ -67,8 +71,13 @@ export class SpotifyAuthModal extends Modal {
                             const extracted = url.searchParams.get('code');
                             if (extracted) {
                                 code = extracted;
-                                // Optional: Update text field to show just the code, but might be jarring
-                                // text.setValue(code); 
+                            }
+                        } else if (code.includes('&')) {
+                            // Handle case where it might be just query params pasted
+                            const params = new URLSearchParams(code);
+                            const extracted = params.get('code');
+                            if (extracted) {
+                                code = extracted;
                             }
                         }
                     } catch (e) {
@@ -88,19 +97,26 @@ export class SpotifyAuthModal extends Modal {
 
                     try {
                         const redirectUri = 'https://google.com'; // Consistent with step 1
+                        btn.setButtonText('Verifying...');
+                        btn.setDisabled(true);
 
-                        const success = await this.musicService.completeConnection(code, redirectUri);
+                        const success = await this.adapter.finishAuthentication(code, redirectUri);
 
                         if (success) {
-                            showMessage('Spotify Connected Successfully!');
+                            showMessage('Google Connected Successfully!');
+                            this.onSuccess();
                             this.close();
                         } else {
                             showMessage('Failed to verify code.');
+                            btn.setButtonText('Verify & Connect');
+                            btn.setDisabled(false);
                         }
 
                     } catch (error) {
-                        showMessage('Failed to connect. Check console.');
+                        showMessage(`Failed to connect: ${(error as Error).message}`);
                         console.error(error);
+                        btn.setButtonText('Verify & Connect');
+                        btn.setDisabled(false);
                     }
                 }));
     }

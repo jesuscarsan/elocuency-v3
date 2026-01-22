@@ -25,6 +25,11 @@ export interface UnresolvedLinkGeneratorSettings {
   geminiLiveLocalVoice: string; // URI of the local voice
   autoStartBridge: boolean;
   photosBridgePath: string;
+  googleClientId: string;
+  googleClientSecret: string;
+  googleRefreshToken: string;
+  googleAccessToken: string;
+  googleTokenExpirationTime: number;
 }
 
 
@@ -51,6 +56,11 @@ export const DEFAULT_SETTINGS: UnresolvedLinkGeneratorSettings = {
   geminiLiveLocalVoice: '',
   autoStartBridge: false, // Default to false as requested by user ("more control")
   photosBridgePath: '/Users/joshua/my-docs/code/elo-mac-bridge/EloMacBridge.app/Contents/MacOS/elo-mac-bridge',
+  googleClientId: '',
+  googleClientSecret: '',
+  googleRefreshToken: '',
+  googleAccessToken: '',
+  googleTokenExpirationTime: 0,
 };
 
 
