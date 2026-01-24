@@ -1,4 +1,4 @@
-import { requestUrl, App, FuzzySuggestModal } from 'obsidian';
+import { requestUrl, App, FuzzySuggestModal, SuggestModal } from 'obsidian';
 import { showMessage } from 'src/Infrastructure/Obsidian/Utils/Messages';
 import type {
   GeocodingResponse,
@@ -400,9 +400,10 @@ export class GoogleMapsAdapter implements GeocodingPort {
   }
 }
 
-class GoogleMapsSuggestModal extends FuzzySuggestModal<GoogleGeocodeResult> {
+
+class GoogleMapsSuggestModal extends SuggestModal<GoogleGeocodeResult> {
   private resolve: (value: GoogleGeocodeResult | null) => void;
-  private isSelected = false;
+  private isResolved = false;
 
   constructor(
     app: App,
@@ -411,27 +412,36 @@ class GoogleMapsSuggestModal extends FuzzySuggestModal<GoogleGeocodeResult> {
   ) {
     super(app);
     this.resolve = resolve;
-    console.log('[GoogleMapsSuggestModal] Created with results:', results.length);
+    console.log('[GoogleMapsSuggestModal] Created (SuggestModal) with results:', results.length);
   }
 
-  getItems(): GoogleGeocodeResult[] {
-    return this.results;
+  getSuggestions(query: string): GoogleGeocodeResult[] {
+    const lowerQuery = query.toLowerCase();
+    return this.results.filter(item => {
+      const text = item.formatted_address || '';
+      return text.toLowerCase().includes(lowerQuery);
+    });
   }
 
-  getItemText(item: GoogleGeocodeResult): string {
-    return item.formatted_address || 'Ubicación desconocida';
+  renderSuggestion(item: GoogleGeocodeResult, el: HTMLElement) {
+    el.createEl("div", { text: item.formatted_address || 'Ubicación desconocida' });
   }
 
-  onChooseItem(item: GoogleGeocodeResult, evt: MouseEvent | KeyboardEvent): void {
-    console.log('[GoogleMapsSuggestModal] onChooseItem called', item);
-    this.isSelected = true;
-    this.resolve(item);
+  selectSuggestion(value: GoogleGeocodeResult, evt: MouseEvent | KeyboardEvent): void {
+    console.log('[GoogleMapsSuggestModal] selectSuggestion called (pre-super)', value);
+    this.isResolved = true;
+    this.resolve(value);
+    super.selectSuggestion(value, evt);
+  }
+
+  onChooseSuggestion(item: GoogleGeocodeResult, evt: MouseEvent | KeyboardEvent) {
+    console.log('[GoogleMapsSuggestModal] onChooseSuggestion called', item);
+    // Already handled in selectSuggestion, but keeping for safety/standard compliance if needed.
   }
 
   onClose(): void {
-    console.log('[GoogleMapsSuggestModal] onClose called. isSelected:', this.isSelected);
-    if (!this.isSelected) {
-      console.log('[GoogleMapsSuggestModal] resolving with NULL');
+    console.log('[GoogleMapsSuggestModal] onClose called. isResolved:', this.isResolved);
+    if (!this.isResolved) {
       this.resolve(null);
     }
   }

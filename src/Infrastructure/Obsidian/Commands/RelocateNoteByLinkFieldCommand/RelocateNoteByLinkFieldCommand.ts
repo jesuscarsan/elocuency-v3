@@ -139,14 +139,14 @@ export class RelocateNoteByLinkFieldCommand {
             const normalizedTags = new Set(
                 allTags
                     .filter(t => t !== null && t !== undefined)
-                    .map(t => String(t).trim().toLowerCase().replace(/^#/, ''))
+                    .map(t => String(t).trim().normalize('NFC').toLowerCase().replace(/^#/, ''))
             );
 
             let targetFolderSuffix: string | undefined;
 
             // Iterate registry keys in order to respect priority (more specific tags first)
             for (const [tagKey, folderSuffix] of Object.entries(TagFolderMappingRegistry)) {
-                if (normalizedTags.has(tagKey.toLowerCase())) {
+                if (normalizedTags.has(tagKey.normalize('NFC').toLowerCase())) {
                     targetFolderSuffix = folderSuffix;
                     break;
                 }

@@ -4,7 +4,7 @@ export const TagFolderMappingRegistry: Record<string, string> = {
     "Personas/Vecinos": "(Conocidos)",
     "Personas/Familia": "(Familia)",
     "Personas/Públicas": "(Personajes)",
-    "Personas/Historicas": "(Históricos)",
+    "Personas/Históricas": "(Históricos)",
     "Obras/Películas": "(Audiovisuales)",
     "Obras/Videojuegos": "(Audiovisuales)",
     "Obras/Libros": "(Libros)",

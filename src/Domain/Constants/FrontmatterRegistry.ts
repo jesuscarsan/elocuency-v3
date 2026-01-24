@@ -36,6 +36,18 @@ export const FrontmatterKeys = {
     Telefono: "Teléfono",
     Email: "Email",
     Cumpleanos: "Cumpleaños",
+    Apodo: "Apodo",
+    Puesto: "Puesto de trabajo",
+    Empresa: "Empresa",
+    Direcciones: "Direcciones",
+    Urls: "Urls",
+    Eventos: "Eventos",
+    Relaciones: "Relaciones",
+    Genero: "Género",
+    Ocupaciones: "Ocupaciones",
+    Intereses: "Intereses",
+    Habilidades: "Habilidades",
+    Residencias: "Residencias",
 } as const;
 
 export type FrontmatterKey = (typeof FrontmatterKeys)[keyof typeof FrontmatterKeys];
@@ -280,5 +292,65 @@ export const FrontmatterRegistry: Record<string, FrontmatterFieldConfig> = {
         key: FrontmatterKeys.EloAppleContactId,
         description: "ID de contacto en Apple (elo-bridge)",
         type: 'string'
+    },
+    [FrontmatterKeys.Apodo]: {
+        key: FrontmatterKeys.Apodo,
+        description: "Apodo o nombre corto",
+        type: 'string'
+    },
+    [FrontmatterKeys.Puesto]: {
+        key: FrontmatterKeys.Puesto,
+        description: "Puesto de trabajo o cargo",
+        type: 'string'
+    },
+    [FrontmatterKeys.Empresa]: {
+        key: FrontmatterKeys.Empresa,
+        description: "Empresa u organización",
+        type: 'string'
+    },
+    [FrontmatterKeys.Direcciones]: {
+        key: FrontmatterKeys.Direcciones,
+        description: "Direcciones postales",
+        type: 'array'
+    },
+    [FrontmatterKeys.Urls]: {
+        key: FrontmatterKeys.Urls,
+        description: "Sitios web y enlaces",
+        type: 'array'
+    },
+    [FrontmatterKeys.Eventos]: {
+        key: FrontmatterKeys.Eventos,
+        description: "Eventos o fechas importantes",
+        type: 'array'
+    },
+    [FrontmatterKeys.Relaciones]: {
+        key: FrontmatterKeys.Relaciones,
+        description: "Relaciones con otras personas",
+        type: 'array'
+    },
+    [FrontmatterKeys.Genero]: {
+        key: FrontmatterKeys.Genero,
+        description: "Género",
+        type: 'string'
+    },
+    [FrontmatterKeys.Ocupaciones]: {
+        key: FrontmatterKeys.Ocupaciones,
+        description: "Ocupaciones (adicionales al puesto)",
+        type: 'array'
+    },
+    [FrontmatterKeys.Intereses]: {
+        key: FrontmatterKeys.Intereses,
+        description: "Intereses",
+        type: 'array'
+    },
+    [FrontmatterKeys.Habilidades]: {
+        key: FrontmatterKeys.Habilidades,
+        description: "Habilidades",
+        type: 'array'
+    },
+    [FrontmatterKeys.Residencias]: {
+        key: FrontmatterKeys.Residencias,
+        description: "Residencias o lugares de vivienda",
+        type: 'array'
     }
 };

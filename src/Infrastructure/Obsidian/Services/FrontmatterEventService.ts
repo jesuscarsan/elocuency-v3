@@ -17,7 +17,7 @@ export class FrontmatterEventService {
     }
 
     private async handleMetadataChange(file: TFile) {
-        console.log(`[FrontmatterEventService] START Metadata changed for ${file.path}`);
+        // console.log(`[FrontmatterEventService] START Metadata changed for ${file.path}`);
         if (!file || file.extension !== "md") return;
 
         const cache = this.app.metadataCache.getFileCache(file);

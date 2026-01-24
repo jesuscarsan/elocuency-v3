@@ -3,6 +3,8 @@ import { App, Modal, Notice, TFile, Setting, ButtonComponent, FuzzySuggestModal,
 import { GoogleContactAdapter } from '../../Adapters/GoogleContactAdapter';
 import UnresolvedLinkGeneratorPlugin from '../../main';
 import { Contact } from '../../Adapters/ContactAdapter';
+import { GoogleContactSyncService } from '../../Services/GoogleContactSyncService';
+import { GoogleContactTransformer } from '../../Transformers/GoogleContactTransformer';
 import { FrontmatterKeys } from '../../../../Domain/Constants/FrontmatterRegistry';
 
 interface ContactMatch {
@@ -15,6 +17,7 @@ export class ProcessUnsyncedGoogleContactsCommand {
     name: string = 'Contactos: Procesar No Sincronizados de Google';
 
     private adapter: GoogleContactAdapter;
+    private service: GoogleContactSyncService;
 
     constructor(
         private app: App,
@@ -24,6 +27,8 @@ export class ProcessUnsyncedGoogleContactsCommand {
             plugin.settings,
             plugin.saveSettings.bind(plugin)
         );
+        const transformer = new GoogleContactTransformer();
+        this.service = new GoogleContactSyncService(app, this.adapter, transformer);
     }
 
     async execute(): Promise<void> {
@@ -36,7 +41,7 @@ export class ProcessUnsyncedGoogleContactsCommand {
                 return;
             }
 
-            new UnsyncedContactsBatchModal(this.app, matches, this.adapter, this.plugin).open();
+            new UnsyncedContactsBatchModal(this.app, matches, this.adapter, this.service).open();
 
         } catch (e) {
             console.error("Error fetching unsynced contacts:", e);
@@ -105,15 +110,6 @@ export class ProcessUnsyncedGoogleContactsCommand {
         let exact = files.find(f => f.basename.toLowerCase() === lowerName);
         if (exact) return exact;
 
-        // Substring match
-        // Note: this might be too loose. "Juan" matches "Juan Perez".
-        // Let's stick to files in "Personas/" if possible? Or all files? 
-        // User request: "buscando por texto de titulo similar en notas"
-        // Let's filter by folder "Personas" if possible to reduce noise?
-        // But the user might have people elsewhere. 
-        // Let's look for "Personas" tag? That is expensive to check every file cache.
-        // Let's stick to basename similarity.
-
         // Prioritize files starting with the name
         return files.find(f => f.basename.toLowerCase().includes(lowerName) || lowerName.includes(f.basename.toLowerCase()));
     }
@@ -122,13 +118,13 @@ export class ProcessUnsyncedGoogleContactsCommand {
 class UnsyncedContactsBatchModal extends Modal {
     private matches: ContactMatch[];
     private adapter: GoogleContactAdapter;
-    private plugin: UnresolvedLinkGeneratorPlugin;
+    private service: GoogleContactSyncService;
 
-    constructor(app: App, matches: ContactMatch[], adapter: GoogleContactAdapter, plugin: UnresolvedLinkGeneratorPlugin) {
+    constructor(app: App, matches: ContactMatch[], adapter: GoogleContactAdapter, service: GoogleContactSyncService) {
         super(app);
         this.matches = matches;
         this.adapter = adapter;
-        this.plugin = plugin;
+        this.service = service;
     }
 
     onOpen() {
@@ -167,25 +163,13 @@ class UnsyncedContactsBatchModal extends Modal {
             .setTooltip(match.suggestedNote ? `Enlazar con ${match.suggestedNote.basename}` : "Buscar nota para enlazar")
             .onClick(async () => {
                 if (match.suggestedNote) {
-                    await this.linkContactToNote(match.contact, match.suggestedNote);
+                    await this.service.linkContactToNote(match.contact, match.suggestedNote);
                     itemDiv.remove();
                 } else {
                     this.close();
                     new NoteSelectionModal(this.app, match.contact, async (file) => {
-                        await this.linkContactToNote(match.contact, file);
-                        // Re-open this modal? No, simpler to just close. 
-                        // But we want to process batch.
-                        // Ideally we should keep this modal open.
-                        // But Modal on top of Modal is not standard.
-                        // For now, let's just accept one action closes the flow for that item, 
-                        // indeed we should remove the item from the list and keep the modal open.
-                        // BUT NoteSelectionModal is a Modal...
-                        // Re-opening this modal after selection might be tricky due to state.
-                        // Let's try to notify user to re-run or just focus on "Enlazar..." -> closes this, opens selector.
-                        // Then user has to run command again. That's annoying.
-                        // Better: "Enlazar..." search could be inline? No, too complex.
-                        // Let's stick to: if no suggestion, just close and open selector. User processes one by one in that case.
-                        // OR: We provide a textual input? No.
+                        await this.service.linkContactToNote(match.contact, file);
+                        // Re-open not implemented in original logic, just closes.
                     }).open();
                 }
             });
@@ -197,8 +181,25 @@ class UnsyncedContactsBatchModal extends Modal {
             .setCta()
             .setTooltip("Crear nueva nota en Personas/Conocidos-mios")
             .onClick(async () => {
-                await this.createContactNote(match.contact);
+                const newFile = await this.service.createNoteFromContact(match.contact);
+                new Notice(`Nota creada: ${newFile.basename}`);
                 itemDiv.remove();
+            });
+
+        // MOVE (Create + Delete)
+        new ButtonComponent(actionsDiv)
+            .setButtonText("Mover")
+            .setIcon("import")
+            .setTooltip("Crear nota y eliminar de Google")
+            .onClick(async () => {
+                if (confirm(`¿Crear nota para "${match.contact.name}" y eliminarlo de Google?`)) {
+                    await this.service.createNoteFromContact(match.contact);
+                    if (match.contact.id) {
+                        await this.adapter.deleteContact(match.contact.id);
+                        new Notice(`Movido a Obsidian: ${match.contact.name}`);
+                    }
+                    itemDiv.remove();
+                }
             });
 
         // DELETE
@@ -209,79 +210,13 @@ class UnsyncedContactsBatchModal extends Modal {
             .setTooltip("Eliminar de Google Contacts")
             .onClick(async () => {
                 if (confirm(`¿Seguro que quieres eliminar a "${match.contact.name}" de Google Contacts?`)) {
-                    await this.deleteContact(match.contact);
+                    if (match.contact.id) {
+                        await this.adapter.deleteContact(match.contact.id);
+                        new Notice(`Eliminado de Google: ${match.contact.name}`);
+                    }
                     itemDiv.remove();
                 }
             });
-    }
-
-    private async linkContactToNote(contact: Contact, file: TFile) {
-        // 1. Update Obsidian Note
-        await this.app.fileManager.processFrontMatter(file, (fm) => {
-            fm['!!googleContactId'] = contact.id;
-            fm['!!googleSyncDate'] = new Date().toISOString();
-
-            // Populate missing fields
-            if (!fm[FrontmatterKeys.Telefono] && contact.phone && contact.phone.length > 0) {
-                fm[FrontmatterKeys.Telefono] = contact.phone;
-            }
-            if (!fm[FrontmatterKeys.Email] && contact.email && contact.email.length > 0) {
-                fm[FrontmatterKeys.Email] = contact.email;
-            }
-            if (!fm[FrontmatterKeys.Cumpleanos] && contact.birthday) {
-                fm[FrontmatterKeys.Cumpleanos] = contact.birthday;
-            }
-        });
-
-        // 2. Update Google Contact (set eloSyncDate)
-        const updatedContact: Contact = {
-            ...contact,
-            customFields: {
-                ...contact.customFields,
-                eloSyncDate: new Date().toISOString()
-            }
-        };
-        await this.adapter.upsertContact(updatedContact);
-
-        new Notice(`Enlazado: ${contact.name} <-> ${file.basename}`);
-    }
-
-    private async createContactNote(contact: Contact) {
-        const templatePath = "!!metadata/templates/Personas/Persona conocidos mios.md";
-        const templateFile = this.app.vault.getAbstractFileByPath(templatePath);
-
-        let content = "";
-        if (templateFile instanceof TFile) {
-            content = await this.app.vault.read(templateFile);
-        } else {
-            new Notice(`⚠️ No se encontró la plantilla "${templatePath}". Creando nota vacía.`);
-        }
-
-        // Determine filename (handle duplicates)
-        let filename = `Personas/${contact.name}.md`;
-        // Ensure folder exists
-        if (!await this.app.vault.adapter.exists("Personas")) {
-            await this.app.vault.createFolder("Personas");
-        }
-
-        let i = 1;
-        while (await this.app.vault.adapter.exists(filename)) {
-            filename = `Personas/${contact.name} ${i}.md`;
-            i++;
-        }
-
-        const newFile = await this.app.vault.create(filename, content);
-
-        // Link logic same as above
-        await this.linkContactToNote(contact, newFile);
-
-        new Notice(`Nota creada: ${filename}`);
-    }
-
-    private async deleteContact(contact: Contact) {
-        if (!contact.id) return;
-        await this.adapter.deleteContact(contact.id);
-        new Notice(`Eliminado de Google: ${contact.name}`);
     }
 
     onClose() {
