@@ -171,6 +171,7 @@ export class GoogleGeminiAdapter implements LlmPort {
         ],
         config: config,
       });
+      console.log('[GoogleGeminiAdapter] Response received from Gemini.');
 
       const rawText = this.extractText(response).trim();
       return rawText || null;

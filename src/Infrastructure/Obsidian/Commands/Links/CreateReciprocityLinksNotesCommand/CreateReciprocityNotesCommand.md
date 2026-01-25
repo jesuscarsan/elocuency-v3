@@ -4,7 +4,7 @@ Este comando gestiona y crea automáticamente las relaciones bidireccionales ent
 
 ## ¿Cómo funciona?
 
-1.  **Escaneo de Relaciones**: Lee el frontmatter de la nota actual buscando campos definidos como recíprocos en el registro (ej. `Hijos`, `Padres`, `Parejas`, `CompanerosTrabajo`).
+1.  **Escaneo de Relaciones**: Lee el frontmatter de la nota actual buscando campos definidos como recíprocos en el registro (ej. `Hijos`, `Padres`, `Exparejas`, `CompanerosTrabajo`).
 2.  **Resolución de Enlaces**: Para cada persona mencionada en esos campos:
     *   Busca si ya existe una nota para ella.
     *   Si hay ambigüedad (varias notas similares) o no existe, muestra un buscador para elegir o crear una nueva.

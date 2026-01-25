@@ -90,7 +90,8 @@ export class ApplyTemplateCommand {
     const currentContent = await this.obsidian.vault.read(file);
     const mergedContent = mergeNotes(cleanedContent, currentContent, false);
     const mergedSplit = splitFrontmatter(mergedContent);
-    const mergedFrontmatter = parseFrontmatter(mergedSplit.frontmatterText);
+
+    let mergedFrontmatter = parseFrontmatter(mergedSplit.frontmatterText);
 
     const recomposedSegments: string[] = [];
     let finalFrontmatter = mergedFrontmatter;
@@ -126,9 +127,11 @@ export class ApplyTemplateCommand {
 
 
       console.log('[ApplyTemplateCommand] Requesting enrichment with prompt:', prompt);
+      console.time('[ApplyTemplateCommand] AI Enrichment Time');
       const enrichment = await this.llm.requestEnrichment({
         prompt,
       });
+      console.timeEnd('[ApplyTemplateCommand] AI Enrichment Time');
       console.log('[ApplyTemplateCommand] Enrichment received:', enrichment);
 
       if (enrichment) {
@@ -152,6 +155,8 @@ export class ApplyTemplateCommand {
             };
           }
         }
+
+
 
         if (updatedFrontmatter) {
           finalFrontmatter = updatedFrontmatter;
@@ -183,6 +188,7 @@ export class ApplyTemplateCommand {
 
     console.log('[ApplyTemplateCommand] Setting file content to:', finalContent);
     await this.obsidian.vault.modify(file, finalContent);
+    console.log('[ApplyTemplateCommand] File content updated.');
 
     // ...
     if (finalFrontmatter) {
@@ -217,6 +223,7 @@ export class ApplyTemplateCommand {
 
     // Handle !!commands (Execute commands)
     if (config.commands && Array.isArray(config.commands)) {
+      console.log('[ApplyTemplateCommand] Starting execution of !!commands (post-AI, post-Edit)');
       // Find view for file if open
       let leaf = this.obsidian.workspace.getLeavesOfType('markdown').find(leaf => (leaf.view as MarkdownView).file === file);
 

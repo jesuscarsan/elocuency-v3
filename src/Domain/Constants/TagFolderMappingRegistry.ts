@@ -7,6 +7,7 @@ export const TagFolderMappingRegistry: Record<string, string> = {
     "Personas/Históricas": "(Históricos)",
     "Obras/Películas": "(Audiovisuales)",
     "Obras/Videojuegos": "(Audiovisuales)",
+    "Obras/Canciones": "(Música)",
     "Obras/Libros": "(Libros)",
     "Obras/Bebidas": "(Gastronomía)",
     "Obras/Comidas": "(Gastronomía)",
@@ -18,5 +19,9 @@ export const TagFolderMappingRegistry: Record<string, string> = {
     "Lugares/Restaurantes": "(Restaurantes)",
     "Lugares/Bares": "(Bares)",
     "Lugares/Negocios": "(Negocios)",
-    "Lugares/Fiestas": "(Eventos)",
+    "Eventos/Fiestas": "(Eventos)",
+    "Eventos/Festivales-de-cine": "(Eventos)",
+    "Eventos/Festivales-de-música": "(Eventos)",
+    "Eventos/Festivales-de-teatro": "(Eventos)",
+
 };

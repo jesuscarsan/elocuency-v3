@@ -24,7 +24,7 @@ export const FrontmatterKeys = {
     Conocidos: "Conocidos",
     Hijos: "Hijos",
     Padres: "Padres",
-    Parejas: "Parejas",
+    Pareja: "Pareja",
     Exparejas: "Exparejas",
     Hermanos: "Hermanos",
     Familiares: "Familiares",
@@ -202,11 +202,11 @@ export const FrontmatterRegistry: Record<string, FrontmatterFieldConfig> = {
         asLink: true,
         commands: [CommandEnum.CreateReciprocityLinksNotes]
     },
-    [FrontmatterKeys.Parejas]: {
-        key: FrontmatterKeys.Parejas,
-        description: "Parejas actuales",
+    [FrontmatterKeys.Pareja]: {
+        key: FrontmatterKeys.Pareja,
+        description: "Pareja actual",
         type: 'array',
-        reciprocityField: FrontmatterKeys.Parejas,
+        reciprocityField: FrontmatterKeys.Pareja,
         asLink: true,
         commands: [CommandEnum.CreateReciprocityLinksNotes]
     },

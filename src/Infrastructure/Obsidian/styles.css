@@ -160,3 +160,10 @@
     from { opacity: 0; }
     to { opacity: 1; }
 }
+
+/* Hide empty properties in Reading View */
+.markdown-preview-view .metadata-property:has(.metadata-property-value.is-empty),
+.markdown-preview-view .metadata-property:has(.metadata-property-value:empty),
+.markdown-preview-view .metadata-property[data-property-key]:has(.metadata-property-value .metadata-input-longtext:empty) {
+    display: none;
+}
