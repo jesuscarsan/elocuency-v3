@@ -76,7 +76,7 @@ Content:
 Extract:
 1.  **People** (Personas): Specific individuals mentioned.
 2.  **Places** (Lugares): Locations, cities, countries.
-3.  **Concepts** (Conceptos): Key abstract ideas, methodologies, or specific terms that define the note's topic.
+3.  **Concepts** (Conceptos): Events or things with their own name.
 
 Return a JSON ARRAY of objects. Each object must have:
 - "name": The exact string occurrence in the text (case-sensitive preference, but normalize if needed).
