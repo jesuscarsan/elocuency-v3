@@ -45,7 +45,7 @@ export class FrontmatterEventService {
             // proper deep comparison or simple strict equality depending on needs
             // treating arrays simply for now
             if (JSON.stringify(currentValue) !== JSON.stringify(previousValue)) {
-                console.log(`[FrontmatterEventService] Field '${fieldConfig.key}' changed in ${file.basename}. Executing commands:`, fieldConfig.commands);
+                // console.log(`[FrontmatterEventService] Field '${fieldConfig.key}' changed in ${file.basename}. Executing commands:`, fieldConfig.commands);
 
                 for (const commandId of fieldConfig.commands) {
                     this.executeCommand(commandId);
@@ -71,7 +71,7 @@ export class FrontmatterEventService {
 
         if (command) {
             try {
-                console.log(`[FrontmatterEventService] Executing ${finalCommandId}`);
+                // console.log(`[FrontmatterEventService] Executing ${finalCommandId}`);
                 if (command.callback) {
                     await command.callback();
                 } else if (command.editorCallback) {

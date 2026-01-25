@@ -48,7 +48,7 @@ describe('AddImagesCommand', () => {
     test('should not add images if already present', async () => {
         // Setup
         await context.createFolder('Notes');
-        const file = await context.createFile('Notes/My Note.md', `---\n"!!prompt": x\n${FrontmatterKeys.EloImages}: ["existing.jpg"]\n---\n# Content`);
+        const file = await context.createFile('Notes/My Note.md', `---\n"!!prompt": x\n"${FrontmatterKeys.EloImages}": ["existing.jpg"]\n---\n# Content`);
 
         // Setup View
         context.app.workspace.getLeaf(true);

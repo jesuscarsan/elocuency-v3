@@ -17,14 +17,15 @@ export class ImageEnricherService {
 
         try {
             const images = await this.imageSearch.searchImages(query, maxResults);
+            const uniqueImages = [...new Set(images)];
 
-            if (images.length === 0) {
+            if (uniqueImages.length === 0) {
                 showMessage('No se encontraron imágenes.');
                 return [];
             }
 
-            showMessage(`Se encontraron ${images.length} imágenes.`);
-            return images;
+            showMessage(`Se encontraron ${uniqueImages.length} imágenes.`);
+            return uniqueImages;
         } catch (error) {
             console.error('Error searching images:', error);
             showMessage('Error al buscar imágenes.');
