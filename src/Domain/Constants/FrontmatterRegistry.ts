@@ -58,6 +58,7 @@ export interface FrontmatterFieldConfig {
     type: 'string' | 'number' | 'boolean' | 'date' | 'array';
     asLink?: boolean;
     reciprocityField?: FrontmatterKey;
+    amongField?: FrontmatterKey;
     isRelocateField?: boolean;
     commands?: string[];
 }
@@ -191,6 +192,7 @@ export const FrontmatterRegistry: Record<string, FrontmatterFieldConfig> = {
         description: "Hijos de la persona",
         type: 'array',
         reciprocityField: FrontmatterKeys.Padres,
+        amongField: FrontmatterKeys.Hermanos,
         asLink: true,
         commands: [CommandEnum.CreateReciprocityLinksNotes]
     },

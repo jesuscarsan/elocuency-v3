@@ -31,7 +31,10 @@ import {
   SyncGoogleContactsCommand,
   ProcessUnsyncedGoogleContactsCommand,
   ImportKeepTakeoutCommand,
-  ImportSpotifyPlaylistCommand
+  ImportSpotifyPlaylistCommand,
+  NaturalLanguageSearchCommand,
+  TokenizeAndCreateDictionaryNotesCommand,
+  DownloadSubtitlesCommand
 } from '@/Infrastructure/Obsidian/Commands';
 
 
@@ -163,6 +166,11 @@ export default class ObsidianExtension extends Plugin {
 
     // Initialize Frontmatter Event Service
     new FrontmatterEventService(this.app);
+
+    // Apply hide-empty-properties class if enabled
+    if (this.settings.hideEmptyProperties) {
+      document.body.classList.add('hide-empty-properties');
+    }
 
     // --- Command Definitions ---
 
@@ -399,6 +407,13 @@ export default class ObsidianExtension extends Plugin {
           await new ImportKeepTakeoutCommand(this.app).execute();
         }
       },
+      {
+        id: 'elo-natural-language-search',
+        name: 'Búsqueda: Lenguaje Natural [NaturalLanguageSearchCommand]',
+        callback: async () => {
+          await new NaturalLanguageSearchCommand(this.app, this.llm).execute();
+        }
+      },
       // {
       //   id: 'open-chat-session',
       //   name: 'Chat: Abre sesión',
@@ -411,6 +426,40 @@ export default class ObsidianExtension extends Plugin {
         name: 'Bridge: Iniciar Bridge (Manual)',
         callback: () => {
           this.bridgeService.startBridge(true); // Forced start
+        }
+      },
+      {
+        id: CommandEnum.TokenizeAndCreateDictionaryNotes,
+        name: 'Diccionario: Tokenizar y crear notas [TokenizeAndCreateDictionaryNotesCommand]',
+        callback: async (file?: TFile) => {
+          await new TokenizeAndCreateDictionaryNotesCommand(this.app, this.settings).execute(file);
+        }
+      },
+      {
+        id: 'elo-download-subtitles',
+        name: 'Series: Descargar Subtítulos [DownloadSubtitlesCommand]',
+        callback: async (file?: TFile) => {
+          // We need to invoke it properly.
+          const commandObj = new DownloadSubtitlesCommand(this).getCommand();
+          const editor = this.app.workspace.activeEditor?.editor;
+          const leaf = this.app.workspace.getLeavesOfType('markdown')[0];
+          const view = leaf?.view as MarkdownView;
+
+          if (editor && view && commandObj.editorCallback) {
+            await commandObj.editorCallback(editor, view);
+          }
+        }
+      },
+      {
+        id: CommandEnum.ToggleHideEmptyProperties,
+        name: 'Propiedades: Ocultar/Mostrar propiedades vacías',
+        callback: async () => {
+          this.settings.hideEmptyProperties = !this.settings.hideEmptyProperties;
+          await this.saveSettings();
+          document.body.classList.toggle('hide-empty-properties', this.settings.hideEmptyProperties);
+
+          const status = this.settings.hideEmptyProperties ? 'ocultas' : 'visibles';
+          showMessage(`Propiedades vacías ${status}`);
         }
       },
       {

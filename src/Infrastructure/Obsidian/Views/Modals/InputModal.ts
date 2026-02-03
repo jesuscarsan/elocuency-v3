@@ -6,7 +6,7 @@ export class InputModal extends Modal {
 
     constructor(
         app: App,
-        private readonly config: { title: string; label: string; placeholder?: string; submitText?: string },
+        private readonly config: { title: string; label: string; placeholder?: string; submitText?: string; isTextArea?: boolean },
         onSubmit: (result: string) => void
     ) {
         super(app);
@@ -20,11 +20,24 @@ export class InputModal extends Modal {
 
         new Setting(contentEl)
             .setName(this.config.label)
-            .addText((text) => {
-                if (this.config.placeholder) text.setPlaceholder(this.config.placeholder);
-                text.onChange((value) => {
-                    this.result = value;
-                });
+            .then((setting) => {
+                if (this.config.isTextArea) {
+                    setting.addTextArea((text) => {
+                        if (this.config.placeholder) text.setPlaceholder(this.config.placeholder);
+                        text.inputEl.rows = 5;
+                        text.inputEl.style.width = '100%';
+                        text.onChange((value) => {
+                            this.result = value;
+                        });
+                    });
+                } else {
+                    setting.addText((text) => {
+                        if (this.config.placeholder) text.setPlaceholder(this.config.placeholder);
+                        text.onChange((value) => {
+                            this.result = value;
+                        });
+                    });
+                }
             });
 
         new Setting(contentEl)

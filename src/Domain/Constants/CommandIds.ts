@@ -22,4 +22,6 @@ export enum CommandEnum {
     OpenLinkedPhoto = 'OpenLinkedPhotoCommand',
     EnrichWithPromptUrl = 'EnrichWithPromptUrlCommand',
     SyncContacts = 'SyncContactsCommand',
+    ToggleHideEmptyProperties = 'ToggleHideEmptyProperties',
+    TokenizeAndCreateDictionaryNotes = 'TokenizeAndCreateDictionaryNotesCommand',
 }

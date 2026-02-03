@@ -162,8 +162,8 @@
 }
 
 /* Hide empty properties in Reading View */
-.markdown-preview-view .metadata-property:has(.metadata-property-value.is-empty),
-.markdown-preview-view .metadata-property:has(.metadata-property-value:empty),
-.markdown-preview-view .metadata-property[data-property-key]:has(.metadata-property-value .metadata-input-longtext:empty) {
+body.hide-empty-properties .markdown-preview-view .metadata-property:has(.metadata-property-value.is-empty),
+body.hide-empty-properties .markdown-preview-view .metadata-property:has(.metadata-property-value:empty),
+body.hide-empty-properties .markdown-preview-view .metadata-property[data-property-key]:has(.metadata-property-value .metadata-input-longtext:empty) {
     display: none;
 }

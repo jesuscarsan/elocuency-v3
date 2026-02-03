@@ -48,6 +48,22 @@ export class ObsidianSettingsAdapter implements SettingsPort {
         return this.plugin.settings.geminiRolesFolder;
     }
 
+    getUserLanguage(): string {
+        return this.plugin.settings.userLanguage;
+    }
+
+    getToLearnLanguage(): string {
+        return this.plugin.settings.toLearnLanguage;
+    }
+
+    setUserLanguage(lang: string): void {
+        this.plugin.settings.userLanguage = lang;
+    }
+
+    setToLearnLanguage(lang: string): void {
+        this.plugin.settings.toLearnLanguage = lang;
+    }
+
     async saveSettings(): Promise<void> {
         await this.plugin.saveSettings();
     }

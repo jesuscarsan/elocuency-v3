@@ -27,6 +27,32 @@ export class SettingsView extends PluginSettingTab {
     });
 
     new Setting(containerEl)
+      .setName('User Language')
+      .setDesc('Your primary language (e.g., "es").')
+      .addText((text: TextComponent) => {
+        text
+          .setPlaceholder('es')
+          .setValue(this.plugin.settings.userLanguage)
+          .onChange(async (value: string) => {
+            this.plugin.settings.userLanguage = value.trim();
+            await this.plugin.saveSettings();
+          });
+      });
+
+    new Setting(containerEl)
+      .setName('To Learn Language')
+      .setDesc('The language you are learning (e.g., "en").')
+      .addText((text: TextComponent) => {
+        text
+          .setPlaceholder('en')
+          .setValue(this.plugin.settings.toLearnLanguage)
+          .onChange(async (value: string) => {
+            this.plugin.settings.toLearnLanguage = value.trim();
+            await this.plugin.saveSettings();
+          });
+      });
+
+    new Setting(containerEl)
       .setName('Note location strategy')
       .setDesc(
         'Create notes alongside the source file or inside a fixed folder.',
@@ -247,5 +273,48 @@ export class SettingsView extends PluginSettingTab {
         text.inputEl.type = 'password';
       });
 
+
+    containerEl.createEl('h3', { text: 'OpenSubtitles' });
+
+    new Setting(containerEl)
+      .setName('API Key')
+      .setDesc('Consumer Key from OpenSubtitles.com API.')
+      .addText((text: TextComponent) => {
+        text
+          .setPlaceholder('API Key')
+          .setValue(this.plugin.settings.openSubtitlesApiKey)
+          .onChange(async (value: string) => {
+            this.plugin.settings.openSubtitlesApiKey = value.trim();
+            await this.plugin.saveSettings();
+          });
+        text.inputEl.type = 'password';
+      });
+
+    new Setting(containerEl)
+      .setName('Username')
+      .setDesc('OpenSubtitles.com Username.')
+      .addText((text: TextComponent) => {
+        text
+          .setPlaceholder('Username')
+          .setValue(this.plugin.settings.openSubtitlesUsername)
+          .onChange(async (value: string) => {
+            this.plugin.settings.openSubtitlesUsername = value.trim();
+            await this.plugin.saveSettings();
+          });
+      });
+
+    new Setting(containerEl)
+      .setName('Password')
+      .setDesc('OpenSubtitles.com Password.')
+      .addText((text: TextComponent) => {
+        text
+          .setPlaceholder('Password')
+          .setValue(this.plugin.settings.openSubtitlesPassword)
+          .onChange(async (value: string) => {
+            this.plugin.settings.openSubtitlesPassword = value.trim();
+            await this.plugin.saveSettings();
+          });
+        text.inputEl.type = 'password';
+      });
   }
 }

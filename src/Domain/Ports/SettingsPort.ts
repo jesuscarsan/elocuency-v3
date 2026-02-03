@@ -11,7 +11,13 @@ export interface SettingsPort {
     setSpotifyTokenExpirationTime(time: number): void;
     setSpotifyPkceVerifier(verifier: string): void;
 
+
     getGeminiRolesFolder(): string;
+
+    getUserLanguage(): string;
+    getToLearnLanguage(): string;
+    setUserLanguage(lang: string): void;
+    setToLearnLanguage(lang: string): void;
 
     saveSettings(): Promise<void>;
 }

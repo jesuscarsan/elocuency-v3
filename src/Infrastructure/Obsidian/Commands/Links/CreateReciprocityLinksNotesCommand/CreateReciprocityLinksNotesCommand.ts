@@ -44,15 +44,24 @@ export class CreateReciprocityLinksNotesCommand {
         for (const entry of registryEntries) {
             const fieldKey = entry.key;
             const reciprocityKey = entry.reciprocityField!;
+            const amongKey = entry.amongField;
             const rawValue = sourceFrontmatter[fieldKey];
 
             if (!rawValue) continue;
 
             const values = Array.isArray(rawValue) ? rawValue : [rawValue];
             const cleanNames = this.extractNames(values);
+            const processedFiles: TFile[] = [];
 
             for (const name of cleanNames) {
-                await this.handlePersonLink(sourceFile, name, reciprocityKey);
+                const processedFile = await this.handlePersonLink(sourceFile, name, reciprocityKey);
+                if (processedFile) {
+                    processedFiles.push(processedFile);
+                }
+            }
+
+            if (amongKey && processedFiles.length > 1) {
+                await this.processAmongFields(processedFiles, amongKey);
             }
         }
     }
@@ -64,7 +73,7 @@ export class CreateReciprocityLinksNotesCommand {
             .filter(v => v.length > 0);
     }
 
-    private async handlePersonLink(sourceFile: TFile, personName: string, reciprocityKey: string): Promise<void> {
+    private async handlePersonLink(sourceFile: TFile, personName: string, reciprocityKey: string): Promise<TFile | null> {
         let targetFile = await this.findNoteForPerson(personName);
 
         if (!targetFile) {
@@ -87,6 +96,21 @@ export class CreateReciprocityLinksNotesCommand {
 
             // Update target file with reciprocity
             await this.addReciprocityLink(targetFile, sourceFile, reciprocityKey);
+
+            return targetFile;
+        }
+
+        return null;
+    }
+
+    private async processAmongFields(files: TFile[], amongKey: string): Promise<void> {
+        for (const file of files) {
+            // For each file, all other files are "siblings" (or whatever amongKey represents)
+            const others = files.filter(f => f.path !== file.path);
+
+            for (const other of others) {
+                await this.addReciprocityLink(file, other, amongKey);
+            }
         }
     }
 

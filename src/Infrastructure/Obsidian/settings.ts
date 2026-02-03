@@ -30,6 +30,12 @@ export interface UnresolvedLinkGeneratorSettings {
   googleRefreshToken: string;
   googleAccessToken: string;
   googleTokenExpirationTime: number;
+  hideEmptyProperties: boolean;
+  userLanguage: string;
+  toLearnLanguage: string;
+  openSubtitlesApiKey: string;
+  openSubtitlesUsername: string;
+  openSubtitlesPassword: string;
 }
 
 
@@ -61,6 +67,12 @@ export const DEFAULT_SETTINGS: UnresolvedLinkGeneratorSettings = {
   googleRefreshToken: '',
   googleAccessToken: '',
   googleTokenExpirationTime: 0,
+  hideEmptyProperties: false,
+  userLanguage: 'es',
+  toLearnLanguage: 'en',
+  openSubtitlesApiKey: '',
+  openSubtitlesUsername: '',
+  openSubtitlesPassword: '',
 };
 
 

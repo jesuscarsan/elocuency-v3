@@ -22,6 +22,9 @@ export * from './AI/EnrichWithPromptUrlCommand/EnrichWithPromptUrlCommand';
 export * from './Contacts/SyncContactsCommand';
 export * from './Contacts/SyncGoogleContactsCommand';
 export * from './Contacts/ProcessUnsyncedGoogleContactsCommand';
+export * from './Dictionary/TokenizeAndCreateDictionaryNotesCommand';
 export * from './GoogleKeep/ImportKeepTakeoutCommand';
-export * from './Music/ImportSpotifyPlaylistCommand';
+export * from './Series/DownloadSubtitlesCommand';
 
+export * from './Music/ImportSpotifyPlaylistCommand';
+export * from './Search/NaturalLanguageSearchCommand';
