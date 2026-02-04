@@ -1,45 +1,17 @@
 {
-  "name": "elo-obsidian-ext",
-  "version": "0.1.91",
-  "description": "Obsidian helper extension.",
-  "main": "build/main.js",
+  "name": "elocuency",
+  "version": "3.0.0",
+  "private": true,
   "scripts": {
-    "build": "npm run typecheck && node esbuild.config.mjs",
-    "dev": "node scripts/version-bump.js && node esbuild.config.mjs --watch",
-    "typecheck": "tsc --noEmit",
-    "lint": "eslint \"src/**/*.{ts,tsx}\"",
-    "format": "prettier --write .",
-    "test": "jest",
-    "test:cov": "jest --coverage"
+    "build": "pnpm -r run build",
+    "bridge:build": "pnpm --filter elo-mac-bridge run build",
+    "bridge:start": "pnpm --filter elo-mac-bridge run start",
+    "dev": "pnpm -r run dev",
+    "lint": "pnpm -r run lint",
+    "test": "pnpm -r run test",
+    "typecheck": "pnpm -r run typecheck"
   },
-  "keywords": [
-    "obsidian",
-    "plugin",
-    "notes",
-    "automation"
-  ],
-  "author": "",
-  "license": "MIT",
   "devDependencies": {
-    "@types/jest": "^30.0.0",
-    "@types/js-yaml": "^4.0.9",
-    "@types/node": "^20.11.19",
-    "@typescript-eslint/eslint-plugin": "^6.21.0",
-    "@typescript-eslint/parser": "^6.21.0",
-    "esbuild": "^0.20.2",
-    "eslint": "^8.57.0",
-    "eslint-config-prettier": "^9.1.0",
-    "jest": "^30.2.0",
-    "js-yaml": "^4.1.1",
-    "obsidian": "^1.6.3",
-    "prettier": "^3.2.5",
-    "ts-jest": "^29.4.6",
-    "ts-node": "^10.9.2",
-    "tslib": "^2.6.2",
     "typescript": "^5.4.5"
-  },
-  "dependencies": {
-    "@danielxceron/youtube-transcript": "^1.2.3",
-    "@google/genai": "^1.29.0"
   }
 }

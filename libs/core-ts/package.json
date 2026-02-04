@@ -1,0 +1,19 @@
+{
+    "name": "@elo/core",
+    "version": "0.0.1",
+    "main": "dist/index.js",
+    "types": "dist/index.d.ts",
+    "scripts": {
+        "build": "tsc"
+    },
+    "dependencies": {
+        "@google/genai": "^1.29.0"
+    },
+    "devDependencies": {
+        "@types/jest": "^30.0.0",
+        "@types/node": "^20.19.31",
+        "jest": "^30.2.0",
+        "obsidian": "^1.11.4",
+        "typescript": "^5.4.5"
+    }
+}

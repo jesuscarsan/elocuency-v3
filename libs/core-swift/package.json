@@ -1,0 +1,8 @@
+{
+    "name": "@elo/core-swift",
+    "private": true,
+    "description": "Placeholder for shared Swift logic",
+    "scripts": {
+        "build": "echo 'Building Swift Core... (Placeholder)'"
+    }
+}

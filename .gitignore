@@ -1,7 +1,2 @@
-node_modules/
-main.js
-main.js.map
-.DS_Store
-.vscode/
-data.json
-coverage/
+node_modules
+apps/elo-obsidian-ext/node_modules
