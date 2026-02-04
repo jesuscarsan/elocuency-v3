@@ -1,0 +1,11 @@
+{
+    "id": "elo-google-contacts",
+    "name": "Elocuency Google Contacts",
+    "version": "1.0.0",
+    "main": "main.js",
+    "minAppVersion": "1.5.0",
+    "description": "Integration with Google Contacts for Elocuency.",
+    "author": "Joshua",
+    "authorUrl": "",
+    "isDesktopOnly": false
+}
