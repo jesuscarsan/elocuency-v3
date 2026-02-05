@@ -1,0 +1,21 @@
+{
+    "name": "@elo/obsidian-plugin-utils",
+    "version": "0.0.2",
+    "description": "Shared utilities for Obsidian plugins",
+    "main": "src/index.ts",
+    "types": "src/index.ts",
+    "scripts": {
+        "test": "echo \"Error: no test specified\" && exit 1"
+    },
+    "keywords": [
+        "obsidian",
+        "plugin",
+        "utils"
+    ],
+    "author": "",
+    "license": "MIT",
+    "dependencies": {},
+    "devDependencies": {
+        "obsidian": "latest"
+    }
+}

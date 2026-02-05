@@ -8,7 +8,7 @@ const watch = args.includes('--watch');
 const config = JSON.parse(fs.readFileSync('../../elo.config.json', 'utf8'));
 const vaults = config.vaults;
 
-const targetDirs = vaults.map(vault => path.join(vault, '.obsidian/plugins/elocuency'));
+const targetDirs = vaults.map(vault => path.join(vault, '.obsidian/plugins/elo-obsidian-google-contacts-plugin'));
 
 const copyPlugin = {
   name: 'copy-plugin',
@@ -20,11 +20,15 @@ const copyPlugin = {
         }
 
         const files = [
-          { src: 'src/Infrastructure/Obsidian/styles.css', dest: 'styles.css' },
           'main.js',
           'manifest.json',
-          '.hotreload'
+          '.hotreload' // Optional, if using hot-reload plugin
         ];
+        // Check if styles.css exists before adding
+        if (fs.existsSync('src/Infrastructure/Obsidian/styles.css')) {
+             files.push({ src: 'src/Infrastructure/Obsidian/styles.css', dest: 'styles.css' });
+        }
+        
         if (watch) {
           files.push('main.js.map');
         }
@@ -45,7 +49,7 @@ const copyPlugin = {
 };
 
 const buildOptions = {
-  entryPoints: ['src/Infrastructure/Obsidian/main.ts'],
+  entryPoints: ['src/main.ts'],
   outfile: 'main.js',
   bundle: true,
   platform: 'browser',

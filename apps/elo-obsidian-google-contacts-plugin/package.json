@@ -1,7 +1,7 @@
 {
-  "name": "elo-obsidian-core-plugin",
-  "version": "0.1.93",
-  "description": "Obsidian helper extension.",
+  "name": "elo-obsidian-google-contacts-plugin",
+  "version": "1.0.1",
+  "description": "Obsidian plugin for Google Contacts integration.",
   "main": "build/main.js",
   "scripts": {
     "build": "npm run typecheck && node esbuild.config.mjs",
@@ -15,10 +15,10 @@
   "keywords": [
     "obsidian",
     "plugin",
-    "notes",
-    "automation"
+    "google-contacts",
+    "sync"
   ],
-  "author": "",
+  "author": "Joshua",
   "license": "MIT",
   "devDependencies": {
     "@jest/globals": "^30.2.0",
@@ -41,7 +41,7 @@
     "@elo/obsidian-plugin-utils": "workspace:*"
   },
   "dependencies": {
-    "@danielxceron/youtube-transcript": "^1.2.3",
-    "@elo/core": "workspace:*"
+    "@elo/core": "workspace:*",
+    "@elo/obsidian-plugin-utils": "workspace:*"
   }
 }

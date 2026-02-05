@@ -12,8 +12,13 @@ importers:
         specifier: ^5.4.5
         version: 5.9.3
 
-  apps/elo-google-contacts:
+  apps/elo-mac-bridge: {}
+
+  apps/elo-obsidian-core-plugin:
     dependencies:
+      '@danielxceron/youtube-transcript':
+        specifier: ^1.2.3
+        version: 1.2.6
       '@elo/core':
         specifier: workspace:*
         version: link:../../libs/core-ts
@@ -70,13 +75,8 @@ importers:
         specifier: ^5.4.5
         version: 5.9.3
 
-  apps/elo-mac-bridge: {}
-
-  apps/elo-obsidian-core-plugin:
+  apps/elo-obsidian-google-contacts-plugin:
     dependencies:
-      '@danielxceron/youtube-transcript':
-        specifier: ^1.2.3
-        version: 1.2.6
       '@elo/core':
         specifier: workspace:*
         version: link:../../libs/core-ts
