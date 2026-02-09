@@ -1,2 +1,5 @@
 node_modules
-apps/*
+
+apps/elo-mac-bridge
+apps/elo-obsidian-core-plugin
+apps/elo-obsidian-google-contacts-plugin
