@@ -1,5 +1,3 @@
+apps/*
 node_modules
-
-apps/elo-mac-bridge
-apps/elo-obsidian-core-plugin
-apps/elo-obsidian-google-contacts-plugin
+elocuency.code-workspace

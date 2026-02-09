@@ -9,7 +9,8 @@
     "dev": "pnpm -r run dev",
     "lint": "pnpm -r run lint",
     "test": "pnpm -r run test",
-    "typecheck": "pnpm -r run typecheck"
+    "typecheck": "pnpm -r run typecheck",
+    "install:apps": "node core/scripts/install-available-apps.js"
   },
   "devDependencies": {
     "typescript": "^5.4.5"
