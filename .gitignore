@@ -1,2 +1,3 @@
 node_modules
 apps/elo-obsidian-ext/node_modules
+.dist

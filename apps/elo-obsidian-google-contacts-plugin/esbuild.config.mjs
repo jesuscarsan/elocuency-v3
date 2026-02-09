@@ -20,7 +20,7 @@ const copyPlugin = {
         }
 
         const files = [
-          'main.js',
+          '.dist/main.js',
           'manifest.json',
           '.hotreload' // Optional, if using hot-reload plugin
         ];
@@ -30,12 +30,12 @@ const copyPlugin = {
         }
         
         if (watch) {
-          files.push('main.js.map');
+          files.push('.dist/main.js.map');
         }
 
         files.forEach((file) => {
           const src = typeof file === 'string' ? file : file.src;
-          const destName = typeof file === 'string' ? file : file.dest;
+          const destName = typeof file === 'string' ? path.basename(file) : file.dest;
           
           if (fs.existsSync(src)) {
             const dest = path.join(dir, destName);
@@ -50,7 +50,7 @@ const copyPlugin = {
 
 const buildOptions = {
   entryPoints: ['src/main.ts'],
-  outfile: 'main.js',
+  outfile: '.dist/main.js',
   bundle: true,
   platform: 'browser',
   target: 'es2018',

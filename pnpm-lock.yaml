@@ -23,6 +23,9 @@ importers:
         specifier: workspace:*
         version: link:../../libs/core-ts
     devDependencies:
+      '@elo/obsidian-plugin-utils':
+        specifier: workspace:*
+        version: link:../../libs/obsidian-plugin-utils
       '@jest/globals':
         specifier: ^30.2.0
         version: 30.2.0
@@ -80,6 +83,9 @@ importers:
       '@elo/core':
         specifier: workspace:*
         version: link:../../libs/core-ts
+      '@elo/obsidian-plugin-utils':
+        specifier: workspace:*
+        version: link:../../libs/obsidian-plugin-utils
     devDependencies:
       '@jest/globals':
         specifier: ^30.2.0
@@ -156,6 +162,12 @@ importers:
       typescript:
         specifier: ^5.4.5
         version: 5.9.3
+
+  libs/obsidian-plugin-utils:
+    devDependencies:
+      obsidian:
+        specifier: latest
+        version: 1.11.4(@codemirror/state@6.5.0)(@codemirror/view@6.38.6)
 
 packages:
 

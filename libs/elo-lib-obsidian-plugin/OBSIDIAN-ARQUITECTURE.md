@@ -11,6 +11,7 @@ Este proyecto sigue una Arquitectura Hexagonal (Puertos y Adaptadores) estricta 
 
 ## 2. Estructura de Directorios y Responsabilidadestext
 
+```
 src/
 ├── domain/                 # HEXÁGONO INTERIOR (Puro TypeScript, Sin Obsidian)
 │   ├── models/             # Entidades y Value Objects (Interfaces/Clases puras).
@@ -36,6 +37,7 @@ src/
 │   └── views/              # Vistas de Obsidian (ItemView) que montan los componentes.
 │
 └── main.ts                 # COMPOSITION ROOT (Punto de entrada)
+````
 
 ## 3. Guía de Implementación para la IA
 
