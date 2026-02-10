@@ -6,7 +6,7 @@ export async function buildPlugin(options) {
   const {
     pluginId,
     entryPoints = ['src/main.ts'],
-    outfile = '.dist/main.js',
+    outfile = 'dist/main.js',
     external = ['obsidian', 'fs', 'path', 'child_process'],
     cssEntry = 'src/Infrastructure/Obsidian/styles.css',
     copyFiles = ['manifest.json', '.hotreload'],

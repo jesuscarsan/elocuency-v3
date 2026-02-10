@@ -14,12 +14,78 @@ The rest of the information can be found in the docs folder. Each app project ha
 
 To install the framework and its applications, follow these steps:
 
-1. Install the framework:
-    > npm install
+1. Install node
 
-2. Install the applications:
-    > npm run install-app elo-obsidian-core-plugin
-    > npm run install-app elo-obsidian-google-contacts-plugin
+2. Install pnpm:
+    > npm install -g pnpm
 
-3. Run the applications:
-    > npm run dev
+3. Install the monorepo:
+    > pnpm install
+
+4. Install the applications. Download from git:
+    > pnpm run install-available-apps
+
+    To install only one app:
+    > pnpm run install-app elo-obsidian-core-plugin
+    > pnpm run install-app elo-obsidian-google-contacts-plugin
+
+5. Run in dev mode:
+    > pnpm run dev
+
+    To run only one app in dev mode:
+    > pnpm --filter elo-obsidian-core-plugin run dev
+
+# Obsidian Plugins Development
+
+To work with the Obsidian plugins included in the framework (e.g., `elo-obsidian-core-plugin`), you need to configure your environment to enable automatic distribution to your Obsidian vaults.
+
+## Configuration
+
+Create a file named `elo.config.json` in the root of the project (or any parent directory). This file should contain an array of absolute paths to your Obsidian vaults.
+
+**Example `elo.config.json`:**
+
+```json
+{
+  "obsidianVaults": [
+    "/Users/yourname/Documents/Obsidian/MyVault",
+    "/Users/yourname/Library/Mobile Documents/iCloud~md~obsidian/Documents/Personal"
+  ]
+}
+```
+
+## Build and Distribute
+
+Each plugin is located in the `apps/` directory.
+
+### Development (Watch Mode)
+
+To start development with hot-reloading (if configured) or auto-build on change:
+
+1. Navigate to the plugin directory:
+   ```bash
+   cd apps/elo-obsidian-core-plugin
+   ```
+2. Run the development script:
+   ```bash
+   pnpm run dev
+   ```
+   This will:
+   - Bump the patch version of the plugin.
+   - Start `esbuild` in watch mode.
+   - Automatically copy the compiled `main.js`, `manifest.json`, and `styles.css` to the `.obsidian/plugins/<plugin-id>` directory in all configured vaults.
+
+### Production Build
+
+To build the plugin for distribution (minified):
+
+1. Navigate to the plugin directory.
+2. Run the build command:
+   ```bash
+   pnpm run build
+   ```
+   The compiled files will be available in the plugin directory (usually `dist/` or root depending on config).
+
+## Architecture
+
+The build process uses a shared configuration located in `libs/obsidian-plugin`. This library handles the common build logic and the distribution to vaults defined in `elo.config.json`.
