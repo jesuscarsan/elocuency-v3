@@ -246,10 +246,10 @@ function processApp(appName) {
     const esbuildPath = path.join(destAppPath, 'esbuild.config.mjs');
     if (fs.existsSync(esbuildPath)) {
         let esbuildContent = fs.readFileSync(esbuildPath, 'utf8');
-        // Replace config loading with empty vaults
-        const configRegex = /const config = JSON\.parse\(fs\.readFileSync\('\.\.\/\.\.\/elo\.config\.json', 'utf8'\)\);\s*const vaults = config\.vaults;/;
+        // Replace config loading with empty obsidianVaults
+        const configRegex = /const config = JSON\.parse\(fs\.readFileSync\('\.\.\/\.\.\/elo\.config\.json', 'utf8'\)\);\s*const obsidianVaults = config\.obsidianVaults;/;
         if (esbuildContent.match(configRegex)) {
-            esbuildContent = esbuildContent.replace(configRegex, "const vaults = []; // Open Source: No auto-deploy");
+            esbuildContent = esbuildContent.replace(configRegex, "const obsidianVaults = []; // Open Source: No auto-deploy");
             fs.writeFileSync(esbuildPath, esbuildContent);
             log.info('Patched esbuild.config.mjs to remove elo.config.json dependency.');
         } else {

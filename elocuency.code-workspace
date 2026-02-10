@@ -11,6 +11,9 @@
 		},
 		{
 			"path": "apps/elo-obsidian-google-contacts-plugin"
+		},
+		{
+			"path": "apps/elo-obsidian-spotify-plugin"
 		}
 	],
 	"settings": {}

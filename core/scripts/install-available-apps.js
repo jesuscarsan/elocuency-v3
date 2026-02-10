@@ -4,23 +4,23 @@ const { execSync } = require('child_process');
 
 const rootDir = path.resolve(__dirname, '../../');
 const appsDir = path.join(rootDir, 'apps');
-const appsJsonPath = path.join(rootDir, 'apps.json');
+const eloConfigPath = path.join(rootDir, 'elo.config.json');
 
-if (!fs.existsSync(appsJsonPath)) {
-  console.error(`Error: apps.json not found at ${appsJsonPath}`);
+if (!fs.existsSync(eloConfigPath)) {
+  console.error(`Error: elo.config.json not found at ${eloConfigPath}`);
   process.exit(1);
 }
 
-const appsConfig = JSON.parse(fs.readFileSync(appsJsonPath, 'utf8'));
+const appsConfig = JSON.parse(fs.readFileSync(eloConfigPath, 'utf8'));
 const { availableApps, sourceUrl } = appsConfig;
 
 if (!availableApps || !Array.isArray(availableApps)) {
-  console.error('Error: "availableApps" is missing or not an array in apps.json');
+  console.error('Error: "availableApps" is missing or not an array in elo.config.json');
   process.exit(1);
 }
 
 if (!sourceUrl) {
-  console.error('Error: "sourceUrl" is missing in apps.json');
+  console.error('Error: "sourceUrl" is missing in elo.config.json');
   process.exit(1);
 }
 

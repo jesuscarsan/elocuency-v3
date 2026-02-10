@@ -1,11 +1,14 @@
 {
-    "vaults": [
+    "obsidianVaults": [
         "/Users/joshua/my-docs/KBs/JACS",
         "/Users/joshua/my-docs/KBs/Cocina",
         "/Users/joshua/my-docs/KBs/Tecnología",
         "/Users/joshua/my-docs/KBs/teo-3-eso-kb"
     ],
-    "openSourceApps": [
+    "availableApps": [
+        "elo-mac-bridge",
+        "elo-obsidian-core-plugin",
         "elo-obsidian-google-contacts-plugin"
-    ]
+    ],
+    "sourceUrl": "https://github.com/jesuscarsan"
 }
