@@ -1,5 +1,5 @@
 {
-    "name": "@elo/obsidian-plugin-utils",
+    "name": "@elo/obsidian-plugin",
     "version": "0.0.2",
     "description": "Shared utilities for Obsidian plugins",
     "main": "src/index.ts",
@@ -14,8 +14,11 @@
     ],
     "author": "",
     "license": "MIT",
-    "dependencies": {},
+    "peerDependencies": {
+        "obsidian": "^1.6.3"
+    },
     "devDependencies": {
-        "obsidian": "latest"
+        "esbuild": "^0.20.2",
+        "obsidian": "^1.12.0"
     }
 }

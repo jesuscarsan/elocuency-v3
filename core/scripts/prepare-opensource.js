@@ -122,7 +122,7 @@ function processApp(appName) {
         fs.mkdirSync(libsTargetDir, { recursive: true });
     }
 
-    const libMappings = {}; // '@elo/obsidian-plugin-utils': 'obsidian-plugin-utils'
+    const libMappings = {}; // '@elo/obsidian-plugin': 'obsidian-plugin-utils'
 
     // 3. Inject Libraries
     eloDeps.forEach(depName => {
@@ -220,7 +220,7 @@ function processApp(appName) {
                 
                 // Replace
                 content = content.replace(importRegex, (match, quote, pkg, subpath) => {
-                     // pkg is @elo/obsidian-plugin-utils
+                     // pkg is @elo/obsidian-plugin
                      // subpath is anything after, e.g. /sub/module (if any)
                      // If we copied 'src', the internal structure is preserved.
                      // But typically imports are just from the package root if main is set.
