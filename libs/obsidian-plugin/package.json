@@ -5,7 +5,8 @@
     "main": "src/index.ts",
     "types": "src/index.ts",
     "scripts": {
-        "test": "echo \"Error: no test specified\" && exit 1"
+        "build": "tsc",
+        "test": "vitest run"
     },
     "keywords": [
         "obsidian",
@@ -18,7 +19,15 @@
         "obsidian": "^1.6.3"
     },
     "devDependencies": {
+        "@types/js-yaml": "^4.0.9",
+        "@types/node": "^20.11.19",
         "esbuild": "^0.20.2",
-        "obsidian": "^1.12.0"
+        "happy-dom": "^20.6.1",
+        "js-yaml": "^4.1.1",
+        "obsidian": "^1.12.0",
+        "vitest": "^1.2.2"
+    },
+    "dependencies": {
+        "@elo/core": "workspace:*"
     }
 }

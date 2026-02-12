@@ -1,21 +1,20 @@
-
+import { vi } from 'vitest';
 import { GoogleGeminiAdapter } from './GoogleGeminiAdapter';
 
-const mockGenerateContent = jest.fn();
-// We need to define the class mock inside the factory or use a variable that is hoisted (var) but jest.mock is special.
-// Best to just return the mock structure from the factory and assign it to a variable for assertions if needed, 
-// or import the mocked module.
+const mockGenerateContent = vi.fn();
 
-jest.mock('@google/genai', () => {
+vi.mock('@google/genai', () => {
     return {
-        GoogleGenAI: jest.fn().mockImplementation(() => ({
-            getGenerativeModel: jest.fn().mockReturnValue({
-                generateContent: mockGenerateContent
-            }),
-            models: {
-                generateContent: mockGenerateContent
-            }
-        }))
+        GoogleGenAI: vi.fn().mockImplementation(function () {
+            return {
+                getGenerativeModel: vi.fn().mockReturnValue({
+                    generateContent: mockGenerateContent,
+                }),
+                models: {
+                    generateContent: mockGenerateContent,
+                },
+            };
+        }),
     };
 });
 
@@ -24,7 +23,7 @@ describe('GoogleGeminiAdapter', () => {
     const apiKey = 'test-api-key';
 
     beforeEach(() => {
-        jest.clearAllMocks();
+        vi.clearAllMocks();
         adapter = new GoogleGeminiAdapter(apiKey);
     });
 

@@ -1,102 +1,123 @@
-# Estructura del Proyecto y Normas de Arquitectura
-En general se siguen los principios de SOLID, Arquitectura Hexagonal y Domain Driven Design.
+# Project Structure and Architecture Standards
 
-Este documento define la estructura de directorios y las reglas de arquitectura que **DEBEN** seguirse para mantener la calidad, escalabilidad y mantenibilidad del código sin hacer sobreingeniería.
+In general, we follow SOLID principles, Hexagonal Architecture, and Domain Driven Design.
 
-## Principio Fundamental
+This document defines the directory structure and architecture rules that **MUST** be followed to maintain code quality, scalability, and maintainability without overengineering.
 
-La dependencia fluye **hacia adentro**. El código del Dominio no conoce nada de la Aplicación ni de la Infraestructura. La Aplicación no conoce detalles de la Infraestructura.
+## Fundamental Principle
 
-## Capas
+Dependency flows **inwards**. Domain code knows nothing about Application or Infrastructure. Application knows no details of Infrastructure.
+
+## Layers
 
 ### 1. Domain (`src/Domain`)
-*El núcleo del negocio. Código puro de TypeScript. Sin dependencias externas.*
 
-*   **Contenido**: Entidades, Value Objects, Reglas de Negocio y **Puertos** (Interfaces).
-*   **Reglas**:
-    *   ⛔️ NO importar nada de `Application` ni `Infrastructure`.
-    *   ⛔️ NO usar librerías externas ni frameworks (ej. Obsidian API).
-    *   ✅ Definir interfaces (`Ports`) para cualquier interacción con el mundo exterior (Base de datos, APIs, UI).
+_The core of the business. Pure TypeScript code. No external dependencies._
 
-**Estructura**:
-*   `src/Domain/Models/`: Entidades y tipos de datos puros.
-*   `src/Domain/Ports/`: Interfaces que deben ser implementadas por la capa de Infraestructura (ej. `LlmPort`, `AudioPlayerPort`).
+- **Content**: Entities, Value Objects, Business Rules, and **Ports** (Interfaces).
+- **Rules**:
+  - ⛔️ Do NOT import anything from `Application` or `Infrastructure`.
+  - ⛔️ Do NOT use external libraries or frameworks (e.g., Obsidian API).
+  - ✅ Define interfaces (`Ports`) for any interaction with the outside world (Database, APIs, UI).
+
+**Structure**:
+
+- `src/Domain/Models/`: Pure entities and data types.
+- `src/Domain/Ports/`: Interfaces that must be implemented by the Infrastructure layer (e.g., `LlmPort`, `AudioPlayerPort`).
 
 ---
 
 ### 2. Application (`src/Application`)
-*Orquestación y Casos de Uso. Coordina el flujo de datos entre la UI/Infraestructura y el Dominio.*
 
-*   **Contenido**: Servicios de Aplicación, Casos de Uso (Use Cases).
-*   **Reglas**:
-    *   ✅ Puede importar de `Domain`.
-    *   ⛔️ NO importar implementaciones concretas de `Infrastructure`.
-    *   ✅ Usar los `Ports` definidos en Dominio para interactuar con servicios externos.
+_Orchestration and Use Cases. Coordinates data flow between UI/Infrastructure and Domain._
 
-**Estructura**:
-*   `src/Application/UseCases/`: Lógica específica de una acción del usuario (ej. `StartLiveSession`, `ProcessUserMessage`).
-*   `src/Application/Services/`: Servicios que agrupan lógica de varios casos de uso si es necesario.
+- **Content**: Application Services, Use Cases.
+- **Rules**:
+  - ✅ Can import from `Domain`.
+  - ⛔️ Do NOT import concrete implementations from `Infrastructure`.
+  - ✅ Use `Ports` defined in Domain to interact with external services.
+
+**Structure**:
+
+- `src/Application/UseCases/`: Specific logic for a user action (e.g., `StartLiveSession`, `ProcessUserMessage`).
+- `src/Application/Services/`: Services that group logic from multiple use cases if necessary.
 
 ---
 
 ### 3. Infrastructure (`src/Infrastructure`)
-*El mundo real. Implementaciones concretas, Frameworks y Herramientas.*
 
-*   **Contenido**: UI (Vistas de Obsidian), Adaptadores de APIs (Gemini, OpenAI), Acceso a Archivos, Configuración.
-*   **Reglas**:
-    *   ✅ Puede importar de `Domain` y `Application`.
-    *   ✅ Es el **único** lugar donde se permite usar la API de Obsidian (`obsidian`).
-    *   ✅ Aquí se inyectan las dependencias (Dependency Injection).
+_The real world. Concrete implementations, Frameworks, and Tools._
 
-**Estructura**:
-*   `src/Infrastructure/Adapters/`: Implementación de los Puertos (ej. `GoogleGeminiLiveAdapter` implementa `LlmPort`).
-*   `src/Infrastructure/Obsidian/`: Código acoplado a Obsidian.
-    *   `Views/`: Componentes visuales y React Views.
-    *   `Commands/`: Comandos del plugin.
-    *   `MarkdownPostProcessors/`: Renderizadores de markdown.
+- **Content**: UI (Obsidian Views), API Adapters (Gemini, OpenAI), File Access, Configuration.
+- **Rules**:
+  - ✅ Can import from `Domain` and `Application`.
+  - ✅ This is the **only** place where using the Obsidian API (`obsidian`) is allowed.
+  - ✅ Dependencies are injected here (Dependency Injection).
+  - ✅ **Colocation**: Auxiliary files (`DTOs`, `Mappers`, `Types`) specific to an adapter must go **inside** the adapter's folder (e.g., `src/Infrastructure/Adapters/Google/api`), NOT in the `Infrastructure` root.
 
-## Guía Rápida de Ubicación
+**Structure**:
 
-| Tipo de Fichero | Ubicación | Ejemplo |
-| :--- | :--- | :--- |
-| **Interfaz** de servicio externo | `src/Domain/Ports` | `LlmPort.ts` |
-| **Lógica** de negocio pura | `src/Domain/Models` | `Session.ts` |
-| **Acción** del usuario (Lógica) | `src/Application/UseCases` | `StartSessionUseCase.ts` |
-| **Llamada a API** (Gemini, etc.) | `src/Infrastructure/Adapters` | `GoogleGeminiLiveAdapter.ts` |
-| **Vista** / UI (React, HTML) | `src/Infrastructure/Obsidian/Views` | `LiveSessionView.ts` |
-| **Comando** de Obsidian | `src/Infrastructure/Obsidian/Commands` | `OpenSessionCommand.ts` |
+- `src/Infrastructure/Adapters/`: Implementation of Ports (e.g., `GoogleGeminiLiveAdapter` implements `LlmPort`).
+  - `[Provider]/`: Folder to group adapters by provider (e.g., `Google`, `OpenAI`).
+    - `api/`: DTOs and Mappers specific to this provider.
+- `src/Infrastructure/Obsidian/`: Code coupled to Obsidian.
+  - `Views/`: Visual components and React Views.
+  - `Commands/`: Plugin commands.
+  - `MarkdownPostProcessors/`: Markdown renderers.
 
-## Flujo de Trabajo para Nuevas Funcionalidades
+## Naming Conventions
 
-1.  **Definir el Puerto (Domain)**: ¿Qué necesito del exterior? (ej. `InventoryRepository`).
-2.  **Implementar el Caso de Uso (Application)**: ¿Qué hace el usuario? (ej. `AddItemToInventory`).
-3.  **Implementar el Adaptador (Infrastructure)**: ¿Cómo se guarda realmente? (ej. `ObsidianFileRepository`).
-4.  **Conectar en la Vista/Comando (Infrastructure)**: Inyectar el adaptador en el caso de uso y ejecutarlo.
+1.  **Folders in `src/`**:
+    - Must use **PascalCase** (CamelCase with initial capital) by default (e.g., `Domain`, `UseCases`, `GoogleContacts`).
+    - **Exception**: If there is a strong standard dictating otherwise (e.g., `api`, `__tests__`, `dist`, `assets`), lowercase is allowed. But for source code folders (Feature, Component, Module), use PascalCase.
+
+## Language Standards
+
+1.  **Documentation**:
+    - All documentation (READMEs, comments, architecture docs) **MUST** be written in **English**.
+
+## Quick Location Guide
+
+| File Type                          | Location                               | Example                      |
+| :--------------------------------- | :------------------------------------- | :--------------------------- |
+| **Interface** for external service | `src/Domain/Ports`                     | `LlmPort.ts`                 |
+| **Pure Business Logic**            | `src/Domain/Models`                    | `Session.ts`                 |
+| **User Action** (Logic)            | `src/Application/UseCases`             | `StartSessionUseCase.ts`     |
+| **API Call** (Gemini, etc.)        | `src/Infrastructure/Adapters`          | `GoogleGeminiLiveAdapter.ts` |
+| **View** / UI (React, HTML)        | `src/Infrastructure/Obsidian/Views`    | `LiveSessionView.ts`         |
+| **Obsidian Command**               | `src/Infrastructure/Obsidian/Commands` | `OpenSessionCommand.ts`      |
+
+## New Feature Workflow
+
+1.  **Define the Port (Domain)**: What do I need from the outside? (e.g., `InventoryRepository`).
+2.  **Implement the Use Case (Application)**: What does the user do? (e.g., `AddItemToInventory`).
+3.  **Implement the Adapter (Infrastructure)**: How is it actually saved? (e.g., `ObsidianFileRepository`).
+4.  **Connect in View/Command (Infrastructure)**: Inject the adapter into the use case and execute it.
 
 ## Testing
 
-*   **Principio**: Colocación (Co-location). Los tests viven junto al código que prueban.
-*   **Convención de Nombres**: `[NombreFichero].test.ts`.
-*   **Ubicación**:
-    *   Si pruebas `src/Domain/MyEntity.ts`, el test va en `src/Domain/MyEntity.test.ts`.
-    *   Si pruebas `src/Application/UseCases/MyUseCase.ts`, el test va en `src/Application/UseCases/MyUseCase.test.ts`.
-*   **Mocks**:
-    *   Mocks globales (ej. Obsidian) van en `src/__mocks__`.
-    *   Mocks locales pueden ir en una carpeta `__tests__` o `__mocks__` al lado del código si es muy específico, pero preferimos mocks en línea o helpers compartidos en `src/Infrastructure/Testing`.
+- **Principle**: Co-location. Tests live next to the code they test.
+- **Naming Convention**: `[FileName].test.ts`.
+- **Location**:
+  - If you test `src/Domain/MyEntity.ts`, the test goes in `src/Domain/MyEntity.test.ts`.
+  - If you test `src/Application/UseCases/MyUseCase.ts`, the test goes in `src/Application/UseCases/MyUseCase.test.ts`.
+- **Mocks**:
+  - Global mocks (e.g., Obsidian) go in `src/__mocks__`.
+  - Local mocks can go in a `__tests__` or `__mocks__` folder next to the code if very specific, but we prefer inline mocks or shared helpers in `src/Infrastructure/Testing`.
 
-## Normas de Importación y Barrel Files
+## Import Standards and Barrel Files
 
-Para mantener el proyecto limpio y facilitar la refactorización:
+To keep the project clean and facilitate refactoring:
 
 1.  **Barrel Files (`index.ts`)**:
-    *   **SOLO** permitidos en los directorios raíz de las capas principales:
-        *   `src/Domain/index.ts`
-        *   `src/Application/index.ts`
-        *   `src/Infrastructure/index.ts`
-    *   ⛔️ **PROHIBIDO** crear archivos `index.ts` en subdirectorios (ej. `src/Domain/Models/index.ts`). Esto evita dependencias circulares y problemas de ‘tree-shaking’.
+    - **ONLY** allowed in the root directories of main layers:
+      - `src/Domain/index.ts`
+      - `src/Application/index.ts`
+      - `src/Infrastructure/index.ts`
+    - ⛔️ **FORBIDDEN** to create `index.ts` files in subdirectories (e.g., `src/Domain/Models/index.ts`). This avoids circular dependencies and tree-shaking issues.
 
-2.  **Imports con Alias (`@`)**:
-    *   ✅ Usar siempre el alias `@` para imports absolutos en lugar de rutas relativas largas.
-    *   Ejemplo: `import { ... } from '@/Domain/Models/...'` en lugar de `import { ... } from '../../Domain/Models/...'`.
+2.  **Aliased Imports (`@`)**:
+    - ✅ Always use the `@` alias for absolute imports instead of long relative paths.
+    - Example: `import { ... } from '@/Domain/Models/...'` instead of `import { ... } from '../../Domain/Models/...'`.
 
-Para tracear los mesajes utilizar el util "showMessage" en lugar de "new Notice".
+To trace messages, use the utility "showMessage" instead of "new Notice".

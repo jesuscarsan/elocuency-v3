@@ -9,11 +9,14 @@
     "dev": "pnpm -r run dev",
     "lint": "pnpm -r run lint",
     "test": "pnpm -r run test",
+    "test:cov": "pnpm -r run test:cov",
     "typecheck": "pnpm -r run typecheck",
     "install-available-apps": "node core/scripts/install-available-apps.js",
     "install-app": "node core/scripts/install-app.js"
   },
   "devDependencies": {
-    "typescript": "^5.4.5"
+    "@vitest/coverage-v8": "^4.0.18",
+    "typescript": "^5.4.5",
+    "vitest": "^4.0.18"
   }
 }

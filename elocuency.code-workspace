@@ -1,8 +1,29 @@
 {
 	"folders": [
 		{
-			"path": "."
-		}
+			"path": ".",
+		},
+		{
+			"path": "apps/elo-obsidian-core-plugin",
+		},
+		{
+			"path": "apps/elo-obsidian-mac-bridge-plugin",
+		},
+		{
+			"path": "apps/elo-mac-bridge",
+		},
+		{
+			"path": "apps/elo-obsidian-google-contacts-plugin",
+		},
+		{
+			"path": "apps/elo-obsidian-google-maps-plugin",
+		},
+		{
+			"path": "apps/elo-obsidian-spotify-plugin",
+		},
+		{
+			"path": "apps/elo-obsidian-youtube-plugin",
+		},
 	],
-	"settings": {}
+	"settings": {},
 }
