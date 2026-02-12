@@ -1,5 +1,4 @@
 import { GoogleGenAI } from '@google/genai';
-// import { showMessage } from '@/Infrastructure/Obsidian/Utils/Messages'; // Removed for Core
 import { IGeminiSessionAdapter } from './IGeminiSessionAdapter';
 
 export class GoogleGeminiChatAdapter implements IGeminiSessionAdapter {

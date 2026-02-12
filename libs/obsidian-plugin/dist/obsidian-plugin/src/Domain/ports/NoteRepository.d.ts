@@ -37,4 +37,8 @@ export interface NoteRepository {
      * Gets a template content if it exists
      */
     getTemplateContent(path: string): Promise<string | null>;
+    /**
+     * Overwrites the content of a note
+     */
+    writeNote(path: string, content: string): Promise<void>;
 }

@@ -10,7 +10,7 @@ export interface NoteRepository {
      * Reads note content and metadata
      */
     getNoteMetadata(path: string): Promise<NoteMetadata | null>;
-    
+
     /**
      * Reads the raw content of a note
      */
@@ -40,9 +40,14 @@ export interface NoteRepository {
      * Creates a folder if it doesn't exist
      */
     createFolder(path: string): Promise<void>;
-    
+
     /**
      * Gets a template content if it exists
      */
     getTemplateContent(path: string): Promise<string | null>;
+
+    /**
+     * Overwrites the content of a note
+     */
+    writeNote(path: string, content: string): Promise<void>;
 }

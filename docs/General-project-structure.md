@@ -65,6 +65,14 @@ _The real world. Concrete implementations, Frameworks, and Tools._
   - `Commands/`: Plugin commands.
   - `MarkdownPostProcessors/`: Markdown renderers.
 
+### Obsidian Code Centralization (`libs/obsidian-plugin`)
+
+To maintain consistency and avoid duplication, any Obsidian-specific logic, utility, or adapter that can be reused across multiple plugins **MUST** be centralized in `libs/obsidian-plugin`.
+
+- **Reusable Adapters**: Generic implementations of `EditorPort`, `FileSystemPort`, etc.
+- **UI Components**: Modals, views, or styles that are common to the platform.
+- **Utilities**: Helpers for markdown manipulation, view mode switching, etc.
+
 ## Naming Conventions
 
 1.  **Folders in `src/`**:

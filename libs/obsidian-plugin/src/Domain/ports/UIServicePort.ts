@@ -4,7 +4,7 @@ export interface SelectionItem<T> {
 }
 
 export interface UIServicePort {
-	showMessage(message: string): void;
+	showMessage(keyOrMessage: string, args?: Record<string, any>): void;
 	showSelectionModal<T>(
 		placeholder: string,
 		items: T[],

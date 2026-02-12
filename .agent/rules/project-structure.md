@@ -76,7 +76,11 @@ Where to place utility functions?
 | If the function...              | Then place in...                              |
 | :------------------------------ | :-------------------------------------------- |
 | Is **pure** (no framework deps) | `Domain/Utils/`                               |
-| Uses Obsidian/framework APIs    | `Infrastructure/Presentation/Obsidian/Utils/` |
+| Is **reusable** Obsidian logic  | `@elo/obsidian-plugin` (centralized library)  |
+| Is **specific** to one plugin   | `Infrastructure/Presentation/Obsidian/Utils/` |
+
+> [!IMPORTANT]
+> Any Obsidian-specific logic, adapter, or UI component that is potentially reusable across multiple plugins **MUST** be moved to `libs/obsidian-plugin`. Avoid duplication at all costs.
 
 ⛔️ **FORBIDDEN** to create `Utils/` folders in `Application/`. If you need application helpers, place them next to the UseCase that uses them or create a specific module.
 

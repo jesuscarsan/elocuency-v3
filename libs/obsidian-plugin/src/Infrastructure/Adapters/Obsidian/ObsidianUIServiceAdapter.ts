@@ -1,11 +1,16 @@
 import { App, Notice } from 'obsidian';
-import { UIServicePort, SelectionItem } from '../../../Domain/Ports/UIServicePort';
+import { UIServicePort } from '../../../Domain/Ports/UIServicePort';
+import { TranslationService } from '../../../Domain/Interfaces/TranslationService';
 import { GenericFuzzySuggestModal } from '../../Presentation/Obsidian/Views/Modals/GenericFuzzySuggestModal';
 
 export class ObsidianUIServiceAdapter implements UIServicePort {
-	constructor(private readonly app: App) { }
+	constructor(
+		private readonly app: App,
+		private readonly translationService: TranslationService,
+	) { }
 
-	showMessage(message: string): void {
+	showMessage(keyOrMessage: string, args?: Record<string, any>): void {
+		const message = this.translationService.t(keyOrMessage, args);
 		new Notice(message);
 	}
 

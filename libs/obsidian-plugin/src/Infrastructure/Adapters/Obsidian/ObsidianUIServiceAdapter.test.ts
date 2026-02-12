@@ -11,7 +11,7 @@ vi.mock('obsidian', () => ({
 	},
 }));
 
-vi.mock('../../Presentation/Views/Modals/GenericFuzzySuggestModal', () => ({
+vi.mock('../../Presentation/Obsidian/Views/Modals/GenericFuzzySuggestModal', () => ({
 	GenericFuzzySuggestModal: function (
 		app: any,
 		items: any,

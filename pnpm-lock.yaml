@@ -202,10 +202,62 @@ importers:
       '@elo/core':
         specifier: workspace:*
         version: link:../../libs/core-ts
+      '@elo/obsidian-plugin':
+        specifier: workspace:*
+        version: link:../../libs/obsidian-plugin
+    devDependencies:
+      '@types/js-yaml':
+        specifier: ^4.0.9
+        version: 4.0.9
+      '@types/node':
+        specifier: ^20.11.19
+        version: 20.19.31
+      '@typescript-eslint/eslint-plugin':
+        specifier: ^6.21.0
+        version: 6.21.0(@typescript-eslint/parser@6.21.0(eslint@8.57.1)(typescript@5.9.3))(eslint@8.57.1)(typescript@5.9.3)
+      '@typescript-eslint/parser':
+        specifier: ^6.21.0
+        version: 6.21.0(eslint@8.57.1)(typescript@5.9.3)
+      esbuild:
+        specifier: ^0.20.2
+        version: 0.20.2
+      eslint:
+        specifier: ^8.57.0
+        version: 8.57.1
+      eslint-config-prettier:
+        specifier: ^9.1.0
+        version: 9.1.2(eslint@8.57.1)
+      js-yaml:
+        specifier: ^4.1.1
+        version: 4.1.1
+      obsidian:
+        specifier: ^1.12.0
+        version: 1.12.0(@codemirror/state@6.5.0)(@codemirror/view@6.38.6)
+      prettier:
+        specifier: ^3.2.5
+        version: 3.8.1
+      ts-node:
+        specifier: ^10.9.2
+        version: 10.9.2(@types/node@20.19.31)(typescript@5.9.3)
+      tslib:
+        specifier: ^2.6.2
+        version: 2.8.1
+      typescript:
+        specifier: ^5.4.5
+        version: 5.9.3
+
+  apps/elo-obsidian-quiz-plugin:
+    dependencies:
+      '@elo/core':
+        specifier: workspace:*
+        version: link:../../libs/core-ts
     devDependencies:
       '@elo/obsidian-plugin':
         specifier: workspace:*
         version: link:../../libs/obsidian-plugin
+      '@types/jest':
+        specifier: ^30.0.0
+        version: 30.0.0
       '@types/js-yaml':
         specifier: ^4.0.9
         version: 4.0.9
@@ -249,11 +301,11 @@ importers:
   apps/elo-obsidian-spotify-plugin:
     dependencies:
       '@elo/core':
-        specifier: file:../../libs/core-ts
-        version: file:libs/core-ts
+        specifier: workspace:*
+        version: link:../../libs/core-ts
       '@elo/obsidian-plugin':
-        specifier: file:../../libs/obsidian-plugin
-        version: file:libs/obsidian-plugin(obsidian@1.12.0(@codemirror/state@6.5.0)(@codemirror/view@6.38.6))
+        specifier: workspace:*
+        version: link:../../libs/obsidian-plugin
     devDependencies:
       '@jest/globals':
         specifier: ^30.2.0
@@ -303,6 +355,43 @@ importers:
       tslib:
         specifier: ^2.6.2
         version: 2.8.1
+      typescript:
+        specifier: ^5.4.5
+        version: 5.9.3
+
+  apps/elo-obsidian-subtitles-plugin:
+    dependencies:
+      '@elo/core':
+        specifier: workspace:*
+        version: link:../../libs/core-ts
+    devDependencies:
+      '@elo/obsidian-plugin':
+        specifier: workspace:*
+        version: link:../../libs/obsidian-plugin
+      '@types/node':
+        specifier: ^20.11.19
+        version: 20.19.31
+      '@typescript-eslint/eslint-plugin':
+        specifier: ^6.21.0
+        version: 6.21.0(@typescript-eslint/parser@6.21.0(eslint@8.57.1)(typescript@5.9.3))(eslint@8.57.1)(typescript@5.9.3)
+      '@typescript-eslint/parser':
+        specifier: ^6.21.0
+        version: 6.21.0(eslint@8.57.1)(typescript@5.9.3)
+      esbuild:
+        specifier: ^0.20.2
+        version: 0.20.2
+      eslint:
+        specifier: ^8.57.0
+        version: 8.57.1
+      eslint-config-prettier:
+        specifier: ^9.1.0
+        version: 9.1.2(eslint@8.57.1)
+      obsidian:
+        specifier: ^1.12.0
+        version: 1.12.0(@codemirror/state@6.5.0)(@codemirror/view@6.38.6)
+      prettier:
+        specifier: ^3.2.5
+        version: 3.8.1
       typescript:
         specifier: ^5.4.5
         version: 5.9.3
@@ -613,14 +702,6 @@ packages:
   '@danielxceron/youtube-transcript@1.2.6':
     resolution: {integrity: sha512-NGqXFJE2+9ChS1xWrLM1bath6AWl2Q3im9PvD+tIpZROOnmp18MclzuUEGPCEFl1W67RNKLiLDGk2qrBxyuOLA==}
     engines: {node: '>=18.0.0'}
-
-  '@elo/core@file:libs/core-ts':
-    resolution: {directory: libs/core-ts, type: directory}
-
-  '@elo/obsidian-plugin@file:libs/obsidian-plugin':
-    resolution: {directory: libs/obsidian-plugin, type: directory}
-    peerDependencies:
-      obsidian: ^1.6.3
 
   '@emnapi/core@1.8.1':
     resolution: {integrity: sha512-AvT9QFpxK0Zd8J0jopedNm+w/2fIzvtPKPjqyw9jwvBaReTTqPBk9Hixaz7KbjimP+QNz605/XnjFcDAL2pqBg==}
@@ -1083,15 +1164,6 @@ packages:
 
   '@google/genai@1.39.0':
     resolution: {integrity: sha512-Vz7AQsOdBeiIcxmXIQNy/hzDvyAOE1lSpWA10itUQza7h3aQFF6QSGaQ7o1GYsjMD3XslK4Ee/Ol0eLhRXb7gA==}
-    engines: {node: '>=20.0.0'}
-    peerDependencies:
-      '@modelcontextprotocol/sdk': ^1.25.2
-    peerDependenciesMeta:
-      '@modelcontextprotocol/sdk':
-        optional: true
-
-  '@google/genai@1.40.0':
-    resolution: {integrity: sha512-fhIww8smT0QYRX78qWOiz/nIQhHMF5wXOrlXvj33HBrz3vKDBb+wibLcEmTA+L9dmPD4KmfNr7UF3LDQVTXNjA==}
     engines: {node: '>=20.0.0'}
     peerDependencies:
       '@modelcontextprotocol/sdk': ^1.25.2
@@ -3619,20 +3691,6 @@ snapshots:
 
   '@danielxceron/youtube-transcript@1.2.6': {}
 
-  '@elo/core@file:libs/core-ts':
-    dependencies:
-      '@google/genai': 1.40.0
-    transitivePeerDependencies:
-      - '@modelcontextprotocol/sdk'
-      - bufferutil
-      - supports-color
-      - utf-8-validate
-
-  '@elo/obsidian-plugin@file:libs/obsidian-plugin(obsidian@1.12.0(@codemirror/state@6.5.0)(@codemirror/view@6.38.6))':
-    dependencies:
-      '@elo/core': link:libs/core-ts
-      obsidian: 1.12.0(@codemirror/state@6.5.0)(@codemirror/view@6.38.6)
-
   '@emnapi/core@1.8.1':
     dependencies:
       '@emnapi/wasi-threads': 1.1.0
@@ -3889,16 +3947,6 @@ snapshots:
   '@eslint/js@8.57.1': {}
 
   '@google/genai@1.39.0':
-    dependencies:
-      google-auth-library: 10.5.0
-      protobufjs: 7.5.4
-      ws: 8.19.0
-    transitivePeerDependencies:
-      - bufferutil
-      - supports-color
-      - utf-8-validate
-
-  '@google/genai@1.40.0':
     dependencies:
       google-auth-library: 10.5.0
       protobufjs: 7.5.4
