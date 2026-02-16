@@ -14,10 +14,15 @@ All projects matching the pattern `elo-obsidian-*` MUST implement internationali
     - Do NOT implement custom translation logic within the app.
 
 2.  **Mandatory Languages**:
-    - All user-facing text (commands, settings, UI elements, notices) MUST be translated into at least **English (`en`)** and **Spanish (`es`)**.
+    - All user-facing text (commands, settings, UI elements, notices, notifications) MUST be translated into at least **English (`en`)** and **Spanish (`es`)**.
     - You MUST create a `src/I18n/locales` directory containing `en.ts` and `es.ts`.
 
-3.  **Implementation Pattern**:
+3.  **Zero Hardcoded Strings**:
+    - ⛔️ **FORBIDDEN**: Hardcoding user-facing strings in the source code.
+    - ✅ **ALWAYS**: Use `this.translationService.t('key')` or equivalent to display text to the user.
+    - If you are adding a new string, you MUST add it to BOTH `en.ts` and `es.ts` before using it.
+
+4.  **Implementation Pattern**:
     - Define translation keys in `en.ts` and `es.ts` as default exports.
     - Initialize the `ObsidianTranslationAdapter` in your plugin's `onload` method or `main.ts`, passing the locales.
     - Expose the translation service (e.g., as `this.translationService`) for use throughout the plugin.

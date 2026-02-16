@@ -78,6 +78,7 @@ To maintain consistency and avoid duplication, any Obsidian-specific logic, util
 1.  **Folders in `src/`**:
     - Must use **PascalCase** (CamelCase with initial capital) by default (e.g., `Domain`, `UseCases`, `GoogleContacts`).
     - **Exception**: If there is a strong standard dictating otherwise (e.g., `api`, `__tests__`, `dist`, `assets`), lowercase is allowed. But for source code folders (Feature, Component, Module), use PascalCase.
+    - **Python Projects**: For Python projects (e.g., `elo-server`), follow **PEP 8** standards: use **snake_case** for directories and files (e.g., `domain`, `use_cases`, `ai_port.py`).
 
 ## Language Standards
 

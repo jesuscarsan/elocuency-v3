@@ -27,6 +27,9 @@
 		{
 			"path": "apps/elo-obsidian-subtitles-plugin",
 		},
+		{
+			"path": "apps/elo-server",
+		},
 	],
 	"settings": {},
 }

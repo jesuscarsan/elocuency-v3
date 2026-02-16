@@ -4,7 +4,7 @@ Elocuency is a framework for developing personal learning and productivity appli
 
 To structure it organically, each functionality for groups of use cases are packaged into apps within their corresponding folder. The framework provides tools and libraries for the coordinated development of these applications.
 
-To make it easy to start using, many initial functionalities are packaged as Obsidian plugins. However, the framework does not depend on Obsidian. Obsidian is the first approach for users. 
+To make it easy to start using, many initial functionalities are packaged as Obsidian plugins. However, the framework does not depend on Obsidian. Obsidian is the first approach for users.
 
 Although the idea has been maturing for many years, testing different approaches and technologies, now with AI, it is truly possible to carry it out.
 
@@ -17,23 +17,29 @@ To install the framework and its applications, follow these steps:
 1. Install node
 
 2. Install pnpm:
-    > npm install -g pnpm
+
+   > npm install -g pnpm
 
 3. Install the monorepo:
-    > pnpm install
+
+   > pnpm install
 
 4. Install the applications. Download from git:
-    > pnpm run install-available-apps
 
-    To install only one app:
-    > pnpm run install-app elo-obsidian-core-plugin
-    > pnpm run install-app elo-obsidian-google-contacts-plugin
+   > pnpm run install-available-apps
+
+   To install only one app:
+
+   > pnpm run install-app elo-obsidian-core-plugin
+   > pnpm run install-app elo-obsidian-google-contacts-plugin
 
 5. Run in dev mode:
-    > pnpm run dev
 
-    To run only one app in dev mode:
-    > pnpm --filter elo-obsidian-core-plugin run dev
+   > pnpm run dev
+
+   To run only one app in dev mode:
+
+   > pnpm --filter elo-obsidian-core-plugin run dev
 
 # Obsidian Plugins Development
 
@@ -47,10 +53,10 @@ Create a file named `elo.config.json` in the root of the project (or any parent 
 
 ```json
 {
-  "obsidianVaults": [
-    "/Users/yourname/Documents/Obsidian/MyVault",
-    "/Users/yourname/Library/Mobile Documents/iCloud~md~obsidian/Documents/Personal"
-  ]
+	"obsidianVaults": [
+		"/Users/yourname/Documents/Obsidian/MyVault",
+		"/Users/yourname/Library/Mobile Documents/iCloud~md~obsidian/Documents/Personal"
+	]
 }
 ```
 
@@ -89,3 +95,16 @@ To build the plugin for distribution (minified):
 ## Architecture
 
 The build process uses a shared configuration located in `libs/obsidian-plugin`. This library handles the common build logic and the distribution to vaults defined in `elo.config.json`.
+
+# AI Server (Python)
+
+The framework includes a Python-based server for AI interactions, located in `apps/elo-server`.
+
+For detailed installation and usage instructions, please refer to the [Server Documentation](apps/elo-server/README.md).
+
+### Quick Start
+
+1.  Navigate to `apps/elo-server`.
+2.  Install dependencies: `pip install -r requirements.txt`.
+3.  Configure `.env` (see `.env.example`).
+4.  Run: `python src/main.py`.

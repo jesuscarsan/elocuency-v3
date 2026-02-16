@@ -1,4 +1,5 @@
-apps/*
+apps
 node_modules
 elocuency.code-workspace
-old-copy-week-ago/
+old-copy-week-ago
+workspace

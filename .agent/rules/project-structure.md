@@ -84,6 +84,12 @@ Where to place utility functions?
 
 ⛔️ **FORBIDDEN** to create `Utils/` folders in `Application/`. If you need application helpers, place them next to the UseCase that uses them or create a specific module.
 
+## Naming Conventions
+
+1.  **Folders in `src/`**:
+    - **TypeScript**: Must use **PascalCase** (CamelCase with initial capital).
+    - **Python**: Follow **PEP 8** standards: use **snake_case** for directories and files.
+
 ### Models vs Entities
 
 - **Rule**: Use only `Domain/Models/` for interfaces/types.
@@ -125,6 +131,7 @@ Before finalizing any change, verify:
 2.  ✅ No `index.ts` files exist in subdirectories.
 3.  ✅ No empty residual folders.
 4.  ✅ `main.ts` doesn't exceed ~150 lines.
+5.  ✅ **I18n Compliance**: No hardcoded user-facing strings in the code. All text must be in `en.ts` and `es.ts`.
 
 ### Testing
 
