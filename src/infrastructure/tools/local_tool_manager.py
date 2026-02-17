@@ -15,13 +15,13 @@ class LocalToolManager:
             self.tools_dirs = []
             
             # 1. Assets (official/git-tracked)
-            assets_path = "/app/assets/langchain/tools" if os.path.exists("/app/assets/langchain/tools") else None
+            assets_path = Path("/app/assets/langchain/tools") if os.path.exists("/app/assets/langchain/tools") else None
             if not assets_path:
                 # New path: apps/elo-server/assets/langchain/tools
                 assets_path = Path(os.path.dirname(__file__)).resolve().parents[2] / "assets" / "langchain" / "tools"
             
             # 2. Workspace (local/user-defined)
-            workspace_path = "/app/workspace/langchain/tools" if os.path.exists("/app/workspace/langchain/tools") else None
+            workspace_path = Path("/app/workspace/langchain/tools") if os.path.exists("/app/workspace/langchain/tools") else None
             if not workspace_path:
                 root_path = Path(os.path.dirname(__file__)).resolve().parents[4]
                 workspace_path = root_path / "workspace" / "langchain" / "tools"
@@ -30,7 +30,7 @@ class LocalToolManager:
 
         # Ensure directories exist (at least the workspace one)
         for d in self.tools_dirs:
-            if not d.exists():
+            if d and not d.exists():
                 print(f"Creating tools directory: {d}")
                 d.mkdir(parents=True, exist_ok=True)
             

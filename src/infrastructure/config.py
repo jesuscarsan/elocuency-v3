@@ -1,22 +1,22 @@
-import yaml
+import json
 import os
 from pydantic import BaseModel, Field
 from typing import Optional, List
 
 class ServerConfig(BaseModel):
     host: str = "0.0.0.0"
-    port: int = 8000
+    port: int = 8001
     reload: bool = True
 
 class AIConfig(BaseModel):
     api_key: str
-    model: str = "gemini-pro"
+    model: str = "gemini-2.0-flash"
 
 class ObsidianConfig(BaseModel):
-    vault_path: str
+    vault_path: Optional[str] = None
     persist_directory: Optional[str] = None
     api_key: Optional[str] = None
-    url: str = "https://127.0.0.1:27124"
+    url: str = "http://host.docker.internal:27123"
 
 class FilesystemConfig(BaseModel):
     allowed_paths: List[str] = Field(default_factory=list)
@@ -27,53 +27,80 @@ class AppConfig(BaseModel):
     obsidian: ObsidianConfig
     filesystem: Optional[FilesystemConfig] = None
 
-def load_config(config_path: str = "../../workspace/config.yaml") -> AppConfig:
+def load_config(config_path: Optional[str] = None) -> AppConfig:
     """
-    Loads configuration from a YAML file and validates it using Pydantic.
-    Allows overriding with environment variables if necessary.
+    Loads configuration by merging:
+    1. Base structure from elo.config.json
+    2. Sensitive data from environment variables (.env)
+    3. Docker-specific path automation
     """
-    # Try to find config in the current directory if relative fails
-    if not os.path.isabs(config_path):
-        # Resolve relative to the app root (one level up from src)
-        possible_paths = [
-            config_path, # Standard relative path from src
-            os.path.join(os.path.dirname(__file__), "..", "..", "workspace", "config.yaml"), # Absolute reference
-            "/app/workspace/config.yaml" # Docker path
-        ]
-        for p in possible_paths:
-            if os.path.exists(p):
-                config_path = p
-                break
-
-    if not os.path.exists(config_path):
-        # Fallback to current directory for development convenience
-        if os.path.exists("workspace/config.yaml"):
-            config_path = "workspace/config.yaml"
-        else:
-            raise FileNotFoundError(f"Configuration file not found in any of: {possible_paths}")
-
-    with open(config_path, "r") as f:
-        config_dict = yaml.safe_load(f)
-
-    # Example of env override for sensitive data:
-    env_api_key = os.getenv("GOOGLE_API_KEY")
-    if env_api_key:
-        if "ai" not in config_dict:
-            config_dict["ai"] = {}
-        config_dict["ai"]["api_key"] = env_api_key
-
-    config = AppConfig(**config_dict)
+    # 1. Find and load elo.config.json
+    possible_json_paths = [
+        "elo.config.json",
+        "/app/elo.config.json",
+        os.path.join(os.path.dirname(__file__), "..", "..", "elo.config.json"),
+        os.path.join(os.path.dirname(__file__), "..", "..", "..", "elo.config.json")
+    ]
     
-    # Automate persist_directory resolution
+    config_dict = {}
+    for p in possible_json_paths:
+        if os.path.exists(p):
+            with open(p, "r") as f:
+                config_dict = json.load(f)
+            break
+            
+    # 2. Map JSON keys to AppConfig structure (handling flattening/renaming)
+    # We want to preserve the internal AppConfig structure for the rest of the app.
+    
+    # AI Config
+    ai_data = config_dict.get("ai", {})
+    ai_config = {
+        "api_key": os.getenv("GOOGLE_API_KEY", ""),
+        "model": ai_data.get("model", os.getenv("AI_MODEL", "gemini-2.0-flash"))
+    }
+    
+    # Obsidian Config
+    obs_data = config_dict.get("obsidian", {})
+    obs_config = {
+        "vault_path": os.getenv("VAULT_PATH"),
+        "api_key": os.getenv("OBSIDIAN_API_KEY"),
+        "url": obs_data.get("url", os.getenv("OBSIDIAN_URL", "http://host.docker.internal:27123")),
+        "persist_directory": os.getenv("PERSIST_DIRECTORY")
+    }
+    
+    # Server Config (mostly defaults or env)
+    server_config = {
+        "host": os.getenv("SERVER_HOST", "0.0.0.0"),
+        "port": int(os.getenv("SERVER_PORT", 8001)),
+        "reload": os.getenv("SERVER_RELOAD", "true").lower() == "true"
+    }
+
+    full_config_dict = {
+        "server": server_config,
+        "ai": ai_config,
+        "obsidian": obs_config
+    }
+    
+    config = AppConfig(**full_config_dict)
+    
+    # 3. Automate vault_path for Docker
+    is_docker = os.path.exists("/.dockerenv") or os.environ.get("DOCKER_CONTAINER") == "true"
+    
+    if not config.obsidian.vault_path:
+        if is_docker and os.path.exists("/data/vault"):
+            config.obsidian.vault_path = "/data/vault"
+
+    # 4. Automate filesystem allowed_paths for Docker
+    if is_docker:
+        config.filesystem = FilesystemConfig(allowed_paths=["/app", "/data/vault"])
+
+    # 5. Automate persist_directory resolution
     if config.obsidian:
-        config_dir = os.path.dirname(os.path.abspath(config_path))
+        # Default to 'workspace/chromadb' if not set
         if not config.obsidian.persist_directory:
-            # Default to 'chromadb' in the same directory as config.yaml
-            config.obsidian.persist_directory = os.path.join(config_dir, "chromadb")
-        elif not os.path.isabs(config.obsidian.persist_directory):
-            # Resolve relative path against config directory
-            config.obsidian.persist_directory = os.path.abspath(
-                os.path.join(config_dir, config.obsidian.persist_directory)
-            )
+            if is_docker:
+                config.obsidian.persist_directory = "/app/workspace/chromadb"
+            else:
+                config.obsidian.persist_directory = os.path.abspath("workspace/chromadb")
             
     return config
