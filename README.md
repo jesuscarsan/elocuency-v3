@@ -108,3 +108,9 @@ For detailed installation and usage instructions, please refer to the [Server Do
 2.  Install dependencies: `pip install -r requirements.txt`.
 3.  Configure `.env` (see `.env.example`).
 4.  Run: `python src/main.py`.
+
+### Ports
+
+- Elo Server: http://localhost:8001
+- Elo web chat: http://localhost:8001/agent/playground/
+- n8n: See /workbench/n8n/public-url.txt

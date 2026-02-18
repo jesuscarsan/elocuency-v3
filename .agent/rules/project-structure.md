@@ -84,6 +84,21 @@ Where to place utility functions?
 
 ⛔️ **FORBIDDEN** to create `Utils/` folders in `Application/`. If you need application helpers, place them next to the UseCase that uses them or create a specific module.
 
+## Workspace Directory (`/workspace`)
+
+- **Purpose**: This directory is **NOT** part of the application code.
+- **Role**: It serves as a working folder for the end user and for dynamic data storage (e.g., n8n workflows, local tools, document processing).
+- **Rule**: Avoid treating files in this directory as source code. Do not refactor or modify its structure unless explicitly requested for integration purposes. This folder is typically ignored by Git.
+
+## Assets Directory (`apps/elo-server/assets`)
+
+- **Purpose**: Version-controlled resources that are used by the applications.
+- **Content**: Base LangChain tools, standard n8n workflows, templates, and static data.
+- **Relationship with Workspace**:
+  - `apps/elo-server/assets` contains the **Source of Truth** for built-in features.
+  - Files from `apps/elo-server/assets` can be copied, symlinked, or loaded by applications into the `/workspace` to be available at runtime.
+- **Rule**: If a tool or workflow is meant to be shared with other developers or deployed as part of the system, it MUST live in `apps/elo-server/assets`.
+
 ## Naming Conventions
 
 1.  **Folders in `src/`**:

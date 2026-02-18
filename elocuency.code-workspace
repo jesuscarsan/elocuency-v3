@@ -1,16 +1,10 @@
 {
 	"folders": [
 		{
-			"path": ".",
-		},
-		{
-			"path": "apps/elo-obsidian-core-plugin",
-		},
-		{
-			"path": "apps/elo-mac-bridge",
-		},
-		{
 			"path": "apps/elo-server",
+		},
+		{
+			"path": ".",
 		},
 	],
 	"settings": {},

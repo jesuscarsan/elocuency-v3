@@ -10,5 +10,18 @@
         "elo-obsidian-core-plugin",
         "elo-obsidian-google-contacts-plugin"
     ],
-    "sourceUrl": "https://github.com/jesuscarsan"
+    "sourceUrl": "https://github.com/jesuscarsan",
+    "mcps": [
+        {
+            "name": "mcp-obsidian",
+            "url": "https://github.com/bitbonsai/mcp-obsidian.git"
+        }
+    ],
+    "langchainTools": [],
+    "ai": {
+        "model": "gemini-2.0-flash"
+    },
+    "obsidian": {
+        "url": "http://host.docker.internal:27123"
+    }
 }

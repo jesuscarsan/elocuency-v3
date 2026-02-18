@@ -12,7 +12,9 @@
     "test:cov": "pnpm -r run test:cov",
     "typecheck": "pnpm -r run typecheck",
     "install-available-apps": "node core/scripts/install-available-apps.js",
-    "install-app": "node core/scripts/install-app.js"
+    "install-app": "node core/scripts/install-app.js",
+    "sync-workspace": "node core/scripts/sync-workspace.js",
+    "init-mcps": "node core/scripts/sync-workspace.js"
   },
   "devDependencies": {
     "@vitest/coverage-v8": "^4.0.18",

@@ -3,3 +3,4 @@ node_modules
 elocuency.code-workspace
 old-copy-week-ago
 workspace
+.env
