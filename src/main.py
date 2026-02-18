@@ -8,6 +8,9 @@ from src.application.use_cases.ask_ai_use_case import AskAIUseCase
 from src.infrastructure.adapters.api.fastapi_adapter import create_app
 from src.infrastructure.mcp.manager import MCPManager
 from src.infrastructure.tools.local_tool_manager import LocalToolManager
+from langserve import add_routes, RemoteRunnable
+import re as re_module
+from starlette.types import ASGIApp, Receive, Scope, Send
 
 from src.infrastructure.adapters.obsidian.langchain_obsidian_adapter import LangChainObsidianAdapter
 from langchain_core.tools import tool
@@ -27,7 +30,8 @@ logger = get_logger(__name__)
 mcp_manager = MCPManager(workspace_path=config.paths.mcps)
 local_tool_manager = LocalToolManager(
     tools_dirs=config.paths.local_tools, 
-    root_path=config.paths.root
+    root_path=config.paths.root,
+    activated_tools=config.activated_tools
 )
 ai_adapter = LangGraphAgentAdapter(
     api_key=config.ai.api_key, 
@@ -42,9 +46,9 @@ if config.obsidian.vault_path and config.ai.api_key:
     try:
         logger.info(f"Initializing Obsidian Semantic Search for {config.obsidian.vault_path}...")
         obsidian_adapter = LangChainObsidianAdapter(
-            vault_path=config.obsidian.vault_path,
+            obsidian_config=config.obsidian,
             google_api_key=config.ai.api_key,
-            persist_directory=config.obsidian.persist_directory
+            config_path="elo.config.json" # Pass path to allow self-update
         )
     except Exception as e:
         logger.warning(f"Could not initialize Obsidian Semantic Search: {e}")
@@ -100,13 +104,8 @@ async def lifespan(app: FastAPI):
 
     yield
     
-    # Shutdown
     logger.info("Stopping MCP Manager...")
     await mcp_manager.stop()
-
-from langserve import add_routes
-import re as re_module
-from starlette.types import ASGIApp, Receive, Scope, Send
 
 class ConstToEnumMiddleware:
     """
@@ -132,18 +131,16 @@ class ConstToEnumMiddleware:
             await self.app(scope, receive, send)
             return
 
-        if is_streaming:
-            # For streaming paths, patch chunks on the fly without buffering the whole response
+        # For streaming paths, ONLY patch /stream_log (playground)
+        # Avoid breaking /stream (CLI) or other binary/SSE streams
+        if is_streaming and path.endswith("/stream_log"):
             async def streaming_send(message):
                 if message["type"] == "http.response.body":
                     chunk = message.get("body", b"")
                     if chunk:
                         try:
-                            # Patch "type": "ai" -> "type": "AIMessage" in the chunk
+                            # Apply only the const->enum fix to streaming chunks for Playground compatibility
                             text = chunk.decode("utf-8", errors="replace")
-                            text = re_module.sub(r'"type":\s*"ai"', '"type": "AIMessage"', text)
-                            text = re_module.sub(r'"type":\s*"human"', '"type": "HumanMessage"', text)
-                            # Also apply the const->enum fix to streaming chunks if needed
                             text = re_module.sub(
                                 r'"const":\s*"(ai|human|chat|system|function|tool|AIMessageChunk|HumanMessageChunk|ChatMessageChunk|SystemMessageChunk|FunctionMessageChunk|ToolMessageChunk)"',
                                 lambda m: f'"enum": ["{m.group(1)}"]',
@@ -155,6 +152,10 @@ class ConstToEnumMiddleware:
                 await send(message)
             
             await self.app(scope, receive, streaming_send)
+            return
+
+        if not is_schema:
+            await self.app(scope, receive, send)
             return
 
         # For schema/playground paths, buffer and apply fix
@@ -182,9 +183,6 @@ class ConstToEnumMiddleware:
                 lambda m: f'"enum": ["{m.group(1)}"]',
                 text
             )
-            # Patch types here as well
-            text = re_module.sub(r'"type":\s*"ai"', '"type": "AIMessage"', text)
-            text = re_module.sub(r'"type":\s*"human"', '"type": "HumanMessage"', text)
 
             new_body = text.encode("utf-8")
         except Exception:
@@ -294,12 +292,30 @@ def bootstrap():
         configurable = cfg.get("configurable", {})
         
         # Map session_id to thread_id
-        if "session_id" in configurable:
+        # Prefer headers for reliability
+        user_id_header = request.headers.get("x-user-id")
+        session_id_header = request.headers.get("x-session-id")
+        
+        if session_id_header:
+            configurable["thread_id"] = session_id_header
+        elif user_id_header:
+            configurable["thread_id"] = user_id_header
+        elif "session_id" in configurable:
             configurable["thread_id"] = configurable["session_id"]
+        elif "user_id" in configurable:
+            configurable["thread_id"] = configurable["user_id"]
         elif "thread_id" not in configurable:
             configurable["thread_id"] = f"playground_{uuid.uuid4().hex[:8]}"
             
         cfg["configurable"] = configurable
+
+        # Trigger Semantic Sync on new interaction (fast with internal cooldown)
+        if obsidian_adapter:
+            try:
+                obsidian_adapter.sync()
+            except Exception as e:
+                logger.warning(f"Background semantic sync failed: {e}")
+
         return cfg
 
 

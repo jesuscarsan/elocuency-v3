@@ -17,10 +17,18 @@ class ObsidianConfig(BaseModel):
     persist_directory: Optional[str] = None
     api_key: Optional[str] = None
     url: str = "http://host.docker.internal:27123"
+    last_index_datetime: Optional[str] = None
 
 class FilesystemConfig(BaseModel):
     allowed_paths: List[str] = Field(default_factory=list)
 
+class MCPConfig(BaseModel):
+    name: str
+    active: bool = True
+
+class ToolConfig(BaseModel):
+    name: str
+    active: bool = True
 
 class PathsConfig(BaseModel):
     root: str
@@ -35,6 +43,8 @@ class AppConfig(BaseModel):
     obsidian: ObsidianConfig
     filesystem: Optional[FilesystemConfig] = None
     paths: PathsConfig
+    activated_mcps: List[MCPConfig] = Field(default_factory=list)
+    activated_tools: List[ToolConfig] = Field(default_factory=list)
 
 def load_config(config_path: Optional[str] = None) -> AppConfig:
     """
@@ -73,7 +83,8 @@ def load_config(config_path: Optional[str] = None) -> AppConfig:
         "vault_path": os.getenv("VAULT_PATH"),
         "api_key": os.getenv("OBSIDIAN_API_KEY"),
         "url": obs_data.get("url", obs_data.get("url", os.getenv("OBSIDIAN_URL", "http://host.docker.internal:27123"))),
-        "persist_directory": os.getenv("PERSIST_DIRECTORY")
+        "persist_directory": os.getenv("PERSIST_DIRECTORY"),
+        "last_index_datetime": obs_data.get("lastIndexDatetime")
     }
     
     # Server Config
@@ -144,7 +155,9 @@ def load_config(config_path: Optional[str] = None) -> AppConfig:
         "server": server_config,
         "ai": ai_config,
         "obsidian": obs_config,
-        "paths": paths_config
+        "paths": paths_config,
+        "activated_mcps": config_dict.get("mcps", []),
+        "activated_tools": config_dict.get("langchainTools", [])
     }
     
     config = AppConfig(**full_config_dict)
@@ -169,3 +182,21 @@ def load_config(config_path: Optional[str] = None) -> AppConfig:
              config.obsidian.persist_directory = os.path.join(workspace_path, "chromadb")
             
     return config
+
+def update_obsidian_last_index(config_path: str, last_index: str):
+    """
+    Updates only the lastIndexDatetime field in elo.config.json.
+    """
+    if not os.path.exists(config_path):
+        return
+        
+    with open(config_path, "r") as f:
+        config_dict = json.load(f)
+        
+    if "obsidian" not in config_dict:
+        config_dict["obsidian"] = {}
+        
+    config_dict["obsidian"]["lastIndexDatetime"] = last_index
+    
+    with open(config_path, "w") as f:
+        json.dump(config_dict, f, indent=4)

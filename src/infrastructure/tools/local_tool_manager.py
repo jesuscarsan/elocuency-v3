@@ -10,16 +10,18 @@ from src.infrastructure.logging.logger import get_logger
 logger = get_logger(__name__)
 
 class LocalToolManager:
-    def __init__(self, tools_dirs: List[str], root_path: str):
+    def __init__(self, tools_dirs: List[str], root_path: str, activated_tools: Optional[List[Any]] = None):
         """
         Initializes the LocalToolManager with a list of directories to scan for tools.
         
         Args:
             tools_dirs: List of absolute paths to directories containing tool modules.
             root_path: Absolute path to the project root (used for finding scripts).
+            activated_tools: List of ToolConfig objects from the configuration.
         """
         self.tools_dirs = [Path(d).resolve() for d in tools_dirs]
         self.root_path = Path(root_path).resolve()
+        self.activated_tools = activated_tools or []
 
         # Ensure directories exist (at least the workspace one)
         for d in self.tools_dirs:
@@ -47,6 +49,13 @@ class LocalToolManager:
             for filename in os.listdir(d):
                 if filename.endswith(".py") and not filename.startswith("__"):
                     module_name = filename[:-3]
+                    
+                    # Check if this tool is activated in config
+                    tool_config = next((t for t in self.activated_tools if t.name == module_name), None)
+                    if not tool_config or not tool_config.active:
+                        logger.info(f"Skipping deactivated local tool module: {module_name}")
+                        continue
+
                     file_path = d / filename
                     
                     try:

@@ -1,8 +1,9 @@
 import os
 import asyncio
 from pathlib import Path
-from typing import List, Optional
+from typing import List, Optional, Any, Dict
 from contextlib import AsyncExitStack
+from pydantic import create_model, Field
 
 from mcp import ClientSession, StdioServerParameters, types
 from mcp.client.stdio import stdio_client
@@ -18,7 +19,8 @@ class MCPManager:
     def __init__(self, workspace_path: str):
         self.config = load_config()
         self.workspace_path = Path(workspace_path).resolve()
-        self._sessions: List[ClientSession] = []
+        # Map server_name -> ClientSession
+        self._sessions: Dict[str, ClientSession] = {}
         self._exit_stack = AsyncExitStack()
         self._background_tasks: List[asyncio.Task] = []
 
@@ -35,7 +37,12 @@ class MCPManager:
             if server_dir.is_dir() and not server_dir.name.startswith("."):
                 server_name = server_dir.name
                 
-                # Detect server type and path
+                # Check if this MCP is activated in config
+                mcp_config = next((m for m in self.config.activated_mcps if m.name == server_name), None)
+                if not mcp_config or not mcp_config.active:
+                    logger.info(f"Skipping deactivated MCP server: {server_name}")
+                    continue
+
                 # Standard pattern: workspace/mcps/server-name/src/index.js (or similar)
                 # For now, let's assume bitbonsai/mcp-obsidian pattern
                 
@@ -71,19 +78,24 @@ class MCPManager:
                         read, write = await self._exit_stack.enter_async_context(stdio_client(server_params))
                         session = await self._exit_stack.enter_async_context(ClientSession(read, write))
                         
-                        await session.initialize()
-                        self._sessions.append(session)
-                        logger.info(f"Connected to {server_name} MCP server.")
+                        logger.info(f"Initializing {server_name} session...")
+                        await asyncio.wait_for(session.initialize(), timeout=30.0)
+                        self._sessions[server_name] = session
+                        logger.info(f"Connected and initialized {server_name} MCP server.")
                         
+                    except asyncio.TimeoutError:
+                        logger.error(f"Timeout initializing MCP server {server_name}")
                     except Exception as e:
                         logger.error(f"Error starting MCP server {server_name}: {e}")
+                        import traceback
+                        logger.error(traceback.format_exc())
 
     async def stop(self):
         """
         Stops all MCP client sessions.
         """
         await self._exit_stack.aclose()
-        self._sessions = []
+        self._sessions = {}
 
     async def get_tools(self) -> List[StructuredTool]:
         """
@@ -91,19 +103,18 @@ class MCPManager:
         """
         all_langchain_tools = []
         
-        for session in self._sessions:
+        for server_name, session in self._sessions.items():
             try:
-                # We need a way to identify which server this session belongs to for namespacing
-                # For now, let's just use the server's index or name if we can find it
-                # Simplified: let's assume we can get it from initialize result or similar
-                # For bitbonsai/obsidian, the name is usually 'obsidian'
-                
+                # Need to find tools for this session
                 # Fetch tools from the server
                 mcp_tools = await asyncio.wait_for(session.list_tools(), timeout=10.0)
                 
-                # Namespace tools based on server name (this is a bit hacky as session doesn't store name)
-                # Let's try to infer from the list of tools if possible, or just use 'obsidian' for now
-                prefix = "obsidian" # Default fallback
+                # Namespace tools based on server name
+                # Clean up prefix: remove 'mcp-' start if present, replace hyphens with underscore
+                prefix = server_name.lower()
+                if prefix.startswith("mcp-"):
+                    prefix = prefix[4:]
+                prefix = prefix.replace("-", "_")
                 
                 for tool in mcp_tools.tools:
                     # Prefix tool name
@@ -149,9 +160,6 @@ class MCPManager:
 
                     tool_func = create_mcp_tool_func(session, tool.name, namespaced_name)
 
-                    from pydantic import create_model, Field
-                    from typing import Any
-                    
                     # Create a simple Pydantic model for arguments based on the tool's JSON Schema
                     props = tool.inputSchema.get("properties", {})
                     fields = {}
