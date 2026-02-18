@@ -28,7 +28,7 @@ class LangGraphAgentAdapter(AIPort, Runnable):
     def output_schema(self) -> Type[BaseModel]:
         return AIMessage
 
-    def __init__(self, api_key: str, model_name: str = "gemini-1.5-flash", tools: Optional[List] = None, base_storage_path: str = "workspace/users"):
+    def __init__(self, api_key: str, model_name: str = "gemini-1.5-flash", tools: Optional[List] = None, base_storage_path: str = "workspace/users", vault_path: Optional[str] = None):
         if not api_key:
             raise ValueError("API key must be provided")
             
@@ -40,17 +40,62 @@ class LangGraphAgentAdapter(AIPort, Runnable):
         
         self.tools = tools or []
         self.base_storage_path = Path(base_storage_path)
+        self.vault_path = Path(vault_path) if vault_path else None
         self.checkpointer = MemorySaver()
         self.graph = None
         
+        # Load vault schema if available
+        self.vault_schema = self._load_vault_schema()
+        
         self._initialize_agent()
+
+    def _load_vault_schema(self) -> dict:
+        """Loads frontmatter keys from .obsidian/types.json if it exists."""
+        if not self.vault_path:
+            return {}
+            
+        # Try both direct path and inside .obsidian
+        schema_path = self.vault_path / ".obsidian" / "types.json"
+        if not schema_path.exists():
+            return {}
+
+        try:
+            import json
+            with open(schema_path, "r") as f:
+                data = json.load(f)
+                return data.get("types", {})
+        except Exception as e:
+            print(f"Warning: Could not load vault schema: {e}")
+            return {}
 
     def _initialize_agent(self):
         """
-        Initializes the ReAct agent with MemorySaver persistence.
+        Initializes the ReAct agent with MemorySaver persistence and system prompt.
         """
-        self.graph = create_react_agent(self.llm, self.tools, checkpointer=self.checkpointer)
-        # self.graph = create_react_agent(self.llm, self.tools)
+        system_msg = (
+            "You are a powerful AI assistant with full access to an Obsidian vault. "
+            "You can read, search, and modify notes. "
+        )
+        
+        if self.vault_schema:
+            schema_keys = ", ".join(list(self.vault_schema.keys()))
+            system_msg += (
+                f"\n\nVault Metadata Schema (Frontmatter keys):\n{schema_keys}\n"
+                "When searching or querying notes, use these exact keys in your queries if possible. "
+                "Be aware of accents and specific naming (e.g., 'Oficios', 'Profesión')."
+            )
+
+        system_msg += (
+            "\n\nIf a tool fails due to missing content or search issues, try using "
+            "the Filesystem tools as a fallback or broaden your search."
+        )
+
+        self.graph = create_react_agent(
+            self.llm, 
+            self.tools, 
+            checkpointer=self.checkpointer,
+            prompt=system_msg
+        )
 
     def bind_tools(self, tools: List):
         """

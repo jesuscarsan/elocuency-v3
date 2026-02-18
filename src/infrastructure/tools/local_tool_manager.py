@@ -5,41 +5,34 @@ import inspect
 from pathlib import Path
 from typing import List, Optional, Any
 from langchain_core.tools import BaseTool, StructuredTool, tool
+from src.infrastructure.logging.logger import get_logger
+
+logger = get_logger(__name__)
 
 class LocalToolManager:
-    def __init__(self, tools_dirs: Optional[List[str]] = None):
-        if tools_dirs:
-            self.tools_dirs = [Path(d).resolve() for d in tools_dirs]
-        else:
-            # Default directories: assets and workspace
-            self.tools_dirs = []
-            
-            # 1. Assets (official/git-tracked)
-            assets_path = Path("/app/assets/langchain/tools") if os.path.exists("/app/assets/langchain/tools") else None
-            if not assets_path:
-                # New path: apps/elo-server/assets/langchain/tools
-                assets_path = Path(os.path.dirname(__file__)).resolve().parents[2] / "assets" / "langchain" / "tools"
-            
-            # 2. Workspace (local/user-defined)
-            workspace_path = Path("/app/workspace/langchain/tools") if os.path.exists("/app/workspace/langchain/tools") else None
-            if not workspace_path:
-                root_path = Path(os.path.dirname(__file__)).resolve().parents[4]
-                workspace_path = root_path / "workspace" / "langchain" / "tools"
-
-            self.tools_dirs = [assets_path, workspace_path]
+    def __init__(self, tools_dirs: List[str], root_path: str):
+        """
+        Initializes the LocalToolManager with a list of directories to scan for tools.
+        
+        Args:
+            tools_dirs: List of absolute paths to directories containing tool modules.
+            root_path: Absolute path to the project root (used for finding scripts).
+        """
+        self.tools_dirs = [Path(d).resolve() for d in tools_dirs]
+        self.root_path = Path(root_path).resolve()
 
         # Ensure directories exist (at least the workspace one)
         for d in self.tools_dirs:
             if d and not d.exists():
-                print(f"Creating tools directory: {d}")
+                logger.info(f"Creating tools directory: {d}")
                 d.mkdir(parents=True, exist_ok=True)
             
             # Add tools dir to sys.path so imports work easily
             if str(d) not in sys.path:
                 sys.path.append(str(d))
             
-        # The primary directory for creating new tools is the workspace one
-        self.primary_tools_dir = self.tools_dirs[-1]
+        # The primary directory for creating new tools is the last one (assumed to be workspace/user tools)
+        self.primary_tools_dir = self.tools_dirs[-1] if self.tools_dirs else None
 
     def load_tools(self) -> List[BaseTool]:
         """
@@ -47,7 +40,7 @@ class LocalToolManager:
         """
         self.tools = []
         for d in self.tools_dirs:
-            print(f"Scanning for tools in {d}...")
+            logger.info(f"Scanning for tools in {d}...")
             if not d.exists():
                 continue
                 
@@ -57,7 +50,7 @@ class LocalToolManager:
                     file_path = d / filename
                     
                     try:
-                        print(f"Loading tool module: {module_name} from {file_path}")
+                        logger.info(f"Loading tool module: {module_name} from {file_path}")
                         # Dynamic import
                         spec = importlib.util.spec_from_file_location(module_name, file_path)
                         if spec and spec.loader:
@@ -71,13 +64,13 @@ class LocalToolManager:
                                 if isinstance(obj, BaseTool):
                                     self.tools.append(obj)
                                     found_tools_in_module += 1
-                                    print(f"  Found tool: {obj.name}")
+                                    logger.info(f"  Found tool: {obj.name}")
                                 
                             if found_tools_in_module == 0:
-                                 print(f"  No tools found in {module_name}")
+                                 logger.info(f"  No tools found in {module_name}")
                                     
                     except Exception as e:
-                        print(f"Error loading tool module {module_name}: {e}")
+                        logger.error(f"Error loading tool module {module_name}: {e}")
                         import traceback
                         traceback.print_exc()
 
@@ -131,4 +124,51 @@ class LocalToolManager:
             tool_names = [t.name for t in loaded]
             return f"Tools refreshed. Loaded {len(loaded)} tools: {', '.join(tool_names)}"
 
-        return [create_python_tool, refresh_local_tools]
+        @tool
+        def sync_workspace() -> str:
+            """
+            Synchronizes the workspace by cloning and installing MCPs and LangChain tools 
+            defined in the configuration (elo.config.json).
+            This tool will:
+            1. Clone any new repositories for MCPs or Tools.
+            2. Install dependencies (npm/pip).
+            3. Automatically refresh the agent's tools.
+            """
+            import subprocess
+            try:
+                # The script is in core/scripts/sync-workspace.js
+                # Assuming node is available in the environment
+                # We target the root script via package.json if possible, or direct node call
+                logger.info("Starting workspace synchronization...")
+                
+                # Find root accurately
+                script_path = self.root_path / "core" / "scripts" / "sync-workspace.js"
+                
+                if not script_path.exists():
+                     # Fallback for Docker if root is /app but script is in /app/core ...
+                     # Actually self.root_path should be correct based on config.
+                     pass
+
+                if not os.path.exists(script_path):
+                    return f"Error: Synchronization script not found at {script_path}"
+
+                result = subprocess.run(
+                    ["node", str(script_path)], 
+                    capture_output=True, 
+                    text=True,
+                    cwd=str(script_path.parents[2]) # cwd to monorepo root
+                )
+                
+                if result.returncode != 0:
+                    logger.error(f"Sync failed: {result.stderr}")
+                    return f"Synchronization failed:\n{result.stderr}"
+                
+                logger.info("Sync complete. Refreshing tools...")
+                refresh_msg = refresh_local_tools()
+                
+                return f"Workspace synchronized successfully!\n\nOutput:\n{result.stdout}\n\n{refresh_msg}"
+            except Exception as e:
+                logger.error(f"Unexpected error during sync: {e}")
+                return f"Unexpected error during workspace synchronization: {str(e)}"
+
+        return [create_python_tool, refresh_local_tools, sync_workspace]

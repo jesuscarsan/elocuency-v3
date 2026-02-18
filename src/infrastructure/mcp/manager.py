@@ -10,16 +10,14 @@ from mcp.shared.session import RequestResponder
 from langchain_core.tools import StructuredTool
 
 from src.infrastructure.config import load_config
+from src.infrastructure.logging.logger import get_logger
+
+logger = get_logger(__name__)
 
 class MCPManager:
-    def __init__(self):
+    def __init__(self, workspace_path: str):
         self.config = load_config()
-        # Handle Docker and local paths
-        if os.path.exists("/app/workspace/mcps"):
-            self.workspace_path = Path("/app/workspace/mcps").resolve()
-        else:
-            self.workspace_path = Path(os.path.dirname(__file__)).parent.parent / "workspace" / "mcps"
-            self.workspace_path = self.workspace_path.resolve()
+        self.workspace_path = Path(workspace_path).resolve()
         self._sessions: List[ClientSession] = []
         self._exit_stack = AsyncExitStack()
         self._background_tasks: List[asyncio.Task] = []
@@ -28,134 +26,160 @@ class MCPManager:
         """
         Starts the MCP client sessions.
         """
-        # 1. Connect to Obsidian MCP
-        if self.config.obsidian.api_key:
-            repo_path = self.workspace_path / "mcp-obsidian"
-            script_path = repo_path / "dist/server.js"
-            
-            obsidian_params = StdioServerParameters(
-                command="node",
-                args=[str(script_path), self.config.obsidian.vault_path],
-                env={
-                    **os.environ,
-                    "OBSIDIAN_API_KEY": self.config.obsidian.api_key,
-                    "OBSIDIAN_URL": self.config.obsidian.url
-                }
-            )
-            await self._connect_server(obsidian_params, "Obsidian")
-        else:
-            print("Warning: Obsidian API key not configured. Obsidian tools will not be available.")
+        # Search for MCP servers in the workspace
+        if not self.workspace_path.exists():
+            logger.warning(f"MCP workspace path does not exist: {self.workspace_path}")
+            return
 
-        # 2. Connect to Filesystem MCP
-        if self.config.filesystem and self.config.filesystem.allowed_paths:
-            filesystem_params = StdioServerParameters(
-                command="npx",
-                args=["-y", "@modelcontextprotocol/server-filesystem", *self.config.filesystem.allowed_paths],
-                env=os.environ.copy()
-            )
-            await self._connect_server(filesystem_params, "Filesystem")
-        else:
-            print("Info: Filesystem MCP not configured or no allowed paths.")
-
-    async def _connect_server(self, params: StdioServerParameters, name: str):
-        try:
-            read, write = await self._exit_stack.enter_async_context(stdio_client(params))
-            session = await self._exit_stack.enter_async_context(
-                ClientSession(read, write)
-            )
-            
-            # Start background message handler for this session
-            task = asyncio.create_task(self._handle_session_messages(session, name))
-            self._background_tasks.append(task)
-            
-            await session.initialize()
-            # Store session with its name
-            self._sessions.append((session, name))
-            print(f"Connected to {name} MCP server.")
-        except Exception as e:
-            print(f"Failed to connect to {name} MCP server: {e}")
-
-    async def _handle_session_messages(self, session: ClientSession, name: str):
-        """
-        Handles incoming messages (requests/notifications) from the MCP server.
-        Specifically handles roots/list for the Filesystem server.
-        """
-        try:
-            async for message in session.incoming_messages:
-                if isinstance(message, RequestResponder):
-                    if message.request.root.method == "roots/list":
-                        # Provide roots from filesystem config
-                        roots = []
-                        if self.config.filesystem:
-                            for path in self.config.filesystem.allowed_paths:
-                                roots.append(types.Root(uri=f"file://{path}", name=os.path.basename(path)))
+        for server_dir in self.workspace_path.iterdir():
+            if server_dir.is_dir() and not server_dir.name.startswith("."):
+                server_name = server_dir.name
+                
+                # Detect server type and path
+                # Standard pattern: workspace/mcps/server-name/src/index.js (or similar)
+                # For now, let's assume bitbonsai/mcp-obsidian pattern
+                
+                server_path = None
+                command = None
+                args = []
+                
+                # node/js
+                if (server_dir / "dist" / "index.js").exists():
+                    server_path = server_dir / "dist" / "index.js"
+                    command = "node"
+                    args = [str(server_path)]
+                elif (server_dir / "index.js").exists():
+                    server_path = server_dir / "index.js"
+                    command = "node"
+                    args = [str(server_path)]
+                # python
+                elif (server_dir / "src" / server_name / "server.py").exists():
+                    server_path = server_dir / "src" / server_name / "server.py"
+                    command = "python" # or python3
+                    args = [str(server_path)]
+                
+                if command:
+                    try:
+                        logger.info(f"Connecting to {server_name} MCP server at {server_path}...")
+                        server_params = StdioServerParameters(
+                            command=command,
+                            args=args,
+                            env=os.environ.copy()
+                        )
                         
-                        await message.respond(types.ListRootsResult(roots=roots))
-                    else:
-                        # For other requests, we don't have a default handler yet
-                        pass
-                elif isinstance(message, Exception):
-                    print(f"MCP Session '{name}' error: {message}")
-        except asyncio.CancelledError:
-            pass
-        except Exception as e:
-            print(f"Error in MCP Session '{name}' message handler: {e}")
+                        # Use AsyncExitStack to manage session lifecycles
+                        read, write = await self._exit_stack.enter_async_context(stdio_client(server_params))
+                        session = await self._exit_stack.enter_async_context(ClientSession(read, write))
+                        
+                        await session.initialize()
+                        self._sessions.append(session)
+                        logger.info(f"Connected to {server_name} MCP server.")
+                        
+                    except Exception as e:
+                        logger.error(f"Error starting MCP server {server_name}: {e}")
 
     async def stop(self):
         """
-        Stops all MCP client sessions and background tasks.
+        Stops all MCP client sessions.
         """
-        for task in self._background_tasks:
-            task.cancel()
-        
         await self._exit_stack.aclose()
         self._sessions = []
-        self._background_tasks = []
-        print("Disconnected from all MCP servers.")
 
     async def get_tools(self) -> List[StructuredTool]:
         """
-        Returns an aggregated list of LangChain tools wrapping all MCP tools.
-        Tool names are prefixed with the server name to avoid collisions.
+        Fetches tools from all active MCP sessions and converts them to LangChain tools.
         """
         all_langchain_tools = []
-
-        for session, server_name in self._sessions:
-            prefix = server_name.lower().replace(" ", "_")
+        
+        for session in self._sessions:
             try:
-                # Add a timeout to avoid hanging the whole application
+                # We need a way to identify which server this session belongs to for namespacing
+                # For now, let's just use the server's index or name if we can find it
+                # Simplified: let's assume we can get it from initialize result or similar
+                # For bitbonsai/obsidian, the name is usually 'obsidian'
+                
+                # Fetch tools from the server
                 mcp_tools = await asyncio.wait_for(session.list_tools(), timeout=10.0)
                 
+                # Namespace tools based on server name (this is a bit hacky as session doesn't store name)
+                # Let's try to infer from the list of tools if possible, or just use 'obsidian' for now
+                prefix = "obsidian" # Default fallback
+                
                 for tool in mcp_tools.tools:
-                    # Capture session and tool_name for the closure
-                    current_session = session
-                    current_tool_name = tool.name
-                    
-                    async def tool_func(**kwargs):
-                        result = await current_session.call_tool(current_tool_name, arguments=kwargs)
-                        # Extract content from result
-                        text_content = []
-                        if hasattr(result, 'content'):
-                            for content in result.content:
-                                if hasattr(content, 'text'):
-                                     text_content.append(content.text)
-                        
-                        return "\n".join(text_content)
-
-                    # Prefix tool name if it doesn't already have it
+                    # Prefix tool name
                     namespaced_name = f"{prefix}_{tool.name}"
+                    logger.info(f"  Registering MCP tool: {namespaced_name}")
                     
+                    # Store current values in a dictionary to be captured by the closure
+                    # Actually, defining a factory function is cleaner
+                    def create_mcp_tool_func(session, tool_name, full_name):
+                        async def mcp_tool_func(*args, **kwargs):
+                            logger.debug(f"mcp_tool_func '{full_name}' called with raw args: {args}, kwargs: {kwargs}")
+                            
+                            # Handle both positional dict (common in some LangChain calls) and kwargs
+                            if args and isinstance(args[0], dict):
+                                actual_args = args[0]
+                            else:
+                                actual_args = kwargs.get("kwargs", kwargs) if "kwargs" in kwargs and len(kwargs) == 1 else kwargs
+                            
+                            logger.info(f"Calling MCP tool '{tool_name}' (namespaced: {full_name}) with args: {actual_args}")
+                            try:
+                                result = await session.call_tool(tool_name, arguments=actual_args)
+                                
+                                # Handle potential error results from MCP
+                                if hasattr(result, 'isError') and result.isError:
+                                    error_msg = f"MCP tool '{tool_name}' returned an error."
+                                    if hasattr(result, 'content'):
+                                        for content in result.content:
+                                            if hasattr(content, 'text'):
+                                                error_msg += f" Details: {content.text}"
+                                    return error_msg
+                                # Log raw result for debugging
+                                logger.debug(f"Raw result from {full_name}: {result}")
+                                text_content = []
+                                if hasattr(result, 'content'):
+                                    for content in result.content:
+                                        if hasattr(content, 'text'):
+                                             text_content.append(content.text)
+                                return "\n\n".join(text_content)
+                            except Exception as e:
+                                logger.error(f"Error calling MCP tool {full_name}: {e}")
+                                return f"Error calling {full_name}: {str(e)}"
+                        return mcp_tool_func
+
+                    tool_func = create_mcp_tool_func(session, tool.name, namespaced_name)
+
+                    from pydantic import create_model, Field
+                    from typing import Any
+                    
+                    # Create a simple Pydantic model for arguments based on the tool's JSON Schema
+                    props = tool.inputSchema.get("properties", {})
+                    fields = {}
+                    for prop_name, prop_data in props.items():
+                        field_type = Any
+                        if prop_data.get("type") == "string":
+                            field_type = str
+                        elif prop_data.get("type") == "integer":
+                            field_type = int
+                        elif prop_data.get("type") == "boolean":
+                            field_type = bool
+                        
+                        default = ... if prop_name in tool.inputSchema.get("required", []) else None
+                        fields[prop_name] = (field_type, Field(default, description=prop_data.get("description", "")))
+                    
+                    # If no properties, create an empty model anyway to satisfy StructuredTool
+                    args_model = create_model(f"{namespaced_name}_args", **fields)
+
                     langchain_tool = StructuredTool.from_function(
                         func=None,
                         coroutine=tool_func,
                         name=namespaced_name,
-                        description=f"[{server_name}] {tool.description}",
+                        description=f"[MCP] {tool.description}",
+                        args_schema=args_model
                     )
                     all_langchain_tools.append(langchain_tool)
-
-            except asyncio.TimeoutError:
-                print(f"Timeout fetching tools from session {server_name}.")
+                    
             except Exception as e:
-                print(f"Error fetching tools from session {server_name}: {e}")
-
+                logger.error(f"Error fetching tools from session: {e}")
+                
         return all_langchain_tools

@@ -7,9 +7,6 @@ import sys
 os.environ["ANONYMIZED_TELEMETRY"] = "False"
 logging.getLogger("chromadb").setLevel(logging.ERROR)
 
-# Global patch for posthog to silence the telemetry error
-# The error "capture() takes 1 positional argument but 3 were given" suggests 
-# a mismatch in the installed posthog library.
 try:
     import posthog
     def noop_capture(*args, **kwargs):
@@ -22,8 +19,6 @@ from langchain_community.document_loaders import ObsidianLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_google_genai import GoogleGenerativeAIEmbeddings
 from langchain_chroma import Chroma
-from langchain.chains import create_retrieval_chain
-from langchain.chains.combine_documents import create_stuff_documents_chain
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_google_genai import ChatGoogleGenerativeAI
 from chromadb.config import Settings
@@ -41,7 +36,7 @@ class LangChainObsidianAdapter(ObsidianPort):
             task_type="retrieval_document"
         )
         
-        # 2. Initialize LLM for the chain
+        # 2. Initialize LLM (optional for this adapter now, but keeping for compatibility)
         self.llm = ChatGoogleGenerativeAI(
             model="gemini-2.0-flash", 
             google_api_key=google_api_key,
@@ -50,7 +45,6 @@ class LangChainObsidianAdapter(ObsidianPort):
         )
         
         self.vector_store = self._initialize_vector_store()
-        self.rag_chain = self._create_rag_chain()
 
     def _initialize_vector_store(self):
         # Check if DB already exists
@@ -66,6 +60,14 @@ class LangChainObsidianAdapter(ObsidianPort):
                 pass
         
         # Otherwise, load and index the vault
+        if not os.path.exists(self.vault_path):
+            logging.error(f"Vault path does not exist: {self.vault_path}")
+            # Return empty chroma if possible or raise
+            return Chroma(
+                embedding_function=self.embeddings,
+                client_settings=Settings(anonymized_telemetry=False)
+            )
+
         loader = ObsidianLoader(self.vault_path)
         documents = loader.load()
         
@@ -79,32 +81,22 @@ class LangChainObsidianAdapter(ObsidianPort):
             client_settings=Settings(anonymized_telemetry=False)
         )
 
-    def _create_rag_chain(self):
-        retriever = self.vector_store.as_retriever()
-        
-        system_prompt = (
-            "You are an assistant for question-answering tasks. "
-            "Use the following pieces of retrieved context to answer "
-            "the question. If you don't know the answer, say that you "
-            "don't know. Use three sentences maximum and keep the "
-            "answer concise."
-            "\n\n"
-            "{context}"
-        )
-        
-        prompt = ChatPromptTemplate.from_messages(
-            [
-                ("system", system_prompt),
-                ("human", "{input}"),
-            ]
-        )
-        
-        question_answer_chain = create_stuff_documents_chain(self.llm, prompt)
-        return create_retrieval_chain(retriever, question_answer_chain)
-
     def query(self, question: str) -> str:
+        """Fallback query method (not used by the main agent)."""
+        return "Query method is deprecated. Use semantic search tool instead."
+
+    def search(self, query: str, k: int = 5) -> List[dict]:
+        """Performs a semantic similarity search and returns raw document snippets."""
         try:
-            response = self.rag_chain.invoke({"input": question})
-            return response["answer"]
+            docs = self.vector_store.similarity_search(query, k=k)
+            return [
+                {
+                    "content": d.page_content, 
+                    "path": d.metadata.get("path", "unknown"),
+                    "source": d.metadata.get("source", "unknown")
+                } 
+                for d in docs
+            ]
         except Exception as e:
-            return f"Error executing query: {str(e)}"
+            logging.error(f"Error performing semantic search: {e}")
+            return []

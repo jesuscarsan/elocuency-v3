@@ -21,11 +21,20 @@ class ObsidianConfig(BaseModel):
 class FilesystemConfig(BaseModel):
     allowed_paths: List[str] = Field(default_factory=list)
 
+
+class PathsConfig(BaseModel):
+    root: str
+    workspace: str
+    assets: str
+    mcps: str
+    local_tools: List[str] = Field(default_factory=list)
+
 class AppConfig(BaseModel):
     server: ServerConfig = Field(default_factory=ServerConfig)
     ai: AIConfig
     obsidian: ObsidianConfig
     filesystem: Optional[FilesystemConfig] = None
+    paths: PathsConfig
 
 def load_config(config_path: Optional[str] = None) -> AppConfig:
     """
@@ -50,7 +59,6 @@ def load_config(config_path: Optional[str] = None) -> AppConfig:
             break
             
     # 2. Map JSON keys to AppConfig structure (handling flattening/renaming)
-    # We want to preserve the internal AppConfig structure for the rest of the app.
     
     # AI Config
     ai_data = config_dict.get("ai", {})
@@ -64,28 +72,84 @@ def load_config(config_path: Optional[str] = None) -> AppConfig:
     obs_config = {
         "vault_path": os.getenv("VAULT_PATH"),
         "api_key": os.getenv("OBSIDIAN_API_KEY"),
-        "url": obs_data.get("url", os.getenv("OBSIDIAN_URL", "http://host.docker.internal:27123")),
+        "url": obs_data.get("url", obs_data.get("url", os.getenv("OBSIDIAN_URL", "http://host.docker.internal:27123"))),
         "persist_directory": os.getenv("PERSIST_DIRECTORY")
     }
     
-    # Server Config (mostly defaults or env)
+    # Server Config
     server_config = {
         "host": os.getenv("SERVER_HOST", "0.0.0.0"),
         "port": int(os.getenv("SERVER_PORT", 8001)),
         "reload": os.getenv("SERVER_RELOAD", "true").lower() == "true"
     }
 
+    # Path Resolution Logic
+    # Determine root of the project (apps/elo-server)
+    # We assume this file is in src/infrastructure/config.py
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    project_root = os.path.abspath(os.path.join(current_dir, "..", ".."))
+    
+    # Handle Docker paths vs Local paths
+    is_docker = os.path.exists("/.dockerenv") or os.environ.get("DOCKER_CONTAINER") == "true"
+    
+    if is_docker:
+        project_root = "/app"
+        workspace_path = "/app/workspace"
+        assets_path = "/app/assets"
+    else:
+        # Local development: we need to find where 'workspace' and 'assets' effectively are.
+        # usually ../../../workspace relative to elo-server if in mono-repo structure
+        # or just inside elo-server if standalone.
+        # Based on user info: /Users/joshua/my-docs/code/elocuency-v3/apps/elo-server
+        # Workspace is at /Users/joshua/my-docs/code/elocuency-v3/workspace
+        
+        # Check standard locations
+        potential_workspace = os.path.join(project_root, "workspace")
+        if not os.path.exists(potential_workspace):
+             # Try one level up (monorepo root)
+             monorepo_root = os.path.dirname(project_root)
+             potential_workspace = os.path.join(monorepo_root, "workspace")
+        
+        workspace_path = potential_workspace
+        
+        potential_assets = os.path.join(project_root, "assets")
+        if not os.path.exists(potential_assets):
+             monorepo_root = os.path.dirname(project_root)
+             potential_assets = os.path.join(monorepo_root, "assets")
+             
+        assets_path = potential_assets
+
+    mcps_path = os.path.join(workspace_path, "mcps")
+    
+    # Tool directories
+    tool_dirs = []
+    
+    # 1. Assets tools (git tracked)
+    assets_tools = os.path.join(assets_path, "langchain", "tools")
+    tool_dirs.append(assets_tools)
+    
+    # 2. Workspace tools (user defined)
+    workspace_tools = os.path.join(workspace_path, "langchain", "tools")
+    tool_dirs.append(workspace_tools)
+
+    paths_config = {
+        "root": project_root,
+        "workspace": workspace_path,
+        "assets": assets_path,
+        "mcps": mcps_path,
+        "local_tools": tool_dirs
+    }
+
     full_config_dict = {
         "server": server_config,
         "ai": ai_config,
-        "obsidian": obs_config
+        "obsidian": obs_config,
+        "paths": paths_config
     }
     
     config = AppConfig(**full_config_dict)
     
     # 3. Automate vault_path for Docker
-    is_docker = os.path.exists("/.dockerenv") or os.environ.get("DOCKER_CONTAINER") == "true"
-    
     if not config.obsidian.vault_path:
         if is_docker and os.path.exists("/data/vault"):
             config.obsidian.vault_path = "/data/vault"
@@ -93,14 +157,15 @@ def load_config(config_path: Optional[str] = None) -> AppConfig:
     # 4. Automate filesystem allowed_paths for Docker
     if is_docker:
         config.filesystem = FilesystemConfig(allowed_paths=["/app", "/data/vault"])
+    elif not config.filesystem:
+         # Allow workspace and assets locally
+         config.filesystem = FilesystemConfig(allowed_paths=[workspace_path, assets_path])
+
 
     # 5. Automate persist_directory resolution
     if config.obsidian:
         # Default to 'workspace/chromadb' if not set
         if not config.obsidian.persist_directory:
-            if is_docker:
-                config.obsidian.persist_directory = "/app/workspace/chromadb"
-            else:
-                config.obsidian.persist_directory = os.path.abspath("workspace/chromadb")
+             config.obsidian.persist_directory = os.path.join(workspace_path, "chromadb")
             
     return config

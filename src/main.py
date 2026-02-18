@@ -1,4 +1,5 @@
 import uvicorn
+import os
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from src.infrastructure.config import load_config
@@ -8,16 +9,45 @@ from src.infrastructure.adapters.api.fastapi_adapter import create_app
 from src.infrastructure.mcp.manager import MCPManager
 from src.infrastructure.tools.local_tool_manager import LocalToolManager
 
-# Load configuration
+from src.infrastructure.adapters.obsidian.langchain_obsidian_adapter import LangChainObsidianAdapter
+from langchain_core.tools import tool
+
+from src.infrastructure.logging.logger import setup_logging, get_logger
+
+# Load configuration first to get paths
 config = load_config()
 
+# Initialize logging
+log_path = os.path.join(config.paths.workspace, "logs", "elo-server.log")
+setup_logging(log_file=log_path)
+logger = get_logger(__name__)
+
 # Global instances (needed for lifespan access)
-mcp_manager = MCPManager()
-local_tool_manager = LocalToolManager()
+# Global instances (needed for lifespan access)
+mcp_manager = MCPManager(workspace_path=config.paths.mcps)
+local_tool_manager = LocalToolManager(
+    tools_dirs=config.paths.local_tools, 
+    root_path=config.paths.root
+)
 ai_adapter = LangGraphAgentAdapter(
     api_key=config.ai.api_key, 
-    model_name=config.ai.model
+    model_name=config.ai.model,
+    vault_path=config.obsidian.vault_path,
+    base_storage_path=os.path.join(config.paths.workspace, "users")
 )
+
+# Initialize Obsidian Semantic Search Adapter (optional/lazy)
+obsidian_adapter = None
+if config.obsidian.vault_path and config.ai.api_key:
+    try:
+        logger.info(f"Initializing Obsidian Semantic Search for {config.obsidian.vault_path}...")
+        obsidian_adapter = LangChainObsidianAdapter(
+            vault_path=config.obsidian.vault_path,
+            google_api_key=config.ai.api_key,
+            persist_directory=config.obsidian.persist_directory
+        )
+    except Exception as e:
+        logger.warning(f"Could not initialize Obsidian Semantic Search: {e}")
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -26,7 +56,7 @@ async def lifespan(app: FastAPI):
     Handles startup and shutdown events for async components like MCP.
     """
     # Startup
-    print("Starting MCP Manager...")
+    logger.info("Starting MCP Manager...")
     await mcp_manager.start()
     
     try:
@@ -34,20 +64,44 @@ async def lifespan(app: FastAPI):
         local_tools = local_tool_manager.load_tools()
         management_tools = local_tool_manager.get_management_tools()
         
-        all_tools = mcp_tools + local_tools + management_tools
+        # Add Semantic Search Tool
+        semantic_tools = []
+        if obsidian_adapter:
+            @tool
+            def vault_semantic_search(query: str) -> str:
+                """
+                Searches the Obsidian vault semantically using vector embeddings. 
+                Use this when you can't find something with exact text search, 
+                when there might be typos, accents, or when looking for concepts.
+                Returns document snippets and their paths.
+                """
+                results = obsidian_adapter.search(query)
+                if not results:
+                    return "No semantic results found."
+                
+                formatted = []
+                for res in results:
+                    formatted.append(f"--- File: {res['path']} ---\n{res['content']}")
+                return "\n\n".join(formatted)
+            
+            semantic_tools.append(vault_semantic_search)
+
+        all_tools = mcp_tools + local_tools + management_tools + semantic_tools
         
         if all_tools:
-            print(f"Binding {len(all_tools)} tools ({len(mcp_tools)} MCP, {len(local_tools)} local) to AI adapter.")
+            logger.info(f"Binding {len(all_tools)} tools ({len(mcp_tools)} MCP, {len(local_tools)} local, {len(semantic_tools)} semantic) to AI adapter.")
             ai_adapter.bind_tools(all_tools)
         else:
-            print("No tools found.")
+            logger.info("No tools found.")
     except Exception as e:
-        print(f"Error binding tools: {e}")
+        logger.error(f"Error binding tools: {e}")
+        import traceback
+        logger.error(traceback.format_exc())
 
     yield
     
     # Shutdown
-    print("Stopping MCP Manager...")
+    logger.info("Stopping MCP Manager...")
     await mcp_manager.stop()
 
 from langserve import add_routes
