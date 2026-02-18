@@ -18,6 +18,7 @@ services:
       - ./workspace:/app/workspace
       - ./apps/elo-server/assets:/app/assets
       - ${VAULT_PATH}:/data/vault:ro
+      - ./elo.config.json:/app/elo.config.json
     # Ensure logs directory exists and pipe output to file while keeping it in console
     command: >
       sh -c "mkdir -p /app/workspace/logs && 

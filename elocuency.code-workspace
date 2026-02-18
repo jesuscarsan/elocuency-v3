@@ -6,6 +6,9 @@
 		{
 			"path": ".",
 		},
+		{
+			"path": "apps/elo-obsidian-api-mcp",
+		},
 	],
 	"settings": {},
 }

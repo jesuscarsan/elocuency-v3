@@ -87,6 +87,7 @@ def calculate_elo(current_rating: int, opponent_rating: int, score: float) -> in
 ### 3.5 Testing (Pragmatic Approach)
 
 - **Tooling**: Use `pytest` as the standard runner.
+- **Naming Convention**: All test files **MUST** end with `_test.py` (e.g., `logic_test.py`).
 - **Unit Tests**: Mandatory for **Domain** and **Application** layers.
   - Focus on complex business logic and edge cases.
   - Mock external ports, but keep mocks simple.
@@ -97,6 +98,19 @@ def calculate_elo(current_rating: int, opponent_rating: int, score: float) -> in
   - **Don't test trivial code**: Skip getters, setters, or simple pass-through lines.
   - **Focus on ROI**: Test critical paths and edge cases that are likely to break or change.
   - **Refactor-friendly**: Tests should verify _behavior_, not internal implementation details.
+
+### 3.6 Coverage Rules
+
+Matches `libs/core-ts` standards:
+
+- **Global Thresholds**:
+  - **Statements**: 80%
+  - **Branches**: 80%
+  - **Functions**: 80%
+  - **Lines**: 80%
+- **Specific Targets**:
+  - `src/application`
+  - `src/infrastructure/adapters`
 
 ## 4. Folder Structure Convention
 

@@ -2,7 +2,7 @@
     "obsidianVaults": [
         "/Users/joshua/my-docs/KBs/JACS",
         "/Users/joshua/my-docs/KBs/Cocina",
-        "/Users/joshua/my-docs/KBs/Tecnología",
+        "/Users/joshua/my-docs/KBs/Tecnolog\u00eda",
         "/Users/joshua/my-docs/KBs/teo-3-eso-kb"
     ],
     "availableApps": [
@@ -13,15 +13,25 @@
     "sourceUrl": "https://github.com/jesuscarsan",
     "mcps": [
         {
+            "name": "elo-obsidian-api-mcp",
+            "active": true
+        },
+        {
             "name": "mcp-obsidian",
-            "url": "https://github.com/bitbonsai/mcp-obsidian.git"
+            "active": false
         }
     ],
-    "langchainTools": [],
+    "langchainTools": [
+        {
+            "name": "n8n_workflows",
+            "active": false
+        }
+    ],
     "ai": {
         "model": "gemini-2.0-flash"
     },
     "obsidian": {
-        "url": "http://host.docker.internal:27123"
+        "url": "http://host.docker.internal:27123",
+        "lastIndexDatetime": "2026-02-18T18:02:32"
     }
 }
