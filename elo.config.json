@@ -8,7 +8,7 @@
     "availableApps": [
         "elo-mac-bridge",
         "elo-obsidian-core-plugin",
-        "elo-obsidian-google-contacts-plugin"
+        "elo-server"
     ],
     "sourceUrl": "https://github.com/jesuscarsan",
     "mcps": [
