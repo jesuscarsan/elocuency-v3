@@ -4,7 +4,9 @@ from pathlib import Path
 from pydantic import BaseModel, Field
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langgraph.prebuilt import create_react_agent
-from langgraph.checkpoint.memory import MemorySaver
+from langgraph.checkpoint.sqlite import SqliteSaver
+import sqlite3
+import os
 from langchain_core.messages import AIMessage, AnyMessage, HumanMessage, BaseMessage
 from langchain_core.runnables import Runnable
 
@@ -41,7 +43,13 @@ class LangGraphAgentAdapter(AIPort, Runnable):
         self.tools = tools or []
         self.base_storage_path = Path(base_storage_path)
         self.vault_path = Path(vault_path) if vault_path else None
-        self.checkpointer = MemorySaver()
+        if not self.base_storage_path.exists():
+            self.base_storage_path.mkdir(parents=True, exist_ok=True)
+            
+        db_path = self.base_storage_path / "checkpoints.sqlite"
+        # We need check_same_thread=False because the connection might be used across async tasks
+        self.conn = sqlite3.connect(str(db_path), check_same_thread=False)
+        self.checkpointer = SqliteSaver(self.conn)
         self.graph = None
         
         # Load vault schema if available
