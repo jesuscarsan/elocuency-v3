@@ -47,13 +47,13 @@ To work with the Obsidian plugins included in the framework (e.g., `elo-obsidian
 
 ## Configuration
 
-Create a file named `elo.config.json` in the root of the project (or any parent directory). This file should contain an array of absolute paths to your Obsidian vaults.
+Create a file named `elo-config.json` in the `workspace/` directory. This file should contain an array of absolute paths to your Obsidian vaults.
 
-**Example `elo.config.json`:**
+**Example `workspace/elo-config.json`:**
 
 ```json
 {
-	"obsidianVaults": [
+	"mdVaults": [
 		"/Users/yourname/Documents/Obsidian/MyVault",
 		"/Users/yourname/Library/Mobile Documents/iCloud~md~obsidian/Documents/Personal"
 	]
@@ -94,7 +94,7 @@ To build the plugin for distribution (minified):
 
 ## Architecture
 
-The build process uses a shared configuration located in `libs/obsidian-plugin`. This library handles the common build logic and the distribution to vaults defined in `elo.config.json`.
+The build process uses a shared configuration located in `libs/obsidian-plugin`. This library handles the common build logic and the distribution to vaults defined in `workspace/elo-config.json`.
 
 # AI Server (Python)
 

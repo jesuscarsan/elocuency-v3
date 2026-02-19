@@ -7,10 +7,7 @@
 			"path": ".",
 		},
 		{
-			"path": "apps/elo-obsidian-api-mcp",
-		},
-		{
-			"path": "../openclaw",
+			"path": "apps/elo-cli",
 		},
 	],
 	"settings": {

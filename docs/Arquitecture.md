@@ -19,8 +19,9 @@ Elocuency core provide utilities for development and distribution apps around th
 
 # General Apps features
 
-- Core, apps and libs use SOLID principles, and Hexagonal Architecture.
+- Extensible: Developers can add new apps easily.
+- Secure for final users.
+- SOLID principles, and Hexagonal Architecture.
 - Allow to configure.
 - Allow multilanguage.
 - No dependencies between apps if not required.
-- Developers can add new apps easily.
