@@ -1,4 +1,6 @@
-apps
+apps/*
+!apps/elo-server
+!apps/elo-cli
 node_modules
 elocuency.code-workspace
 old-copy-week-ago
