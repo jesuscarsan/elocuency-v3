@@ -1,0 +1,5 @@
+node_modules
+htmlcov
+.coverage
+.env
+.env.*
