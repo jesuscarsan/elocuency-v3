@@ -7,6 +7,7 @@ class ServerConfig(BaseModel):
     host: str = "0.0.0.0"
     port: int = 8001
     reload: bool = True
+    auth_token: Optional[str] = None
 
 class AIConfig(BaseModel):
     api_key: str
@@ -94,7 +95,8 @@ def load_config(config_path: Optional[str] = None) -> AppConfig:
     server_config = {
         "host": os.getenv("SERVER_HOST", "0.0.0.0"),
         "port": int(os.getenv("SERVER_PORT", 8001)),
-        "reload": os.getenv("SERVER_RELOAD", "true").lower() == "true"
+        "reload": os.getenv("SERVER_RELOAD", "true").lower() == "true",
+        "auth_token": os.getenv("SERVER_AUTH_TOKEN")
     }
 
     # Path Resolution Logic

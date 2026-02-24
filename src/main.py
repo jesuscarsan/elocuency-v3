@@ -11,6 +11,8 @@ from src.infrastructure.tools.local_tool_manager import LocalToolManager
 from langserve import add_routes, RemoteRunnable
 import re as re_module
 from starlette.types import ASGIApp, Receive, Scope, Send
+from fastapi import Depends
+from src.infrastructure.adapters.api.auth import verify_token
 
 from src.infrastructure.adapters.obsidian.langchain_obsidian_adapter import LangChainObsidianAdapter
 from langchain_core.tools import tool
@@ -331,6 +333,7 @@ def bootstrap():
         simple_model,
         path="/simple-agent",
         playground_type="chat",
+        dependencies=[Depends(verify_token)]
     )
 
     from src.infrastructure.adapters.ai.langgraph_agent_adapter import ChatInputSchema
@@ -341,7 +344,8 @@ def bootstrap():
         ai_adapter.with_types(input_type=ChatInputSchema, output_type=AnyMessage),
         path="/agent",
         playground_type="chat",
-        per_req_config_modifier=per_req_config_modifier
+        per_req_config_modifier=per_req_config_modifier,
+        dependencies=[Depends(verify_token)]
     )
 
     app.add_middleware(ConstToEnumMiddleware)

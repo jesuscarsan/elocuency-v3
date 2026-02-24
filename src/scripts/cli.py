@@ -1,5 +1,6 @@
 import asyncio
 import sys
+import os
 import uuid
 from langserve import RemoteRunnable
 
@@ -24,7 +25,14 @@ async def main():
 
     try:
         # Pass user_id as header to ensure session persistence
-        remote_chain = RemoteRunnable(agent_url, headers={"x-user-id": user_id})
+        headers = {"x-user-id": user_id}
+        
+        # Add auth token if available in the environment
+        auth_token = os.getenv("SERVER_AUTH_TOKEN")
+        if auth_token:
+            headers["Authorization"] = f"Bearer {auth_token}"
+            
+        remote_chain = RemoteRunnable(agent_url, headers=headers)
     except Exception as e:
         print(f"Error connecting to agent at {agent_url}: {e}")
         return

@@ -30,7 +30,11 @@
                 "sendBody": true,
                 "specifyBody": "json",
                 "jsonBody": "={\n  \"input\": {\n    \"messages\": [\n      {\n        \"type\": \"human\",\n        \"content\": \"{{$json.message.text}}\"\n      }\n    ]\n  }\n}",
-                "options": {}
+                "options": {
+                    "headers": {
+                        "Authorization": "Bearer YOUR_SERVER_AUTH_TOKEN"
+                    }
+                }
             },
             "id": "a1b2c3d4-e5f6-4a5b-8c9d-0e1f2a3b4c5d",
             "name": "Call LangChain",
