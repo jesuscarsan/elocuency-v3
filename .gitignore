@@ -1,8 +1,9 @@
 apps/*
 !apps/elo-server
 !apps/elo-cli
+!README.md
 node_modules
+.pnpm-store
 elocuency.code-workspace
-old-copy-week-ago
 elo-workspace
 .env

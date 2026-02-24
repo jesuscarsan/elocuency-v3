@@ -1,0 +1,46 @@
+#!/usr/bin/env bash
+
+# elo
+# Wrapper para ejecutar el CLI de Elo Workbench mediante Docker sin requerir Node.js instalado.
+
+# 1. Comprueba si docker está instalado
+if ! command -v docker &> /dev/null; then
+    echo -e "\033[0;31m❌ Docker no está instalado.\033[0m"
+    echo "Por favor, instala Docker (Docker Desktop con backend WSL2 si estás en Windows)."
+    exit 1
+fi
+
+# 2. Comprueba si el demonio de docker está corriendo
+if ! docker info &> /dev/null; then
+    echo -e "\033[0;31m❌ Docker no está ejecutándose.\033[0m"
+    echo "Por favor, arranca el motor de Docker antes de continuar."
+    exit 1
+fi
+
+# 3. Determinar si necesitamos consola interactiva (-t)
+# Si estamos en TTY (ejecución normal) usamos -it, si estamos en un pipeline/CI, solo -i
+if [ -t 0 ]; then
+    DOCKER_INTERACTIVE_FLAGS="-it"
+else
+    DOCKER_INTERACTIVE_FLAGS="-i"
+fi
+
+# Resolvemos el script real si se está ejecutando desde un symlink
+SOURCE="${BASH_SOURCE[0]}"
+while [ -h "$SOURCE" ]; do
+  DIR="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
+  SOURCE="$(readlink "$SOURCE")"
+  [[ $SOURCE != /* ]] && SOURCE="$DIR/$SOURCE"
+done
+SCRIPT_DIR="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
+
+# Calculamos la raíz del monorepo (2 niveles arriba de apps/elo-cli)
+DIR="$( cd "$SCRIPT_DIR/../.." && pwd )"
+
+# 4. Delegar el comando al contenedor de Node
+docker run --rm $DOCKER_INTERACTIVE_FLAGS \
+  -v "$DIR":/app \
+  -w /app \
+  --network host \
+  node:20-alpine \
+  npx tsx apps/elo-cli/src/index.ts "$@"

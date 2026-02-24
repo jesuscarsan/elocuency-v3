@@ -1,13 +1,7 @@
 {
 	"folders": [
 		{
-			"path": "apps/elo-server",
-		},
-		{
 			"path": ".",
-		},
-		{
-			"path": "apps/elo-cli",
 		},
 	],
 	"settings": {
