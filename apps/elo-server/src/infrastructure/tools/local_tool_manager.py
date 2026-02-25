@@ -2,6 +2,7 @@ import importlib.util
 import os
 import sys
 import inspect
+from datetime import datetime
 from pathlib import Path
 from typing import List, Optional, Any
 from langchain_core.tools import BaseTool, StructuredTool, tool
@@ -10,7 +11,7 @@ from src.infrastructure.logging.logger import get_logger
 logger = get_logger(__name__)
 
 class LocalToolManager:
-    def __init__(self, tools_dirs: List[str], root_path: str, activated_tools: Optional[List[Any]] = None):
+    def __init__(self, tools_dirs: List[str], root_path: str, activated_tools: Optional[List[Any]] = None, vault_path: Optional[str] = None):
         """
         Initializes the LocalToolManager with a list of directories to scan for tools.
         
@@ -18,10 +19,12 @@ class LocalToolManager:
             tools_dirs: List of absolute paths to directories containing tool modules.
             root_path: Absolute path to the project root (used for finding scripts).
             activated_tools: List of ToolConfig objects from the configuration.
+            vault_path: Path to the Obsidian vault.
         """
         self.tools_dirs = [Path(d).resolve() for d in tools_dirs]
         self.root_path = Path(root_path).resolve()
         self.activated_tools = activated_tools or []
+        self.vault_path = Path(vault_path).resolve() if vault_path else None
 
         # Ensure directories exist (at least the workspace one)
         for d in self.tools_dirs:
@@ -180,4 +183,19 @@ class LocalToolManager:
                 logger.error(f"Unexpected error during sync: {e}")
                 return f"Unexpected error during workspace synchronization: {str(e)}"
 
-        return [create_python_tool, refresh_local_tools, sync_workspace]
+        @tool
+        def delegate_to_human(reason: str = "", note_content: str = "") -> str:
+            """
+            Use this tool ONLY when you encounter a task that is physically impossible 
+            for an AI (like bringing coffee) or that you cannot solve with ANY of your tools 
+            (MCPs, local tools, n8n workflows). 
+            
+            Args:
+                reason: The reason why you are delegating (e.g. 'This requires physical action').
+                note_content: Alternative parameter for the reasoning.
+            """
+            actual_reason = reason or note_content or "No reason provided"
+            logger.info(f"Delegating task to human: {actual_reason}")
+            return f"DELEGATED_TO_HUMAN: {actual_reason}"
+
+        return [create_python_tool, refresh_local_tools, sync_workspace, delegate_to_human]

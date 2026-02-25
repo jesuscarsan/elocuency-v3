@@ -18,7 +18,7 @@
     "langchainTools": [
         {
             "name": "n8n_workflows",
-            "active": false
+            "active": true
         }
     ],
     "ai": {

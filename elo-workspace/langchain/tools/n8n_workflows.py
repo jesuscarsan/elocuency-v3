@@ -5,7 +5,7 @@ import os
 
 # Configuration from environment variables for Docker compatibility
 # Defaults are set for standard local development
-N8N_WORKFLOWS_DIR = os.getenv("N8N_WORKFLOWS_DIR", "/app/workspace/n8n/workflows")
+N8N_WORKFLOWS_DIR = os.getenv("N8N_WORKFLOWS_DIR", "/elo-workspace/n8n/workflows")
 N8N_BASE_URL = os.getenv("N8N_HOST", "http://localhost:5678")
 
 @tool
@@ -75,3 +75,30 @@ def list_n8n_workflows() -> str:
         return "Available workflows: " + ", ".join(files)
     except Exception as e:
         return f"Error: {str(e)}"
+
+@tool
+def create_n8n_workflow(workflow_name: str, workflow_json: str) -> str:
+    """
+    Creates a new n8n workflow file. 
+    'workflow_json' must be a valid n8n workflow JSON string.
+    This allows persisting workflows that can later be triggered or manually edited in n8n.
+    """
+    try:
+        if not os.path.exists(N8N_WORKFLOWS_DIR):
+            os.makedirs(N8N_WORKFLOWS_DIR, exist_ok=True)
+            
+        filename = f"{workflow_name}.json"
+        if not filename.endswith(".json"):
+            filename += ".json"
+            
+        filepath = os.path.join(N8N_WORKFLOWS_DIR, filename)
+        
+        # Verify JSON
+        json_obj = json.loads(workflow_json)
+        
+        with open(filepath, 'w') as f:
+            json.dump(json_obj, f, indent=2)
+            
+        return f"Success: Workflow '{workflow_name}' created at {filepath}."
+    except Exception as e:
+        return f"Error creating workflow: {str(e)}"

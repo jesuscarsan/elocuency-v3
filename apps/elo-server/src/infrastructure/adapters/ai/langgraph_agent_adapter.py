@@ -4,8 +4,7 @@ from pathlib import Path
 from pydantic import BaseModel, Field
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langgraph.prebuilt import create_react_agent
-from langgraph.checkpoint.sqlite import SqliteSaver
-import sqlite3
+from langgraph.checkpoint.memory import MemorySaver
 import os
 from langchain_core.messages import AIMessage, AnyMessage, HumanMessage, BaseMessage
 from langchain_core.runnables import Runnable
@@ -46,10 +45,7 @@ class LangGraphAgentAdapter(AIPort, Runnable):
         if not self.base_storage_path.exists():
             self.base_storage_path.mkdir(parents=True, exist_ok=True)
             
-        db_path = self.base_storage_path / "checkpoints.sqlite"
-        # We need check_same_thread=False because the connection might be used across async tasks
-        self.conn = sqlite3.connect(str(db_path), check_same_thread=False)
-        self.checkpointer = SqliteSaver(self.conn)
+        self.checkpointer = MemorySaver()
         self.graph = None
         
         # Load vault schema if available
@@ -81,8 +77,19 @@ class LangGraphAgentAdapter(AIPort, Runnable):
         Initializes the ReAct agent with MemorySaver persistence and system prompt.
         """
         system_msg = (
-            "You are a powerful AI assistant with full access to an Obsidian vault. "
-            "You can read, search, and modify notes. "
+            "You are a powerful AI assistant with full access to an Obsidian vault and an n8n automation environment. "
+            "You can read, search, and modify notes, as well as list, call, and CREATE n8n workflows. "
+            "\n\nProactivity: If a user asks for a capability you don't have (like WhatsApp integration or email notifications), "
+            "check if you can solve it by CREATE-ing an n8n workflow. If you can't build it yourself, "
+            "delegate the task to a human with a clear description of what's needed. "
+            "\n\nCRITICAL: If you encounter a task that you cannot complete with your current tools, "
+            "OR if you need to ask the user a question, clarify requirements, or get permission to proceed, "
+            "you MUST use the 'delegate_to_human' tool. "
+            "Call it as: delegate_to_human(reason='detailed reason or your question here'). "
+            "Do NOT wrap the tool call in markdown code blocks. Use the tool calling API provided to you. "
+            "Do NOT ask questions, offer options, or explain why you can't do it in your final response text; use the tool instead. "
+            "If you see a '<!-- DELEGATED_TO_HUMAN -->' marker in the task, it means you have already asked for help. "
+            "Check for any new human-written notes or updated instructions in the vault or workspace before continuing."
         )
         
         if self.vault_schema:
@@ -174,10 +181,17 @@ class LangGraphAgentAdapter(AIPort, Runnable):
         return self._extract_output(result)
 
     async def ainvoke(self, input, config=None, **kwargs):
+        import logging
+        logger = logging.getLogger("src.infrastructure.adapters.ai.langgraph_agent_adapter")
+        logger.info(f"AI Agent ainvoke | Input: {input}")
         input = self._sanitize_input(input)
         config = self._ensure_config(config)
         result = await self.graph.ainvoke(input, config, **kwargs)
-        return self._extract_output(result)
+        output = self._extract_output(result)
+        logger.info(f"AI Agent ainvoke | Output type: {type(output)}")
+        if hasattr(output, "content"):
+            logger.info(f"AI Agent ainvoke | Output content: {output.content[:50]}...")
+        return output
 
     def stream(self, input, config=None, **kwargs):
         input = self._sanitize_input(input)
@@ -188,12 +202,16 @@ class LangGraphAgentAdapter(AIPort, Runnable):
         yield self._extract_output(result)
 
     async def astream(self, input, config=None, **kwargs):
+        import logging
+        logger = logging.getLogger("src.infrastructure.adapters.ai.langgraph_agent_adapter")
+        logger.info(f"AI Agent astream | Input: {input}")
         input = self._sanitize_input(input)
         config = self._ensure_config(config)
-        # Fallback to ainvoke to ensure stability for now.
-        # Yield the extracted message.
+        # Fallback to ainvoke for stability.
         result = await self.graph.ainvoke(input, config, **kwargs)
-        yield self._extract_output(result)
+        output = self._extract_output(result)
+        logger.info(f"AI Agent astream | Yielding: {output}")
+        yield output
 
     def batch(self, inputs, config=None, **kwargs):
 
@@ -225,7 +243,17 @@ class LangGraphAgentAdapter(AIPort, Runnable):
         
         # Extract the last message content from the state dict
         if isinstance(result, dict) and "messages" in result:
-             last_msg = result["messages"][-1]
+             messages = result["messages"]
+             
+             # Search backwards for a delegation in the current turn
+             # We stop if we see a HumanMessage (which started this turn)
+             for msg in reversed(messages):
+                 if getattr(msg, "type", "") == "human":
+                     break
+                 if hasattr(msg, "content") and "DELEGATED_TO_HUMAN:" in str(msg.content):
+                     return str(msg.content)
+
+             last_msg = messages[-1]
              if hasattr(last_msg, "content"):
                  return last_msg.content
              return str(last_msg)

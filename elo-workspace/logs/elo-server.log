@@ -20754,3 +20754,1668 @@ Obsidian Bridge MCP server running on stdio
 2026-02-19 17:16:17,232 - src.main - INFO - Binding 8 tools (4 MCP, 0 local, 1 semantic) to AI adapter.
 2026-02-19 17:16:17,232 - src.main - INFO - Binding 8 tools (4 MCP, 0 local, 1 semantic) to AI adapter.
 INFO:     Application startup complete.
+INFO:     Will watch for changes in these directories: ['/app']
+INFO:     Uvicorn running on http://0.0.0.0:8001 (Press CTRL+C to quit)
+INFO:     Started reloader process [8] using WatchFiles
+2026-02-25 11:27:10,978 - root - INFO - Logging initialized. File: /app/workspace/logs/elo-server.log
+2026-02-25 11:27:10,978 - root - INFO - Logging initialized. File: /app/workspace/logs/elo-server.log
+Process SpawnProcess-1:
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.11/multiprocessing/process.py", line 314, in _bootstrap
+    self.run()
+  File "/usr/local/lib/python3.11/multiprocessing/process.py", line 108, in run
+    self._target(*self._args, **self._kwargs)
+  File "/usr/local/lib/python3.11/site-packages/uvicorn/_subprocess.py", line 80, in subprocess_started
+    target(sockets=sockets)
+  File "/usr/local/lib/python3.11/site-packages/uvicorn/server.py", line 75, in run
+    return asyncio_run(self.serve(sockets=sockets), loop_factory=self.config.get_loop_factory())
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/uvicorn/_compat.py", line 30, in asyncio_run
+    return runner.run(main)
+           ^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/asyncio/runners.py", line 118, in run
+    return self._loop.run_until_complete(task)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "uvloop/loop.pyx", line 1518, in uvloop.loop.Loop.run_until_complete
+  File "/usr/local/lib/python3.11/site-packages/uvicorn/server.py", line 79, in serve
+    await self._serve(sockets)
+  File "/usr/local/lib/python3.11/site-packages/uvicorn/server.py", line 86, in _serve
+    config.load()
+  File "/usr/local/lib/python3.11/site-packages/uvicorn/config.py", line 441, in load
+    self.loaded_app = import_from_string(self.app)
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/uvicorn/importer.py", line 19, in import_from_string
+    module = importlib.import_module(module_str)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/importlib/__init__.py", line 126, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap>", line 1204, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1176, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1147, in _find_and_load_unlocked
+  File "<frozen importlib._bootstrap>", line 690, in _load_unlocked
+  File "<frozen importlib._bootstrap_external>", line 940, in exec_module
+  File "<frozen importlib._bootstrap>", line 241, in _call_with_frames_removed
+  File "/app/src/main.py", line 38, in <module>
+    ai_adapter = LangGraphAgentAdapter(
+                 ^^^^^^^^^^^^^^^^^^^^^^
+  File "/app/src/infrastructure/adapters/ai/langgraph_agent_adapter.py", line 35, in __init__
+    raise ValueError("API key must be provided")
+ValueError: API key must be provided
+2026-02-25 12:54:37,325 - root - INFO - Logging initialized. File: /app/workspace/logs/elo-server.log
+2026-02-25 12:54:37,363 - src.main - INFO - Initializing Obsidian Semantic Search for /data/vault...
+2026-02-25 12:54:37,504 - root - INFO - Checking for Obsidian notes updates via API...
+2026-02-25 12:54:37,504 - root - INFO - Syncing with DQL: TABLE file.mtime WHERE file.mtime > date("2026-02-18T18:11:14")
+2026-02-25 12:54:37,712 - httpx - INFO - HTTP Request: POST http://host.docker.internal:27123/search/ "HTTP/1.1 200 OK"
+2026-02-25 12:54:37,713 - root - INFO - No new or modified notes found since last sync.
+2026-02-25 12:54:37,904 - src.main - INFO - Starting MCP Manager...
+2026-02-25 12:54:37,904 - src.infrastructure.mcp.manager - INFO - Skipping deactivated MCP server: mcp-obsidian
+2026-02-25 12:54:37,904 - src.infrastructure.mcp.manager - INFO - Connecting to elo-obsidian-api-mcp MCP server at /app/workspace/mcps/elo-obsidian-api-mcp/dist/index.js...
+2026-02-25 12:54:37,917 - src.infrastructure.mcp.manager - INFO - Initializing elo-obsidian-api-mcp session...
+2026-02-25 12:55:07,956 - src.infrastructure.mcp.manager - ERROR - Timeout initializing MCP server elo-obsidian-api-mcp
+2026-02-25 12:55:07,960 - src.infrastructure.tools.local_tool_manager - INFO - Scanning for tools in /app/assets/langchain/tools...
+2026-02-25 12:55:07,961 - src.infrastructure.tools.local_tool_manager - INFO - Skipping deactivated local tool module: asset_tool
+2026-02-25 12:55:07,961 - src.infrastructure.tools.local_tool_manager - INFO - Scanning for tools in /app/workspace/langchain/tools...
+2026-02-25 12:55:07,963 - src.infrastructure.tools.local_tool_manager - INFO - Skipping deactivated local tool module: n8n_workflows
+2026-02-25 12:55:07,963 - src.infrastructure.tools.local_tool_manager - INFO - Skipping deactivated local tool module: test_hello
+2026-02-25 12:55:07,963 - src.infrastructure.tools.local_tool_manager - INFO - Skipping deactivated local tool module: echo
+2026-02-25 12:55:07,963 - src.infrastructure.tools.local_tool_manager - INFO - Skipping deactivated local tool module: test_math
+2026-02-25 12:55:07,980 - src.main - INFO - Binding 4 tools (0 MCP, 0 local, 1 semantic) to AI adapter.
+2026-02-25 12:55:48,555 - src.main - INFO - Stopping MCP Manager...
+2026-02-25 12:55:56,546 - root - INFO - Logging initialized. File: /app/workspace/logs/elo-server.log
+2026-02-25 12:55:56,585 - src.main - INFO - Initializing Obsidian Semantic Search for /data/vault...
+2026-02-25 12:55:56,737 - root - INFO - Checking for Obsidian notes updates via API...
+2026-02-25 12:55:56,737 - root - INFO - Syncing with DQL: TABLE file.mtime WHERE file.mtime > date("2026-02-18T18:11:14")
+2026-02-25 12:55:56,933 - httpx - INFO - HTTP Request: POST http://host.docker.internal:27123/search/ "HTTP/1.1 200 OK"
+2026-02-25 12:55:56,937 - root - INFO - No new or modified notes found since last sync.
+2026-02-25 12:55:57,383 - src.main - INFO - Starting MCP Manager...
+2026-02-25 12:55:57,384 - src.infrastructure.mcp.manager - INFO - Skipping deactivated MCP server: mcp-obsidian
+2026-02-25 12:55:57,384 - src.infrastructure.mcp.manager - INFO - Connecting to elo-obsidian-api-mcp MCP server at /app/workspace/mcps/elo-obsidian-api-mcp/dist/index.js...
+2026-02-25 12:55:57,421 - src.infrastructure.mcp.manager - INFO - Initializing elo-obsidian-api-mcp session...
+2026-02-25 12:56:27,459 - src.infrastructure.mcp.manager - ERROR - Timeout initializing MCP server elo-obsidian-api-mcp
+2026-02-25 12:56:27,467 - src.infrastructure.tools.local_tool_manager - INFO - Scanning for tools in /app/assets/langchain/tools...
+2026-02-25 12:56:27,468 - src.infrastructure.tools.local_tool_manager - INFO - Skipping deactivated local tool module: asset_tool
+2026-02-25 12:56:27,468 - src.infrastructure.tools.local_tool_manager - INFO - Scanning for tools in /app/workspace/langchain/tools...
+2026-02-25 12:56:27,469 - src.infrastructure.tools.local_tool_manager - INFO - Skipping deactivated local tool module: n8n_workflows
+2026-02-25 12:56:27,469 - src.infrastructure.tools.local_tool_manager - INFO - Skipping deactivated local tool module: test_hello
+2026-02-25 12:56:27,469 - src.infrastructure.tools.local_tool_manager - INFO - Skipping deactivated local tool module: echo
+2026-02-25 12:56:27,469 - src.infrastructure.tools.local_tool_manager - INFO - Skipping deactivated local tool module: test_math
+2026-02-25 12:56:27,488 - src.main - INFO - Binding 4 tools (0 MCP, 0 local, 1 semantic) to AI adapter.
+2026-02-25 12:57:17,054 - src.main - INFO - Stopping MCP Manager...
+2026-02-25 12:57:29,690 - root - INFO - Logging initialized. File: /app/workspace/logs/elo-server.log
+2026-02-25 12:57:29,747 - src.main - INFO - Initializing Obsidian Semantic Search for /data/vault...
+2026-02-25 12:57:29,889 - root - INFO - Checking for Obsidian notes updates via API...
+2026-02-25 12:57:29,889 - root - INFO - Syncing with DQL: TABLE file.mtime WHERE file.mtime > date("2026-02-18T18:11:14")
+2026-02-25 12:57:30,096 - httpx - INFO - HTTP Request: POST http://host.docker.internal:27123/search/ "HTTP/1.1 200 OK"
+2026-02-25 12:57:30,097 - root - INFO - No new or modified notes found since last sync.
+2026-02-25 12:57:30,530 - src.main - INFO - Starting MCP Manager...
+2026-02-25 12:57:30,531 - src.infrastructure.mcp.manager - INFO - Skipping deactivated MCP server: mcp-obsidian
+2026-02-25 12:57:30,531 - src.infrastructure.mcp.manager - INFO - Connecting to elo-obsidian-api-mcp MCP server at /app/workspace/mcps/elo-obsidian-api-mcp/dist/index.js...
+2026-02-25 12:57:30,578 - src.infrastructure.mcp.manager - INFO - Initializing elo-obsidian-api-mcp session...
+2026-02-25 12:58:00,621 - src.infrastructure.mcp.manager - ERROR - Timeout initializing MCP server elo-obsidian-api-mcp
+2026-02-25 12:58:00,630 - src.infrastructure.tools.local_tool_manager - INFO - Scanning for tools in /app/assets/langchain/tools...
+2026-02-25 12:58:00,630 - src.infrastructure.tools.local_tool_manager - INFO - Skipping deactivated local tool module: asset_tool
+2026-02-25 12:58:00,631 - src.infrastructure.tools.local_tool_manager - INFO - Scanning for tools in /app/workspace/langchain/tools...
+2026-02-25 12:58:00,631 - src.infrastructure.tools.local_tool_manager - INFO - Skipping deactivated local tool module: n8n_workflows
+2026-02-25 12:58:00,631 - src.infrastructure.tools.local_tool_manager - INFO - Skipping deactivated local tool module: test_hello
+2026-02-25 12:58:00,631 - src.infrastructure.tools.local_tool_manager - INFO - Skipping deactivated local tool module: echo
+2026-02-25 12:58:00,631 - src.infrastructure.tools.local_tool_manager - INFO - Skipping deactivated local tool module: test_math
+2026-02-25 12:58:00,664 - src.main - INFO - Binding 4 tools (0 MCP, 0 local, 1 semantic) to AI adapter.
+2026-02-25 13:05:53,298 - root - INFO - Checking for Obsidian notes updates via API...
+2026-02-25 13:05:53,299 - root - INFO - Syncing with DQL: TABLE file.mtime WHERE file.mtime > date("2026-02-18T18:11:14")
+2026-02-25 13:05:53,478 - httpx - INFO - HTTP Request: POST http://host.docker.internal:27123/search/ "HTTP/1.1 200 OK"
+2026-02-25 13:05:53,479 - root - INFO - No new or modified notes found since last sync.
+2026-02-25 13:05:59,407 - root - INFO - Skipping semantic sync (cooldown: 293s remaining)
+2026-02-25 13:07:26,726 - root - INFO - Skipping semantic sync (cooldown: 206s remaining)
+2026-02-25 13:09:02,900 - src.main - INFO - Stopping MCP Manager...
+2026-02-25 13:09:11,772 - root - INFO - Logging initialized. File: /app/workspace/logs/elo-server.log
+2026-02-25 13:09:11,812 - src.main - INFO - Initializing Obsidian Semantic Search for /data/vault...
+2026-02-25 13:09:11,928 - root - INFO - Checking for Obsidian notes updates via API...
+2026-02-25 13:09:11,928 - root - INFO - Syncing with DQL: TABLE file.mtime WHERE file.mtime > date("2026-02-18T18:11:14")
+2026-02-25 13:09:12,088 - httpx - INFO - HTTP Request: POST http://host.docker.internal:27123/search/ "HTTP/1.1 200 OK"
+2026-02-25 13:09:12,090 - root - INFO - No new or modified notes found since last sync.
+2026-02-25 13:09:12,495 - src.main - INFO - Starting MCP Manager...
+2026-02-25 13:09:12,496 - src.infrastructure.mcp.manager - INFO - Skipping deactivated MCP server: mcp-obsidian
+2026-02-25 13:09:12,496 - src.infrastructure.mcp.manager - INFO - Connecting to elo-obsidian-api-mcp MCP server at /app/workspace/mcps/elo-obsidian-api-mcp/dist/index.js...
+2026-02-25 13:09:12,530 - src.infrastructure.mcp.manager - INFO - Initializing elo-obsidian-api-mcp session...
+2026-02-25 13:09:42,577 - src.infrastructure.mcp.manager - ERROR - Timeout initializing MCP server elo-obsidian-api-mcp
+2026-02-25 13:09:42,598 - src.infrastructure.tools.local_tool_manager - INFO - Scanning for tools in /app/assets/langchain/tools...
+2026-02-25 13:09:42,599 - src.infrastructure.tools.local_tool_manager - INFO - Skipping deactivated local tool module: asset_tool
+2026-02-25 13:09:42,599 - src.infrastructure.tools.local_tool_manager - INFO - Scanning for tools in /app/workspace/langchain/tools...
+2026-02-25 13:09:42,600 - src.infrastructure.tools.local_tool_manager - INFO - Skipping deactivated local tool module: n8n_workflows
+2026-02-25 13:09:42,600 - src.infrastructure.tools.local_tool_manager - INFO - Skipping deactivated local tool module: test_hello
+2026-02-25 13:09:42,600 - src.infrastructure.tools.local_tool_manager - INFO - Skipping deactivated local tool module: echo
+2026-02-25 13:09:42,600 - src.infrastructure.tools.local_tool_manager - INFO - Skipping deactivated local tool module: test_math
+2026-02-25 13:09:42,628 - src.main - INFO - Binding 4 tools (0 MCP, 0 local, 1 semantic) to AI adapter.
+2026-02-25 13:10:18,534 - src.main - INFO - Stopping MCP Manager...
+2026-02-25 13:10:27,419 - root - INFO - Logging initialized. File: /app/workspace/logs/elo-server.log
+2026-02-25 13:10:27,471 - src.main - INFO - Initializing Obsidian Semantic Search for /data/vault...
+2026-02-25 13:10:27,669 - root - INFO - Checking for Obsidian notes updates via API...
+2026-02-25 13:10:27,669 - root - INFO - Syncing with DQL: TABLE file.mtime WHERE file.mtime > date("2026-02-18T18:11:14")
+2026-02-25 13:10:27,860 - httpx - INFO - HTTP Request: POST http://host.docker.internal:27123/search/ "HTTP/1.1 200 OK"
+2026-02-25 13:10:27,860 - root - INFO - No new or modified notes found since last sync.
+2026-02-25 13:10:28,220 - src.main - INFO - Starting MCP Manager...
+2026-02-25 13:10:28,220 - src.infrastructure.mcp.manager - INFO - Skipping deactivated MCP server: mcp-obsidian
+2026-02-25 13:10:28,220 - src.infrastructure.mcp.manager - INFO - Connecting to elo-obsidian-api-mcp MCP server at /app/workspace/mcps/elo-obsidian-api-mcp/dist/index.js...
+2026-02-25 13:10:28,245 - src.infrastructure.mcp.manager - INFO - Initializing elo-obsidian-api-mcp session...
+2026-02-25 13:10:29,333 - src.infrastructure.mcp.manager - INFO - Connected and initialized elo-obsidian-api-mcp MCP server.
+2026-02-25 13:10:29,341 - src.infrastructure.mcp.manager - INFO -   Registering MCP tool: elo_obsidian_api_mcp_search_obsidian
+2026-02-25 13:10:29,348 - src.infrastructure.mcp.manager - INFO -   Registering MCP tool: elo_obsidian_api_mcp_get_active_file
+2026-02-25 13:10:29,348 - src.infrastructure.mcp.manager - INFO -   Registering MCP tool: elo_obsidian_api_mcp_execute_command
+2026-02-25 13:10:29,349 - src.infrastructure.mcp.manager - INFO -   Registering MCP tool: elo_obsidian_api_mcp_list_commands
+2026-02-25 13:10:29,349 - src.infrastructure.tools.local_tool_manager - INFO - Scanning for tools in /app/assets/langchain/tools...
+2026-02-25 13:10:29,350 - src.infrastructure.tools.local_tool_manager - INFO - Skipping deactivated local tool module: asset_tool
+2026-02-25 13:10:29,350 - src.infrastructure.tools.local_tool_manager - INFO - Scanning for tools in /app/workspace/langchain/tools...
+2026-02-25 13:10:29,350 - src.infrastructure.tools.local_tool_manager - INFO - Skipping deactivated local tool module: n8n_workflows
+2026-02-25 13:10:29,350 - src.infrastructure.tools.local_tool_manager - INFO - Skipping deactivated local tool module: test_hello
+2026-02-25 13:10:29,350 - src.infrastructure.tools.local_tool_manager - INFO - Skipping deactivated local tool module: echo
+2026-02-25 13:10:29,350 - src.infrastructure.tools.local_tool_manager - INFO - Skipping deactivated local tool module: test_math
+2026-02-25 13:10:29,374 - src.main - INFO - Binding 8 tools (4 MCP, 0 local, 1 semantic) to AI adapter.
+2026-02-25 13:12:18,184 - root - INFO - Skipping semantic sync (cooldown: 189s remaining)
+2026-02-25 13:14:10,874 - src.main - INFO - Stopping MCP Manager...
+2026-02-25 13:14:18,505 - root - INFO - Logging initialized. File: /app/workspace/logs/elo-server.log
+2026-02-25 13:14:18,574 - src.main - INFO - Initializing Obsidian Semantic Search for /data/vault...
+2026-02-25 13:14:18,727 - root - INFO - Checking for Obsidian notes updates via API...
+2026-02-25 13:14:18,727 - root - INFO - Syncing with DQL: TABLE file.mtime WHERE file.mtime > date("2026-02-18T18:11:14")
+2026-02-25 13:14:18,888 - httpx - INFO - HTTP Request: POST http://host.docker.internal:27123/search/ "HTTP/1.1 200 OK"
+2026-02-25 13:14:18,890 - root - INFO - No new or modified notes found since last sync.
+2026-02-25 13:14:19,322 - src.main - INFO - Starting MCP Manager...
+2026-02-25 13:14:19,322 - src.infrastructure.mcp.manager - INFO - Skipping deactivated MCP server: mcp-obsidian
+2026-02-25 13:14:19,323 - src.infrastructure.mcp.manager - INFO - Connecting to elo-obsidian-api-mcp MCP server at /app/workspace/mcps/elo-obsidian-api-mcp/dist/index.js...
+2026-02-25 13:14:19,343 - src.infrastructure.mcp.manager - INFO - Initializing elo-obsidian-api-mcp session...
+2026-02-25 13:14:20,038 - src.infrastructure.mcp.manager - INFO - Connected and initialized elo-obsidian-api-mcp MCP server.
+2026-02-25 13:14:20,040 - src.infrastructure.mcp.manager - INFO -   Registering MCP tool: elo_obsidian_api_mcp_search_obsidian
+2026-02-25 13:14:20,043 - src.infrastructure.mcp.manager - INFO -   Registering MCP tool: elo_obsidian_api_mcp_get_active_file
+2026-02-25 13:14:20,043 - src.infrastructure.mcp.manager - INFO -   Registering MCP tool: elo_obsidian_api_mcp_execute_command
+2026-02-25 13:14:20,044 - src.infrastructure.mcp.manager - INFO -   Registering MCP tool: elo_obsidian_api_mcp_list_commands
+2026-02-25 13:14:20,044 - src.infrastructure.tools.local_tool_manager - INFO - Scanning for tools in /app/assets/langchain/tools...
+2026-02-25 13:14:20,044 - src.infrastructure.tools.local_tool_manager - INFO - Skipping deactivated local tool module: asset_tool
+2026-02-25 13:14:20,044 - src.infrastructure.tools.local_tool_manager - INFO - Scanning for tools in /app/workspace/langchain/tools...
+2026-02-25 13:14:20,044 - src.infrastructure.tools.local_tool_manager - INFO - Skipping deactivated local tool module: n8n_workflows
+2026-02-25 13:14:20,044 - src.infrastructure.tools.local_tool_manager - INFO - Skipping deactivated local tool module: test_hello
+2026-02-25 13:14:20,044 - src.infrastructure.tools.local_tool_manager - INFO - Skipping deactivated local tool module: echo
+2026-02-25 13:14:20,044 - src.infrastructure.tools.local_tool_manager - INFO - Skipping deactivated local tool module: test_math
+2026-02-25 13:14:20,053 - src.main - INFO - Binding 8 tools (4 MCP, 0 local, 1 semantic) to AI adapter.
+2026-02-25 13:15:41,255 - root - INFO - Skipping semantic sync (cooldown: 217s remaining)
+2026-02-25 13:15:47,501 - root - INFO - Skipping semantic sync (cooldown: 211s remaining)
+2026-02-25 13:15:59,428 - root - INFO - Skipping semantic sync (cooldown: 199s remaining)
+2026-02-25 13:16:20,128 - root - INFO - Skipping semantic sync (cooldown: 178s remaining)
+2026-02-25 13:20:38,816 - src.main - INFO - Stopping MCP Manager...
+2026-02-25 13:20:41,476 - root - INFO - Logging initialized. File: /app/workspace/logs/elo-server.log
+2026-02-25 13:20:41,517 - src.main - INFO - Initializing Obsidian Semantic Search for /data/vault...
+2026-02-25 13:20:41,620 - root - INFO - Checking for Obsidian notes updates via API...
+2026-02-25 13:20:41,621 - root - INFO - Syncing with DQL: TABLE file.mtime WHERE file.mtime > date("2026-02-18T18:11:14")
+2026-02-25 13:20:41,805 - httpx - INFO - HTTP Request: POST http://host.docker.internal:27123/search/ "HTTP/1.1 200 OK"
+2026-02-25 13:20:41,806 - root - INFO - No new or modified notes found since last sync.
+2026-02-25 13:20:42,140 - src.main - INFO - Starting MCP Manager...
+2026-02-25 13:20:42,140 - src.infrastructure.mcp.manager - INFO - Skipping deactivated MCP server: mcp-obsidian
+2026-02-25 13:20:42,141 - src.infrastructure.mcp.manager - INFO - Connecting to elo-obsidian-api-mcp MCP server at /app/workspace/mcps/elo-obsidian-api-mcp/dist/index.js...
+2026-02-25 13:20:42,160 - src.infrastructure.mcp.manager - INFO - Initializing elo-obsidian-api-mcp session...
+2026-02-25 13:20:42,588 - src.infrastructure.mcp.manager - INFO - Connected and initialized elo-obsidian-api-mcp MCP server.
+2026-02-25 13:20:42,590 - src.infrastructure.mcp.manager - INFO -   Registering MCP tool: elo_obsidian_api_mcp_search_obsidian
+2026-02-25 13:20:42,591 - src.infrastructure.mcp.manager - INFO -   Registering MCP tool: elo_obsidian_api_mcp_get_active_file
+2026-02-25 13:20:42,591 - src.infrastructure.mcp.manager - INFO -   Registering MCP tool: elo_obsidian_api_mcp_execute_command
+2026-02-25 13:20:42,591 - src.infrastructure.mcp.manager - INFO -   Registering MCP tool: elo_obsidian_api_mcp_list_commands
+2026-02-25 13:20:42,591 - src.infrastructure.tools.local_tool_manager - INFO - Scanning for tools in /app/assets/langchain/tools...
+2026-02-25 13:20:42,592 - src.infrastructure.tools.local_tool_manager - INFO - Skipping deactivated local tool module: asset_tool
+2026-02-25 13:20:42,592 - src.infrastructure.tools.local_tool_manager - INFO - Scanning for tools in /app/workspace/langchain/tools...
+2026-02-25 13:20:42,592 - src.infrastructure.tools.local_tool_manager - INFO - Skipping deactivated local tool module: n8n_workflows
+2026-02-25 13:20:42,592 - src.infrastructure.tools.local_tool_manager - INFO - Skipping deactivated local tool module: test_hello
+2026-02-25 13:20:42,592 - src.infrastructure.tools.local_tool_manager - INFO - Skipping deactivated local tool module: echo
+2026-02-25 13:20:42,592 - src.infrastructure.tools.local_tool_manager - INFO - Skipping deactivated local tool module: test_math
+2026-02-25 13:20:42,596 - src.main - INFO - Binding 8 tools (4 MCP, 0 local, 1 semantic) to AI adapter.
+2026-02-25 13:21:08,649 - root - INFO - Skipping semantic sync (cooldown: 272s remaining)
+2026-02-25 13:21:08,662 - src.infrastructure.adapters.ai.langgraph_agent_adapter - INFO - AI Agent astream | Input: {'messages': [HumanMessage(content='hola', additional_kwargs={}, response_metadata={})]}
+2026-02-25 13:21:09,682 - src.infrastructure.adapters.ai.langgraph_agent_adapter - INFO - AI Agent astream | Yielding: content='Hola! En que puedo ayudarte?' additional_kwargs={} response_metadata={'finish_reason': 'STOP', 'model_name': 'gemini-2.0-flash', 'safety_ratings': [], 'model_provider': 'google_genai'} id='lc_run--019c94f5-e455-78a0-9cf4-79cdbb383a14-0' tool_calls=[] invalid_tool_calls=[] usage_metadata={'input_tokens': 773, 'output_tokens': 8, 'total_tokens': 781, 'input_token_details': {'cache_read': 0}}
+2026-02-25 13:23:19,580 - root - INFO - Skipping semantic sync (cooldown: 142s remaining)
+2026-02-25 13:23:19,600 - src.infrastructure.adapters.ai.langgraph_agent_adapter - INFO - AI Agent astream | Input: {'messages': [HumanMessage(content='dame nombres de actores', additional_kwargs={}, response_metadata={})]}
+2026-02-25 13:23:20,760 - src.infrastructure.mcp.manager - INFO - Calling MCP tool 'search_obsidian' (namespaced: elo_obsidian_api_mcp_search_obsidian) with args: {'query': '["Oficios":Actor]', 'context': None}
+2026-02-25 13:23:22,032 - src.infrastructure.mcp.manager - INFO - Calling MCP tool 'search_obsidian' (namespaced: elo_obsidian_api_mcp_search_obsidian) with args: {'query': 'Actor', 'context': None}
+2026-02-25 13:23:25,356 - src.infrastructure.adapters.ai.langgraph_agent_adapter - INFO - AI Agent astream | Yielding: content='Aquí hay algunos nombres de actores que encontré en mi base de datos:\n\n*   Ryan Gosling\n*   Paul Dano\n*   Nicolas Cage\n*   Pilar Bardem\n*   Sean Penn\n*   Antonio Duran (Morris)\n*   Bill Murray\n*   Kevin Bacon\n*   Luis Tosar\n*   Laurence Fishburne\n*   Willem Dafoe\n*   Ton Cruise\n*   Leonardo DiCaprio\n*   Javier Bardem\n*   Rodrigo Sorogoyen\n*   Rita Wilson\n*   Jared Leto\n*   Tom Hanks\n*   Jeff Bridges\n*   María Pedraza\n*   Paul Mescal\n*   Samuel L. Jackson\n*   John David Washington\n*   Jason Schwartzman\n*   Mel Gibson\n*   Clint Eastwood\n*   Chris Evans\n*   Jeremy Irons\n*   Riz Ahmed\n*   Humphrey Bogart\n*   Zoe Saldaña\n*   Jeff Wilbusch\n*   Ed Harris\n*   Logan Paul\n*   Jim Carrey\n*   Judd Hirsch\n*   Morgan Freeman\n*   Ken Watanabe\n*   Marlon Brandon\n*   Laura Linney\n*   Alec Baldwin\n*   Veronica Forqué\n*   Robert Pattinson\n*   Enrique Alvarez\n*   Brad Pitt\n*   Amy Adams\n*   Forest Whiaker\n*   Michael Haneke\n\nEsta lista no es exhaustiva, pero te da una idea de los actores que tengo registrados. ¿Te gustaría saber algo más sobre alguno de ellos?' additional_kwargs={} response_metadata={'finish_reason': 'STOP', 'model_name': 'gemini-2.0-flash', 'safety_ratings': [], 'model_provider': 'google_genai'} id='lc_run--019c94f7-ed77-7153-bf22-89d2d26d9128-0' tool_calls=[] invalid_tool_calls=[] usage_metadata={'input_tokens': 23293, 'output_tokens': 332, 'total_tokens': 23625, 'input_token_details': {'cache_read': 0}}
+2026-02-25 13:24:07,296 - root - INFO - Skipping semantic sync (cooldown: 94s remaining)
+2026-02-25 13:24:07,314 - src.infrastructure.adapters.ai.langgraph_agent_adapter - INFO - AI Agent astream | Input: {'messages': [HumanMessage(content='de donde los sacas?', additional_kwargs={}, response_metadata={})]}
+2026-02-25 13:24:09,192 - src.infrastructure.adapters.ai.langgraph_agent_adapter - INFO - AI Agent astream | Yielding: content='Los nombres de actores provienen de las notas almacenadas en mi base de datos de Obsidian. He buscado notas que tengan información sobre personas y que tengan el campo "Oficios" con el valor "Actor".' additional_kwargs={} response_metadata={'finish_reason': 'STOP', 'model_name': 'gemini-2.0-flash', 'safety_ratings': [], 'model_provider': 'google_genai'} id='lc_run--019c94f8-9e2f-7d13-89f9-ed35bdd07923-0' tool_calls=[] invalid_tool_calls=[] usage_metadata={'input_tokens': 23631, 'output_tokens': 43, 'total_tokens': 23674, 'input_token_details': {'cache_read': 0}}
+2026-02-25 13:24:57,167 - root - INFO - Skipping semantic sync (cooldown: 44s remaining)
+2026-02-25 13:24:57,173 - src.infrastructure.adapters.ai.langgraph_agent_adapter - INFO - AI Agent astream | Input: {'messages': [HumanMessage(content='hola', additional_kwargs={}, response_metadata={})]}
+2026-02-25 13:24:58,448 - src.infrastructure.adapters.ai.langgraph_agent_adapter - INFO - AI Agent astream | Yielding: content='Hola! ¿En qué puedo ayudarte hoy?' additional_kwargs={} response_metadata={'finish_reason': 'STOP', 'model_name': 'gemini-2.0-flash', 'safety_ratings': [], 'model_provider': 'google_genai'} id='lc_run--019c94f9-60f7-70b3-9bdb-3a09b638348e-0' tool_calls=[] invalid_tool_calls=[] usage_metadata={'input_tokens': 773, 'output_tokens': 10, 'total_tokens': 783, 'input_token_details': {'cache_read': 0}}
+2026-02-25 14:25:24,284 - src.main - INFO - Stopping MCP Manager...
+2026-02-25 16:50:33,077 - root - INFO - Logging initialized. File: /app/workspace/logs/elo-server.log
+2026-02-25 16:50:33,149 - src.main - INFO - Initializing Obsidian Semantic Search for /data/vault...
+2026-02-25 16:50:33,300 - root - INFO - Checking for Obsidian notes updates via API...
+2026-02-25 16:50:33,300 - root - INFO - Syncing with DQL: TABLE file.mtime WHERE file.mtime > date("2026-02-18T18:11:14")
+2026-02-25 16:50:33,535 - httpx - INFO - HTTP Request: POST http://host.docker.internal:27123/search/ "HTTP/1.1 200 OK"
+2026-02-25 16:50:33,536 - root - INFO - No new or modified notes found since last sync.
+2026-02-25 16:51:35,092 - root - INFO - Logging initialized. File: /app/workspace/logs/elo-server.log
+2026-02-25 16:51:35,143 - src.main - INFO - Initializing Obsidian Semantic Search for /data/vault...
+2026-02-25 16:51:35,215 - root - INFO - Checking for Obsidian notes updates via API...
+2026-02-25 16:51:35,216 - root - INFO - Syncing with DQL: TABLE file.mtime WHERE file.mtime > date("2026-02-18T18:11:14")
+2026-02-25 16:51:35,420 - httpx - INFO - HTTP Request: POST http://host.docker.internal:27123/search/ "HTTP/1.1 200 OK"
+2026-02-25 16:51:35,422 - root - INFO - No new or modified notes found since last sync.
+2026-02-25 16:51:35,589 - src.main - INFO - Starting MCP Manager...
+2026-02-25 16:51:35,589 - src.infrastructure.mcp.manager - INFO - Skipping deactivated MCP server: mcp-obsidian
+2026-02-25 16:51:35,589 - src.infrastructure.mcp.manager - INFO - Connecting to elo-obsidian-api-mcp MCP server at /app/workspace/mcps/elo-obsidian-api-mcp/dist/index.js...
+2026-02-25 16:51:35,603 - src.infrastructure.mcp.manager - INFO - Initializing elo-obsidian-api-mcp session...
+2026-02-25 16:51:36,115 - src.infrastructure.mcp.manager - INFO - Connected and initialized elo-obsidian-api-mcp MCP server.
+2026-02-25 16:51:36,116 - src.application.services.task_watcher_service - INFO - TaskWatcherService started. Monitoring /app/workspace/task/todo
+2026-02-25 16:51:36,116 - src.application.services.task_watcher_service - INFO - Found 1 tasks to process.
+2026-02-25 16:51:36,116 - src.application.services.task_watcher_service - INFO - Processing task: pp.md
+2026-02-25 16:51:36,124 - google_genai.models - INFO - AFC is enabled with max remote calls: 10.
+2026-02-25 16:51:36,129 - src.infrastructure.mcp.manager - INFO -   Registering MCP tool: elo_obsidian_api_mcp_search_obsidian
+2026-02-25 16:51:36,130 - src.infrastructure.mcp.manager - INFO -   Registering MCP tool: elo_obsidian_api_mcp_get_active_file
+2026-02-25 16:51:36,130 - src.infrastructure.mcp.manager - INFO -   Registering MCP tool: elo_obsidian_api_mcp_execute_command
+2026-02-25 16:51:36,131 - src.infrastructure.mcp.manager - INFO -   Registering MCP tool: elo_obsidian_api_mcp_list_commands
+2026-02-25 16:51:36,131 - src.infrastructure.tools.local_tool_manager - INFO - Scanning for tools in /app/assets/langchain/tools...
+2026-02-25 16:51:36,131 - src.infrastructure.tools.local_tool_manager - INFO - Skipping deactivated local tool module: asset_tool
+2026-02-25 16:51:36,131 - src.infrastructure.tools.local_tool_manager - INFO - Scanning for tools in /app/workspace/langchain/tools...
+2026-02-25 16:51:36,131 - src.infrastructure.tools.local_tool_manager - INFO - Skipping deactivated local tool module: n8n_workflows
+2026-02-25 16:51:36,131 - src.infrastructure.tools.local_tool_manager - INFO - Skipping deactivated local tool module: test_hello
+2026-02-25 16:51:36,131 - src.infrastructure.tools.local_tool_manager - INFO - Skipping deactivated local tool module: echo
+2026-02-25 16:51:36,131 - src.infrastructure.tools.local_tool_manager - INFO - Skipping deactivated local tool module: test_math
+2026-02-25 16:51:36,137 - src.main - INFO - Binding 8 tools (4 MCP, 0 local, 1 semantic) to AI adapter.
+2026-02-25 16:51:37,211 - src.application.services.task_watcher_service - INFO - Task pp.md completed successfully.
+2026-02-25 16:51:39,000 - src.main - INFO - Stopping MCP Manager...
+2026-02-25 16:51:39,020 - src.application.services.task_watcher_service - INFO - TaskWatcherService stopped.
+2026-02-25 16:51:41,429 - root - INFO - Logging initialized. File: /app/workspace/logs/elo-server.log
+2026-02-25 16:51:41,455 - src.main - INFO - Initializing Obsidian Semantic Search for /data/vault...
+2026-02-25 16:51:41,523 - root - INFO - Checking for Obsidian notes updates via API...
+2026-02-25 16:51:41,524 - root - INFO - Syncing with DQL: TABLE file.mtime WHERE file.mtime > date("2026-02-18T18:11:14")
+2026-02-25 16:51:41,650 - httpx - INFO - HTTP Request: POST http://host.docker.internal:27123/search/ "HTTP/1.1 200 OK"
+2026-02-25 16:51:41,651 - root - INFO - No new or modified notes found since last sync.
+2026-02-25 16:51:41,803 - src.main - INFO - Starting MCP Manager...
+2026-02-25 16:51:41,803 - src.infrastructure.mcp.manager - INFO - Skipping deactivated MCP server: mcp-obsidian
+2026-02-25 16:51:41,803 - src.infrastructure.mcp.manager - INFO - Connecting to elo-obsidian-api-mcp MCP server at /app/workspace/mcps/elo-obsidian-api-mcp/dist/index.js...
+2026-02-25 16:51:41,814 - src.infrastructure.mcp.manager - INFO - Initializing elo-obsidian-api-mcp session...
+2026-02-25 16:51:42,112 - src.infrastructure.mcp.manager - INFO - Connected and initialized elo-obsidian-api-mcp MCP server.
+2026-02-25 16:51:42,112 - src.application.services.task_watcher_service - INFO - TaskWatcherService started. Monitoring /app/workspace/task/todo
+2026-02-25 16:51:42,114 - src.infrastructure.mcp.manager - INFO -   Registering MCP tool: elo_obsidian_api_mcp_search_obsidian
+2026-02-25 16:51:42,115 - src.infrastructure.mcp.manager - INFO -   Registering MCP tool: elo_obsidian_api_mcp_get_active_file
+2026-02-25 16:51:42,115 - src.infrastructure.mcp.manager - INFO -   Registering MCP tool: elo_obsidian_api_mcp_execute_command
+2026-02-25 16:51:42,116 - src.infrastructure.mcp.manager - INFO -   Registering MCP tool: elo_obsidian_api_mcp_list_commands
+2026-02-25 16:51:42,116 - src.infrastructure.tools.local_tool_manager - INFO - Scanning for tools in /app/assets/langchain/tools...
+2026-02-25 16:51:42,116 - src.infrastructure.tools.local_tool_manager - INFO - Skipping deactivated local tool module: asset_tool
+2026-02-25 16:51:42,116 - src.infrastructure.tools.local_tool_manager - INFO - Scanning for tools in /app/workspace/langchain/tools...
+2026-02-25 16:51:42,116 - src.infrastructure.tools.local_tool_manager - INFO - Skipping deactivated local tool module: n8n_workflows
+2026-02-25 16:51:42,116 - src.infrastructure.tools.local_tool_manager - INFO - Skipping deactivated local tool module: test_hello
+2026-02-25 16:51:42,116 - src.infrastructure.tools.local_tool_manager - INFO - Skipping deactivated local tool module: echo
+2026-02-25 16:51:42,116 - src.infrastructure.tools.local_tool_manager - INFO - Skipping deactivated local tool module: test_math
+2026-02-25 16:51:42,120 - src.main - INFO - Binding 8 tools (4 MCP, 0 local, 1 semantic) to AI adapter.
+2026-02-25 17:01:17,338 - src.main - INFO - Stopping MCP Manager...
+2026-02-25 17:01:17,377 - src.application.services.task_watcher_service - INFO - TaskWatcherService stopped.
+2026-02-25 17:01:18,934 - root - INFO - Logging initialized. File: /app/workspace/logs/elo-server.log
+2026-02-25 17:01:19,033 - src.main - INFO - Initializing Obsidian Semantic Search for /data/vault...
+2026-02-25 17:01:19,117 - root - INFO - Checking for Obsidian notes updates via API...
+2026-02-25 17:01:19,117 - root - INFO - Syncing with DQL: TABLE file.mtime WHERE file.mtime > date("2026-02-18T18:11:14")
+2026-02-25 17:01:19,283 - httpx - INFO - HTTP Request: POST http://host.docker.internal:27123/search/ "HTTP/1.1 200 OK"
+2026-02-25 17:01:19,284 - root - INFO - No new or modified notes found since last sync.
+2026-02-25 17:01:19,487 - src.main - INFO - Starting MCP Manager...
+2026-02-25 17:01:19,488 - src.infrastructure.mcp.manager - INFO - Skipping deactivated MCP server: mcp-obsidian
+2026-02-25 17:01:19,488 - src.infrastructure.mcp.manager - INFO - Connecting to elo-obsidian-api-mcp MCP server at /app/workspace/mcps/elo-obsidian-api-mcp/dist/index.js...
+2026-02-25 17:01:19,504 - src.infrastructure.mcp.manager - INFO - Initializing elo-obsidian-api-mcp session...
+2026-02-25 17:01:19,906 - src.infrastructure.mcp.manager - INFO - Connected and initialized elo-obsidian-api-mcp MCP server.
+2026-02-25 17:01:19,906 - src.application.services.task_watcher_service - INFO - TaskWatcherService started. Monitoring /app/workspace/task/todo
+2026-02-25 17:01:19,908 - src.infrastructure.mcp.manager - INFO -   Registering MCP tool: elo_obsidian_api_mcp_search_obsidian
+2026-02-25 17:01:19,909 - src.infrastructure.mcp.manager - INFO -   Registering MCP tool: elo_obsidian_api_mcp_get_active_file
+2026-02-25 17:01:19,910 - src.infrastructure.mcp.manager - INFO -   Registering MCP tool: elo_obsidian_api_mcp_execute_command
+2026-02-25 17:01:19,910 - src.infrastructure.mcp.manager - INFO -   Registering MCP tool: elo_obsidian_api_mcp_list_commands
+2026-02-25 17:01:19,910 - src.infrastructure.tools.local_tool_manager - INFO - Scanning for tools in /app/assets/langchain/tools...
+2026-02-25 17:01:19,910 - src.infrastructure.tools.local_tool_manager - INFO - Skipping deactivated local tool module: asset_tool
+2026-02-25 17:01:19,910 - src.infrastructure.tools.local_tool_manager - INFO - Scanning for tools in /app/workspace/langchain/tools...
+2026-02-25 17:01:19,910 - src.infrastructure.tools.local_tool_manager - INFO - Skipping deactivated local tool module: n8n_workflows
+2026-02-25 17:01:19,910 - src.infrastructure.tools.local_tool_manager - INFO - Skipping deactivated local tool module: test_hello
+2026-02-25 17:01:19,910 - src.infrastructure.tools.local_tool_manager - INFO - Skipping deactivated local tool module: echo
+2026-02-25 17:01:19,910 - src.infrastructure.tools.local_tool_manager - INFO - Skipping deactivated local tool module: test_math
+2026-02-25 17:01:19,914 - src.main - INFO - Binding 8 tools (4 MCP, 0 local, 1 semantic) to AI adapter.
+2026-02-25 17:01:24,204 - src.main - INFO - Stopping MCP Manager...
+2026-02-25 17:01:24,231 - src.application.services.task_watcher_service - INFO - TaskWatcherService stopped.
+2026-02-25 17:01:25,732 - root - INFO - Logging initialized. File: /app/workspace/logs/elo-server.log
+2026-02-25 17:01:25,759 - src.main - INFO - Initializing Obsidian Semantic Search for /data/vault...
+2026-02-25 17:01:25,823 - root - INFO - Checking for Obsidian notes updates via API...
+2026-02-25 17:01:25,823 - root - INFO - Syncing with DQL: TABLE file.mtime WHERE file.mtime > date("2026-02-18T18:11:14")
+2026-02-25 17:01:25,920 - httpx - INFO - HTTP Request: POST http://host.docker.internal:27123/search/ "HTTP/1.1 200 OK"
+2026-02-25 17:01:25,921 - root - INFO - No new or modified notes found since last sync.
+2026-02-25 17:01:26,110 - src.main - INFO - Starting MCP Manager...
+2026-02-25 17:01:26,111 - src.infrastructure.mcp.manager - INFO - Skipping deactivated MCP server: mcp-obsidian
+2026-02-25 17:01:26,111 - src.infrastructure.mcp.manager - INFO - Connecting to elo-obsidian-api-mcp MCP server at /app/workspace/mcps/elo-obsidian-api-mcp/dist/index.js...
+2026-02-25 17:01:26,121 - src.infrastructure.mcp.manager - INFO - Initializing elo-obsidian-api-mcp session...
+2026-02-25 17:01:26,409 - src.infrastructure.mcp.manager - INFO - Connected and initialized elo-obsidian-api-mcp MCP server.
+2026-02-25 17:01:26,409 - src.application.services.task_watcher_service - INFO - TaskWatcherService started. Monitoring /app/workspace/task/todo
+2026-02-25 17:01:26,411 - src.infrastructure.mcp.manager - INFO -   Registering MCP tool: elo_obsidian_api_mcp_search_obsidian
+2026-02-25 17:01:26,412 - src.infrastructure.mcp.manager - INFO -   Registering MCP tool: elo_obsidian_api_mcp_get_active_file
+2026-02-25 17:01:26,412 - src.infrastructure.mcp.manager - INFO -   Registering MCP tool: elo_obsidian_api_mcp_execute_command
+2026-02-25 17:01:26,412 - src.infrastructure.mcp.manager - INFO -   Registering MCP tool: elo_obsidian_api_mcp_list_commands
+2026-02-25 17:01:26,412 - src.infrastructure.tools.local_tool_manager - INFO - Scanning for tools in /app/assets/langchain/tools...
+2026-02-25 17:01:26,412 - src.infrastructure.tools.local_tool_manager - INFO - Skipping deactivated local tool module: asset_tool
+2026-02-25 17:01:26,412 - src.infrastructure.tools.local_tool_manager - INFO - Scanning for tools in /app/workspace/langchain/tools...
+2026-02-25 17:01:26,412 - src.infrastructure.tools.local_tool_manager - INFO - Skipping deactivated local tool module: n8n_workflows
+2026-02-25 17:01:26,412 - src.infrastructure.tools.local_tool_manager - INFO - Skipping deactivated local tool module: test_hello
+2026-02-25 17:01:26,413 - src.infrastructure.tools.local_tool_manager - INFO - Skipping deactivated local tool module: echo
+2026-02-25 17:01:26,413 - src.infrastructure.tools.local_tool_manager - INFO - Skipping deactivated local tool module: test_math
+2026-02-25 17:01:26,416 - src.main - INFO - Binding 8 tools (4 MCP, 0 local, 1 semantic) to AI adapter.
+2026-02-25 17:01:52,758 - src.main - INFO - Stopping MCP Manager...
+2026-02-25 17:01:52,785 - src.application.services.task_watcher_service - INFO - TaskWatcherService stopped.
+2026-02-25 17:01:55,145 - root - INFO - Logging initialized. File: /app/workspace/logs/elo-server.log
+2026-02-25 17:01:55,172 - src.main - INFO - Initializing Obsidian Semantic Search for /data/vault...
+2026-02-25 17:01:55,242 - root - INFO - Checking for Obsidian notes updates via API...
+2026-02-25 17:01:55,242 - root - INFO - Syncing with DQL: TABLE file.mtime WHERE file.mtime > date("2026-02-18T18:11:14")
+2026-02-25 17:01:55,394 - httpx - INFO - HTTP Request: POST http://host.docker.internal:27123/search/ "HTTP/1.1 200 OK"
+2026-02-25 17:01:55,395 - root - INFO - No new or modified notes found since last sync.
+2026-02-25 17:01:55,554 - src.main - INFO - Starting MCP Manager...
+2026-02-25 17:01:55,554 - src.infrastructure.mcp.manager - INFO - Skipping deactivated MCP server: mcp-obsidian
+2026-02-25 17:01:55,555 - src.infrastructure.mcp.manager - INFO - Connecting to elo-obsidian-api-mcp MCP server at /app/workspace/mcps/elo-obsidian-api-mcp/dist/index.js...
+2026-02-25 17:01:55,564 - src.infrastructure.mcp.manager - INFO - Initializing elo-obsidian-api-mcp session...
+2026-02-25 17:01:55,895 - src.infrastructure.mcp.manager - INFO - Connected and initialized elo-obsidian-api-mcp MCP server.
+2026-02-25 17:01:55,895 - src.application.services.task_watcher_service - INFO - TaskWatcherService started. Monitoring /app/workspace/task/todo
+2026-02-25 17:01:55,897 - src.infrastructure.mcp.manager - INFO -   Registering MCP tool: elo_obsidian_api_mcp_search_obsidian
+2026-02-25 17:01:55,898 - src.infrastructure.mcp.manager - INFO -   Registering MCP tool: elo_obsidian_api_mcp_get_active_file
+2026-02-25 17:01:55,898 - src.infrastructure.mcp.manager - INFO -   Registering MCP tool: elo_obsidian_api_mcp_execute_command
+2026-02-25 17:01:55,898 - src.infrastructure.mcp.manager - INFO -   Registering MCP tool: elo_obsidian_api_mcp_list_commands
+2026-02-25 17:01:55,898 - src.infrastructure.tools.local_tool_manager - INFO - Scanning for tools in /app/assets/langchain/tools...
+2026-02-25 17:01:55,898 - src.infrastructure.tools.local_tool_manager - INFO - Skipping deactivated local tool module: asset_tool
+2026-02-25 17:01:55,899 - src.infrastructure.tools.local_tool_manager - INFO - Scanning for tools in /app/workspace/langchain/tools...
+2026-02-25 17:01:55,899 - src.infrastructure.tools.local_tool_manager - INFO - Skipping deactivated local tool module: n8n_workflows
+2026-02-25 17:01:55,899 - src.infrastructure.tools.local_tool_manager - INFO - Skipping deactivated local tool module: test_hello
+2026-02-25 17:01:55,899 - src.infrastructure.tools.local_tool_manager - INFO - Skipping deactivated local tool module: echo
+2026-02-25 17:01:55,899 - src.infrastructure.tools.local_tool_manager - INFO - Skipping deactivated local tool module: test_math
+2026-02-25 17:01:55,902 - src.main - INFO - Binding 8 tools (4 MCP, 0 local, 1 semantic) to AI adapter.
+2026-02-25 17:02:25,903 - src.application.services.task_watcher_service - INFO - Found 1 tasks to process.
+2026-02-25 17:02:25,905 - src.application.services.task_watcher_service - INFO - Processing task: chiste.md
+2026-02-25 17:02:27,239 - src.application.services.task_watcher_service - INFO - Task chiste.md completed successfully.
+2026-02-25 17:04:57,275 - src.application.services.task_watcher_service - INFO - Found 1 tasks to process.
+2026-02-25 17:04:57,277 - src.application.services.task_watcher_service - INFO - Processing task: pp.md
+2026-02-25 17:04:58,743 - src.application.services.task_watcher_service - INFO - Task pp.md completed successfully.
+2026-02-25 17:09:39,601 - src.main - INFO - Stopping MCP Manager...
+2026-02-25 17:09:39,634 - src.application.services.task_watcher_service - INFO - TaskWatcherService stopped.
+2026-02-25 17:09:41,458 - root - INFO - Logging initialized. File: /app/workspace/logs/elo-server.log
+2026-02-25 17:09:41,557 - src.main - INFO - Initializing Obsidian Semantic Search for /data/vault...
+2026-02-25 17:09:41,679 - root - INFO - Checking for Obsidian notes updates via API...
+2026-02-25 17:09:41,679 - root - INFO - Syncing with DQL: TABLE file.mtime WHERE file.mtime > date("2026-02-18T18:11:14")
+2026-02-25 17:09:41,857 - httpx - INFO - HTTP Request: POST http://host.docker.internal:27123/search/ "HTTP/1.1 200 OK"
+2026-02-25 17:09:41,893 - root - INFO - No new or modified notes found since last sync.
+2026-02-25 17:09:42,136 - src.main - INFO - Starting MCP Manager...
+2026-02-25 17:09:42,137 - src.infrastructure.mcp.manager - INFO - Skipping deactivated MCP server: mcp-obsidian
+2026-02-25 17:09:42,138 - src.infrastructure.mcp.manager - INFO - Connecting to elo-obsidian-api-mcp MCP server at /app/workspace/mcps/elo-obsidian-api-mcp/dist/index.js...
+2026-02-25 17:09:42,160 - src.infrastructure.mcp.manager - INFO - Initializing elo-obsidian-api-mcp session...
+2026-02-25 17:09:42,550 - src.infrastructure.mcp.manager - INFO - Connected and initialized elo-obsidian-api-mcp MCP server.
+2026-02-25 17:09:42,550 - src.application.services.task_watcher_service - INFO - TaskWatcherService started. Monitoring /app/workspace/task/todo
+2026-02-25 17:09:42,551 - src.infrastructure.mcp.manager - INFO -   Registering MCP tool: elo_obsidian_api_mcp_search_obsidian
+2026-02-25 17:09:42,552 - src.infrastructure.mcp.manager - INFO -   Registering MCP tool: elo_obsidian_api_mcp_get_active_file
+2026-02-25 17:09:42,552 - src.infrastructure.mcp.manager - INFO -   Registering MCP tool: elo_obsidian_api_mcp_execute_command
+2026-02-25 17:09:42,553 - src.infrastructure.mcp.manager - INFO -   Registering MCP tool: elo_obsidian_api_mcp_list_commands
+2026-02-25 17:09:42,553 - src.infrastructure.tools.local_tool_manager - INFO - Scanning for tools in /app/assets/langchain/tools...
+2026-02-25 17:09:42,553 - src.infrastructure.tools.local_tool_manager - INFO - Skipping deactivated local tool module: asset_tool
+2026-02-25 17:09:42,553 - src.infrastructure.tools.local_tool_manager - INFO - Scanning for tools in /app/workspace/langchain/tools...
+2026-02-25 17:09:42,553 - src.infrastructure.tools.local_tool_manager - INFO - Skipping deactivated local tool module: n8n_workflows
+2026-02-25 17:09:42,553 - src.infrastructure.tools.local_tool_manager - INFO - Skipping deactivated local tool module: test_hello
+2026-02-25 17:09:42,553 - src.infrastructure.tools.local_tool_manager - INFO - Skipping deactivated local tool module: echo
+2026-02-25 17:09:42,553 - src.infrastructure.tools.local_tool_manager - INFO - Skipping deactivated local tool module: test_math
+2026-02-25 17:09:42,559 - src.main - INFO - Binding 9 tools (4 MCP, 0 local, 1 semantic) to AI adapter.
+2026-02-25 17:09:46,036 - src.main - INFO - Stopping MCP Manager...
+2026-02-25 17:09:46,078 - src.application.services.task_watcher_service - INFO - TaskWatcherService stopped.
+2026-02-25 17:09:48,007 - root - INFO - Logging initialized. File: /app/workspace/logs/elo-server.log
+2026-02-25 17:09:48,037 - src.main - INFO - Initializing Obsidian Semantic Search for /data/vault...
+2026-02-25 17:09:48,111 - root - INFO - Checking for Obsidian notes updates via API...
+2026-02-25 17:09:48,111 - root - INFO - Syncing with DQL: TABLE file.mtime WHERE file.mtime > date("2026-02-18T18:11:14")
+2026-02-25 17:09:48,217 - httpx - INFO - HTTP Request: POST http://host.docker.internal:27123/search/ "HTTP/1.1 200 OK"
+2026-02-25 17:09:48,218 - root - INFO - No new or modified notes found since last sync.
+2026-02-25 17:09:48,381 - src.main - INFO - Starting MCP Manager...
+2026-02-25 17:09:48,381 - src.infrastructure.mcp.manager - INFO - Skipping deactivated MCP server: mcp-obsidian
+2026-02-25 17:09:48,381 - src.infrastructure.mcp.manager - INFO - Connecting to elo-obsidian-api-mcp MCP server at /app/workspace/mcps/elo-obsidian-api-mcp/dist/index.js...
+2026-02-25 17:09:48,390 - src.infrastructure.mcp.manager - INFO - Initializing elo-obsidian-api-mcp session...
+2026-02-25 17:09:48,683 - src.infrastructure.mcp.manager - INFO - Connected and initialized elo-obsidian-api-mcp MCP server.
+2026-02-25 17:09:48,684 - src.application.services.task_watcher_service - INFO - TaskWatcherService started. Monitoring /app/workspace/task/todo
+2026-02-25 17:09:48,685 - src.infrastructure.mcp.manager - INFO -   Registering MCP tool: elo_obsidian_api_mcp_search_obsidian
+2026-02-25 17:09:48,686 - src.infrastructure.mcp.manager - INFO -   Registering MCP tool: elo_obsidian_api_mcp_get_active_file
+2026-02-25 17:09:48,686 - src.infrastructure.mcp.manager - INFO -   Registering MCP tool: elo_obsidian_api_mcp_execute_command
+2026-02-25 17:09:48,687 - src.infrastructure.mcp.manager - INFO -   Registering MCP tool: elo_obsidian_api_mcp_list_commands
+2026-02-25 17:09:48,687 - src.infrastructure.tools.local_tool_manager - INFO - Scanning for tools in /app/assets/langchain/tools...
+2026-02-25 17:09:48,687 - src.infrastructure.tools.local_tool_manager - INFO - Skipping deactivated local tool module: asset_tool
+2026-02-25 17:09:48,687 - src.infrastructure.tools.local_tool_manager - INFO - Scanning for tools in /app/workspace/langchain/tools...
+2026-02-25 17:09:48,687 - src.infrastructure.tools.local_tool_manager - INFO - Skipping deactivated local tool module: n8n_workflows
+2026-02-25 17:09:48,687 - src.infrastructure.tools.local_tool_manager - INFO - Skipping deactivated local tool module: test_hello
+2026-02-25 17:09:48,687 - src.infrastructure.tools.local_tool_manager - INFO - Skipping deactivated local tool module: echo
+2026-02-25 17:09:48,687 - src.infrastructure.tools.local_tool_manager - INFO - Skipping deactivated local tool module: test_math
+2026-02-25 17:09:48,691 - src.main - INFO - Binding 9 tools (4 MCP, 0 local, 1 semantic) to AI adapter.
+2026-02-25 17:10:01,099 - src.main - INFO - Stopping MCP Manager...
+2026-02-25 17:10:01,131 - src.application.services.task_watcher_service - INFO - TaskWatcherService stopped.
+2026-02-25 17:10:02,887 - root - INFO - Logging initialized. File: /app/workspace/logs/elo-server.log
+2026-02-25 17:10:02,920 - src.main - INFO - Initializing Obsidian Semantic Search for /data/vault...
+2026-02-25 17:10:03,001 - root - INFO - Checking for Obsidian notes updates via API...
+2026-02-25 17:10:03,001 - root - INFO - Syncing with DQL: TABLE file.mtime WHERE file.mtime > date("2026-02-18T18:11:14")
+2026-02-25 17:10:03,113 - httpx - INFO - HTTP Request: POST http://host.docker.internal:27123/search/ "HTTP/1.1 200 OK"
+2026-02-25 17:10:03,114 - root - INFO - No new or modified notes found since last sync.
+2026-02-25 17:10:03,285 - src.main - INFO - Starting MCP Manager...
+2026-02-25 17:10:03,286 - src.infrastructure.mcp.manager - INFO - Skipping deactivated MCP server: mcp-obsidian
+2026-02-25 17:10:03,286 - src.infrastructure.mcp.manager - INFO - Connecting to elo-obsidian-api-mcp MCP server at /app/workspace/mcps/elo-obsidian-api-mcp/dist/index.js...
+2026-02-25 17:10:03,298 - src.infrastructure.mcp.manager - INFO - Initializing elo-obsidian-api-mcp session...
+2026-02-25 17:10:03,609 - src.infrastructure.mcp.manager - INFO - Connected and initialized elo-obsidian-api-mcp MCP server.
+2026-02-25 17:10:03,610 - src.application.services.task_watcher_service - INFO - TaskWatcherService started. Monitoring /app/workspace/task/todo
+2026-02-25 17:10:03,611 - src.infrastructure.mcp.manager - INFO -   Registering MCP tool: elo_obsidian_api_mcp_search_obsidian
+2026-02-25 17:10:03,612 - src.infrastructure.mcp.manager - INFO -   Registering MCP tool: elo_obsidian_api_mcp_get_active_file
+2026-02-25 17:10:03,612 - src.infrastructure.mcp.manager - INFO -   Registering MCP tool: elo_obsidian_api_mcp_execute_command
+2026-02-25 17:10:03,612 - src.infrastructure.mcp.manager - INFO -   Registering MCP tool: elo_obsidian_api_mcp_list_commands
+2026-02-25 17:10:03,612 - src.infrastructure.tools.local_tool_manager - INFO - Scanning for tools in /app/assets/langchain/tools...
+2026-02-25 17:10:03,613 - src.infrastructure.tools.local_tool_manager - INFO - Skipping deactivated local tool module: asset_tool
+2026-02-25 17:10:03,613 - src.infrastructure.tools.local_tool_manager - INFO - Scanning for tools in /app/workspace/langchain/tools...
+2026-02-25 17:10:03,613 - src.infrastructure.tools.local_tool_manager - INFO - Skipping deactivated local tool module: n8n_workflows
+2026-02-25 17:10:03,613 - src.infrastructure.tools.local_tool_manager - INFO - Skipping deactivated local tool module: test_hello
+2026-02-25 17:10:03,613 - src.infrastructure.tools.local_tool_manager - INFO - Skipping deactivated local tool module: echo
+2026-02-25 17:10:03,613 - src.infrastructure.tools.local_tool_manager - INFO - Skipping deactivated local tool module: test_math
+2026-02-25 17:10:03,617 - src.main - INFO - Binding 9 tools (4 MCP, 0 local, 1 semantic) to AI adapter.
+2026-02-25 17:10:08,016 - src.main - INFO - Stopping MCP Manager...
+2026-02-25 17:10:08,054 - src.application.services.task_watcher_service - INFO - TaskWatcherService stopped.
+2026-02-25 17:10:09,857 - root - INFO - Logging initialized. File: /app/workspace/logs/elo-server.log
+2026-02-25 17:10:09,887 - src.main - INFO - Initializing Obsidian Semantic Search for /data/vault...
+2026-02-25 17:10:09,954 - root - INFO - Checking for Obsidian notes updates via API...
+2026-02-25 17:10:09,954 - root - INFO - Syncing with DQL: TABLE file.mtime WHERE file.mtime > date("2026-02-18T18:11:14")
+2026-02-25 17:10:10,067 - httpx - INFO - HTTP Request: POST http://host.docker.internal:27123/search/ "HTTP/1.1 200 OK"
+2026-02-25 17:10:10,067 - root - INFO - No new or modified notes found since last sync.
+2026-02-25 17:10:10,232 - src.main - INFO - Starting MCP Manager...
+2026-02-25 17:10:10,232 - src.infrastructure.mcp.manager - INFO - Skipping deactivated MCP server: mcp-obsidian
+2026-02-25 17:10:10,232 - src.infrastructure.mcp.manager - INFO - Connecting to elo-obsidian-api-mcp MCP server at /app/workspace/mcps/elo-obsidian-api-mcp/dist/index.js...
+2026-02-25 17:10:10,244 - src.infrastructure.mcp.manager - INFO - Initializing elo-obsidian-api-mcp session...
+2026-02-25 17:10:10,533 - src.infrastructure.mcp.manager - INFO - Connected and initialized elo-obsidian-api-mcp MCP server.
+2026-02-25 17:10:10,533 - src.application.services.task_watcher_service - INFO - TaskWatcherService started. Monitoring /app/workspace/task/todo
+2026-02-25 17:10:10,535 - src.infrastructure.mcp.manager - INFO -   Registering MCP tool: elo_obsidian_api_mcp_search_obsidian
+2026-02-25 17:10:10,536 - src.infrastructure.mcp.manager - INFO -   Registering MCP tool: elo_obsidian_api_mcp_get_active_file
+2026-02-25 17:10:10,536 - src.infrastructure.mcp.manager - INFO -   Registering MCP tool: elo_obsidian_api_mcp_execute_command
+2026-02-25 17:10:10,537 - src.infrastructure.mcp.manager - INFO -   Registering MCP tool: elo_obsidian_api_mcp_list_commands
+2026-02-25 17:10:10,537 - src.infrastructure.tools.local_tool_manager - INFO - Scanning for tools in /app/assets/langchain/tools...
+2026-02-25 17:10:10,537 - src.infrastructure.tools.local_tool_manager - INFO - Skipping deactivated local tool module: asset_tool
+2026-02-25 17:10:10,537 - src.infrastructure.tools.local_tool_manager - INFO - Scanning for tools in /app/workspace/langchain/tools...
+2026-02-25 17:10:10,537 - src.infrastructure.tools.local_tool_manager - INFO - Skipping deactivated local tool module: n8n_workflows
+2026-02-25 17:10:10,537 - src.infrastructure.tools.local_tool_manager - INFO - Skipping deactivated local tool module: test_hello
+2026-02-25 17:10:10,537 - src.infrastructure.tools.local_tool_manager - INFO - Skipping deactivated local tool module: echo
+2026-02-25 17:10:10,537 - src.infrastructure.tools.local_tool_manager - INFO - Skipping deactivated local tool module: test_math
+2026-02-25 17:10:10,542 - src.main - INFO - Binding 9 tools (4 MCP, 0 local, 1 semantic) to AI adapter.
+2026-02-25 17:10:15,340 - src.main - INFO - Stopping MCP Manager...
+2026-02-25 17:10:15,378 - src.application.services.task_watcher_service - INFO - TaskWatcherService stopped.
+2026-02-25 17:10:17,796 - root - INFO - Logging initialized. File: /app/workspace/logs/elo-server.log
+2026-02-25 17:10:17,825 - src.main - INFO - Initializing Obsidian Semantic Search for /data/vault...
+2026-02-25 17:10:17,893 - root - INFO - Checking for Obsidian notes updates via API...
+2026-02-25 17:10:17,893 - root - INFO - Syncing with DQL: TABLE file.mtime WHERE file.mtime > date("2026-02-18T18:11:14")
+2026-02-25 17:10:18,027 - httpx - INFO - HTTP Request: POST http://host.docker.internal:27123/search/ "HTTP/1.1 200 OK"
+2026-02-25 17:10:18,028 - root - INFO - No new or modified notes found since last sync.
+2026-02-25 17:10:18,178 - src.main - INFO - Starting MCP Manager...
+2026-02-25 17:10:18,179 - src.infrastructure.mcp.manager - INFO - Skipping deactivated MCP server: mcp-obsidian
+2026-02-25 17:10:18,179 - src.infrastructure.mcp.manager - INFO - Connecting to elo-obsidian-api-mcp MCP server at /app/workspace/mcps/elo-obsidian-api-mcp/dist/index.js...
+2026-02-25 17:10:18,193 - src.infrastructure.mcp.manager - INFO - Initializing elo-obsidian-api-mcp session...
+2026-02-25 17:10:18,522 - src.infrastructure.mcp.manager - INFO - Connected and initialized elo-obsidian-api-mcp MCP server.
+2026-02-25 17:10:18,522 - src.application.services.task_watcher_service - INFO - TaskWatcherService started. Monitoring /app/workspace/task/todo
+2026-02-25 17:10:18,523 - src.infrastructure.mcp.manager - INFO -   Registering MCP tool: elo_obsidian_api_mcp_search_obsidian
+2026-02-25 17:10:18,524 - src.infrastructure.mcp.manager - INFO -   Registering MCP tool: elo_obsidian_api_mcp_get_active_file
+2026-02-25 17:10:18,525 - src.infrastructure.mcp.manager - INFO -   Registering MCP tool: elo_obsidian_api_mcp_execute_command
+2026-02-25 17:10:18,525 - src.infrastructure.mcp.manager - INFO -   Registering MCP tool: elo_obsidian_api_mcp_list_commands
+2026-02-25 17:10:18,525 - src.infrastructure.tools.local_tool_manager - INFO - Scanning for tools in /app/assets/langchain/tools...
+2026-02-25 17:10:18,525 - src.infrastructure.tools.local_tool_manager - INFO - Skipping deactivated local tool module: asset_tool
+2026-02-25 17:10:18,525 - src.infrastructure.tools.local_tool_manager - INFO - Scanning for tools in /app/workspace/langchain/tools...
+2026-02-25 17:10:18,525 - src.infrastructure.tools.local_tool_manager - INFO - Skipping deactivated local tool module: n8n_workflows
+2026-02-25 17:10:18,525 - src.infrastructure.tools.local_tool_manager - INFO - Skipping deactivated local tool module: test_hello
+2026-02-25 17:10:18,525 - src.infrastructure.tools.local_tool_manager - INFO - Skipping deactivated local tool module: echo
+2026-02-25 17:10:18,525 - src.infrastructure.tools.local_tool_manager - INFO - Skipping deactivated local tool module: test_math
+2026-02-25 17:10:18,530 - src.main - INFO - Binding 9 tools (4 MCP, 0 local, 1 semantic) to AI adapter.
+2026-02-25 17:10:48,533 - src.application.services.task_watcher_service - INFO - Found 1 tasks to process.
+2026-02-25 17:10:48,537 - src.application.services.task_watcher_service - INFO - Processing task: delegation_test.md
+2026-02-25 17:10:49,619 - src.application.services.task_watcher_service - INFO - Task delegation_test.md completed successfully.
+2026-02-25 17:11:18,860 - src.main - INFO - Stopping MCP Manager...
+2026-02-25 17:11:18,899 - src.application.services.task_watcher_service - INFO - TaskWatcherService stopped.
+2026-02-25 17:11:20,623 - root - INFO - Logging initialized. File: /app/workspace/logs/elo-server.log
+2026-02-25 17:11:27,915 - root - INFO - Logging initialized. File: /app/workspace/logs/elo-server.log
+2026-02-25 17:11:27,942 - src.main - INFO - Initializing Obsidian Semantic Search for /data/vault...
+2026-02-25 17:11:28,058 - root - INFO - Checking for Obsidian notes updates via API...
+2026-02-25 17:11:28,059 - root - INFO - Syncing with DQL: TABLE file.mtime WHERE file.mtime > date("2026-02-18T18:11:14")
+2026-02-25 17:11:28,268 - httpx - INFO - HTTP Request: POST http://host.docker.internal:27123/search/ "HTTP/1.1 200 OK"
+2026-02-25 17:11:28,269 - root - INFO - No new or modified notes found since last sync.
+2026-02-25 17:11:28,449 - src.main - INFO - Starting MCP Manager...
+2026-02-25 17:11:28,449 - src.infrastructure.mcp.manager - INFO - Skipping deactivated MCP server: mcp-obsidian
+2026-02-25 17:11:28,450 - src.infrastructure.mcp.manager - INFO - Connecting to elo-obsidian-api-mcp MCP server at /app/workspace/mcps/elo-obsidian-api-mcp/dist/index.js...
+2026-02-25 17:11:28,463 - src.infrastructure.mcp.manager - INFO - Initializing elo-obsidian-api-mcp session...
+2026-02-25 17:11:28,764 - src.infrastructure.mcp.manager - INFO - Connected and initialized elo-obsidian-api-mcp MCP server.
+2026-02-25 17:11:28,764 - src.application.services.task_watcher_service - INFO - TaskWatcherService started. Monitoring /app/workspace/task/todo
+2026-02-25 17:11:28,766 - src.infrastructure.mcp.manager - INFO -   Registering MCP tool: elo_obsidian_api_mcp_search_obsidian
+2026-02-25 17:11:28,767 - src.infrastructure.mcp.manager - INFO -   Registering MCP tool: elo_obsidian_api_mcp_get_active_file
+2026-02-25 17:11:28,767 - src.infrastructure.mcp.manager - INFO -   Registering MCP tool: elo_obsidian_api_mcp_execute_command
+2026-02-25 17:11:28,767 - src.infrastructure.mcp.manager - INFO -   Registering MCP tool: elo_obsidian_api_mcp_list_commands
+2026-02-25 17:11:28,767 - src.infrastructure.tools.local_tool_manager - INFO - Scanning for tools in /app/assets/langchain/tools...
+2026-02-25 17:11:28,767 - src.infrastructure.tools.local_tool_manager - INFO - Skipping deactivated local tool module: asset_tool
+2026-02-25 17:11:28,767 - src.infrastructure.tools.local_tool_manager - INFO - Scanning for tools in /app/workspace/langchain/tools...
+2026-02-25 17:11:28,767 - src.infrastructure.tools.local_tool_manager - INFO - Skipping deactivated local tool module: n8n_workflows
+2026-02-25 17:11:28,767 - src.infrastructure.tools.local_tool_manager - INFO - Skipping deactivated local tool module: test_hello
+2026-02-25 17:11:28,767 - src.infrastructure.tools.local_tool_manager - INFO - Skipping deactivated local tool module: echo
+2026-02-25 17:11:28,767 - src.infrastructure.tools.local_tool_manager - INFO - Skipping deactivated local tool module: test_math
+2026-02-25 17:11:28,772 - src.main - INFO - Binding 9 tools (4 MCP, 0 local, 1 semantic) to AI adapter.
+2026-02-25 17:11:37,754 - src.main - INFO - Stopping MCP Manager...
+2026-02-25 17:11:37,775 - src.application.services.task_watcher_service - INFO - TaskWatcherService stopped.
+2026-02-25 17:11:39,379 - root - INFO - Logging initialized. File: /app/workspace/logs/elo-server.log
+2026-02-25 17:11:39,409 - src.main - INFO - Initializing Obsidian Semantic Search for /data/vault...
+2026-02-25 17:11:39,487 - root - INFO - Checking for Obsidian notes updates via API...
+2026-02-25 17:11:39,487 - root - INFO - Syncing with DQL: TABLE file.mtime WHERE file.mtime > date("2026-02-18T18:11:14")
+2026-02-25 17:11:39,668 - httpx - INFO - HTTP Request: POST http://host.docker.internal:27123/search/ "HTTP/1.1 200 OK"
+2026-02-25 17:11:39,677 - root - INFO - No new or modified notes found since last sync.
+2026-02-25 17:11:39,979 - src.main - INFO - Starting MCP Manager...
+2026-02-25 17:11:39,979 - src.infrastructure.mcp.manager - INFO - Skipping deactivated MCP server: mcp-obsidian
+2026-02-25 17:11:39,980 - src.infrastructure.mcp.manager - INFO - Connecting to elo-obsidian-api-mcp MCP server at /app/workspace/mcps/elo-obsidian-api-mcp/dist/index.js...
+2026-02-25 17:11:40,001 - src.infrastructure.mcp.manager - INFO - Initializing elo-obsidian-api-mcp session...
+2026-02-25 17:11:40,313 - src.infrastructure.mcp.manager - INFO - Connected and initialized elo-obsidian-api-mcp MCP server.
+2026-02-25 17:11:40,313 - src.application.services.task_watcher_service - INFO - TaskWatcherService started. Monitoring /app/workspace/task/todo
+2026-02-25 17:11:40,315 - src.infrastructure.mcp.manager - INFO -   Registering MCP tool: elo_obsidian_api_mcp_search_obsidian
+2026-02-25 17:11:40,315 - src.infrastructure.mcp.manager - INFO -   Registering MCP tool: elo_obsidian_api_mcp_get_active_file
+2026-02-25 17:11:40,316 - src.infrastructure.mcp.manager - INFO -   Registering MCP tool: elo_obsidian_api_mcp_execute_command
+2026-02-25 17:11:40,316 - src.infrastructure.mcp.manager - INFO -   Registering MCP tool: elo_obsidian_api_mcp_list_commands
+2026-02-25 17:11:40,316 - src.infrastructure.tools.local_tool_manager - INFO - Scanning for tools in /app/assets/langchain/tools...
+2026-02-25 17:11:40,316 - src.infrastructure.tools.local_tool_manager - INFO - Skipping deactivated local tool module: asset_tool
+2026-02-25 17:11:40,316 - src.infrastructure.tools.local_tool_manager - INFO - Scanning for tools in /app/workspace/langchain/tools...
+2026-02-25 17:11:40,316 - src.infrastructure.tools.local_tool_manager - INFO - Skipping deactivated local tool module: n8n_workflows
+2026-02-25 17:11:40,316 - src.infrastructure.tools.local_tool_manager - INFO - Skipping deactivated local tool module: test_hello
+2026-02-25 17:11:40,316 - src.infrastructure.tools.local_tool_manager - INFO - Skipping deactivated local tool module: echo
+2026-02-25 17:11:40,316 - src.infrastructure.tools.local_tool_manager - INFO - Skipping deactivated local tool module: test_math
+2026-02-25 17:11:40,320 - src.main - INFO - Binding 9 tools (4 MCP, 0 local, 1 semantic) to AI adapter.
+2026-02-25 17:11:45,647 - src.main - INFO - Stopping MCP Manager...
+2026-02-25 17:11:45,686 - src.application.services.task_watcher_service - INFO - TaskWatcherService stopped.
+2026-02-25 17:11:47,832 - root - INFO - Logging initialized. File: /app/workspace/logs/elo-server.log
+2026-02-25 17:11:47,857 - src.main - INFO - Initializing Obsidian Semantic Search for /data/vault...
+2026-02-25 17:11:47,954 - root - INFO - Checking for Obsidian notes updates via API...
+2026-02-25 17:11:47,954 - root - INFO - Syncing with DQL: TABLE file.mtime WHERE file.mtime > date("2026-02-18T18:11:14")
+2026-02-25 17:11:48,073 - httpx - INFO - HTTP Request: POST http://host.docker.internal:27123/search/ "HTTP/1.1 200 OK"
+2026-02-25 17:11:48,073 - root - INFO - No new or modified notes found since last sync.
+2026-02-25 17:11:48,225 - src.main - INFO - Starting MCP Manager...
+2026-02-25 17:11:48,225 - src.infrastructure.mcp.manager - INFO - Skipping deactivated MCP server: mcp-obsidian
+2026-02-25 17:11:48,225 - src.infrastructure.mcp.manager - INFO - Connecting to elo-obsidian-api-mcp MCP server at /app/workspace/mcps/elo-obsidian-api-mcp/dist/index.js...
+2026-02-25 17:11:48,233 - src.infrastructure.mcp.manager - INFO - Initializing elo-obsidian-api-mcp session...
+2026-02-25 17:11:48,549 - src.infrastructure.mcp.manager - INFO - Connected and initialized elo-obsidian-api-mcp MCP server.
+2026-02-25 17:11:48,549 - src.application.services.task_watcher_service - INFO - TaskWatcherService started. Monitoring /app/workspace/task/todo
+2026-02-25 17:11:48,551 - src.infrastructure.mcp.manager - INFO -   Registering MCP tool: elo_obsidian_api_mcp_search_obsidian
+2026-02-25 17:11:48,551 - src.infrastructure.mcp.manager - INFO -   Registering MCP tool: elo_obsidian_api_mcp_get_active_file
+2026-02-25 17:11:48,552 - src.infrastructure.mcp.manager - INFO -   Registering MCP tool: elo_obsidian_api_mcp_execute_command
+2026-02-25 17:11:48,552 - src.infrastructure.mcp.manager - INFO -   Registering MCP tool: elo_obsidian_api_mcp_list_commands
+2026-02-25 17:11:48,552 - src.infrastructure.tools.local_tool_manager - INFO - Scanning for tools in /app/assets/langchain/tools...
+2026-02-25 17:11:48,552 - src.infrastructure.tools.local_tool_manager - INFO - Skipping deactivated local tool module: asset_tool
+2026-02-25 17:11:48,552 - src.infrastructure.tools.local_tool_manager - INFO - Scanning for tools in /app/workspace/langchain/tools...
+2026-02-25 17:11:48,552 - src.infrastructure.tools.local_tool_manager - INFO - Skipping deactivated local tool module: n8n_workflows
+2026-02-25 17:11:48,552 - src.infrastructure.tools.local_tool_manager - INFO - Skipping deactivated local tool module: test_hello
+2026-02-25 17:11:48,552 - src.infrastructure.tools.local_tool_manager - INFO - Skipping deactivated local tool module: echo
+2026-02-25 17:11:48,552 - src.infrastructure.tools.local_tool_manager - INFO - Skipping deactivated local tool module: test_math
+2026-02-25 17:11:48,556 - src.main - INFO - Binding 9 tools (4 MCP, 0 local, 1 semantic) to AI adapter.
+2026-02-25 17:12:18,554 - src.application.services.task_watcher_service - INFO - Found 1 tasks to process.
+2026-02-25 17:12:18,557 - src.application.services.task_watcher_service - INFO - Processing task: delegation_test_v2.md
+2026-02-25 17:12:19,316 - google_genai._api_client - INFO - Retrying google.genai._api_client.BaseApiClient._async_request_once in 1.34 seconds as it raised ClientError: 429 RESOURCE_EXHAUSTED. {'error': {'code': 429, 'message': 'Resource exhausted. Please try again later. Please refer to https://cloud.google.com/vertex-ai/generative-ai/docs/error-code-429 for more details.', 'status': 'RESOURCE_EXHAUSTED'}}.
+2026-02-25 17:12:21,305 - google_genai._api_client - INFO - Retrying google.genai._api_client.BaseApiClient._async_request_once in 2.78 seconds as it raised ClientError: 429 RESOURCE_EXHAUSTED. {'error': {'code': 429, 'message': 'Resource exhausted. Please try again later. Please refer to https://cloud.google.com/vertex-ai/generative-ai/docs/error-code-429 for more details.', 'status': 'RESOURCE_EXHAUSTED'}}.
+2026-02-25 17:12:25,214 - src.infrastructure.tools.local_tool_manager - INFO - Delegating task to human: Necesito que alguien vaya físicamente a mi oficina a comprar pastelitos, lo cual es imposible para una IA.
+2026-02-25 17:12:25,217 - src.application.services.task_watcher_service - ERROR - Failed to process task delegation_test_v2.md: [Errno 30] Read-only file system: '/data/vault/tasks'
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.11/pathlib.py", line 1116, in mkdir
+    os.mkdir(self, mode)
+FileNotFoundError: [Errno 2] No such file or directory: '/data/vault/tasks/todo'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/app/src/application/services/task_watcher_service.py", line 83, in _process_file
+    response = await self.ask_ai_use_case.execute(content, user_id="background_task_worker")
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/app/src/application/use_cases/ask_ai_use_case.py", line 16, in execute
+    response = await self.ai_port.ask(prompt, user_id=user_id)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/app/src/infrastructure/adapters/ai/langgraph_agent_adapter.py", line 233, in ask
+    result = await self.graph.ainvoke(
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/langgraph/pregel/main.py", line 3161, in ainvoke
+    async for chunk in self.astream(
+  File "/usr/local/lib/python3.11/site-packages/langgraph/pregel/main.py", line 2974, in astream
+    async for _ in runner.atick(
+  File "/usr/local/lib/python3.11/site-packages/langgraph/pregel/_runner.py", line 304, in atick
+    await arun_with_retry(
+  File "/usr/local/lib/python3.11/site-packages/langgraph/pregel/_retry.py", line 138, in arun_with_retry
+    return await task.proc.ainvoke(task.input, config)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/langgraph/_internal/_runnable.py", line 705, in ainvoke
+    input = await asyncio.create_task(
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/langgraph/_internal/_runnable.py", line 473, in ainvoke
+    ret = await self.afunc(*args, **kwargs)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/langgraph/prebuilt/tool_node.py", line 846, in _afunc
+    outputs = await asyncio.gather(*coros)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/langgraph/prebuilt/tool_node.py", line 1177, in _arun_one
+    return await self._execute_tool_async(tool_request, input_type, config)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/langgraph/prebuilt/tool_node.py", line 1126, in _execute_tool_async
+    content = _handle_tool_error(e, flag=self._handle_tool_errors)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/langgraph/prebuilt/tool_node.py", line 430, in _handle_tool_error
+    content = flag(e)  # type: ignore [assignment, call-arg]
+              ^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/langgraph/prebuilt/tool_node.py", line 387, in _default_handle_tool_errors
+    raise e
+  File "/usr/local/lib/python3.11/site-packages/langgraph/prebuilt/tool_node.py", line 1083, in _execute_tool_async
+    response = await tool.ainvoke(call_args, config)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/langchain_core/tools/structured.py", line 68, in ainvoke
+    return await run_in_executor(config, self.invoke, input, config, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/langchain_core/runnables/config.py", line 636, in run_in_executor
+    return await asyncio.get_running_loop().run_in_executor(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/concurrent/futures/thread.py", line 58, in run
+    result = self.fn(*self.args, **self.kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/langchain_core/runnables/config.py", line 627, in wrapper
+    return func(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/langchain_core/tools/base.py", line 642, in invoke
+    return self.run(tool_input, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/langchain_core/tools/base.py", line 1001, in run
+    raise error_to_raise
+  File "/usr/local/lib/python3.11/site-packages/langchain_core/tools/base.py", line 967, in run
+    response = context.run(self._run, *tool_args, **tool_kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/langchain_core/tools/structured.py", line 97, in _run
+    return self.func(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/app/src/infrastructure/tools/local_tool_manager.py", line 202, in delegate_to_human
+    tasks_todo_dir.mkdir(parents=True, exist_ok=True)
+  File "/usr/local/lib/python3.11/pathlib.py", line 1120, in mkdir
+    self.parent.mkdir(parents=True, exist_ok=True)
+  File "/usr/local/lib/python3.11/pathlib.py", line 1116, in mkdir
+    os.mkdir(self, mode)
+OSError: [Errno 30] Read-only file system: '/data/vault/tasks'
+During task with name 'tools' and id 'ad0af8ef-cb7e-14ed-f104-eaebca3f722c'
+2026-02-25 17:13:03,557 - src.main - INFO - Stopping MCP Manager...
+2026-02-25 17:13:03,608 - src.application.services.task_watcher_service - INFO - TaskWatcherService stopped.
+2026-02-25 17:13:07,910 - root - INFO - Logging initialized. File: /app/workspace/logs/elo-server.log
+2026-02-25 17:13:07,947 - src.main - INFO - Initializing Obsidian Semantic Search for /data/vault...
+2026-02-25 17:13:08,044 - root - INFO - Checking for Obsidian notes updates via API...
+2026-02-25 17:13:08,044 - root - INFO - Syncing with DQL: TABLE file.mtime WHERE file.mtime > date("2026-02-18T18:11:14")
+2026-02-25 17:13:08,167 - httpx - INFO - HTTP Request: POST http://host.docker.internal:27123/search/ "HTTP/1.1 200 OK"
+2026-02-25 17:13:08,170 - root - INFO - No new or modified notes found since last sync.
+2026-02-25 17:13:08,385 - src.main - INFO - Starting MCP Manager...
+2026-02-25 17:13:08,385 - src.infrastructure.mcp.manager - INFO - Skipping deactivated MCP server: mcp-obsidian
+2026-02-25 17:13:08,385 - src.infrastructure.mcp.manager - INFO - Connecting to elo-obsidian-api-mcp MCP server at /app/workspace/mcps/elo-obsidian-api-mcp/dist/index.js...
+2026-02-25 17:13:08,402 - src.infrastructure.mcp.manager - INFO - Initializing elo-obsidian-api-mcp session...
+2026-02-25 17:13:08,888 - src.infrastructure.mcp.manager - INFO - Connected and initialized elo-obsidian-api-mcp MCP server.
+2026-02-25 17:13:08,889 - src.application.services.task_watcher_service - INFO - TaskWatcherService started. Monitoring /app/workspace/task/todo
+2026-02-25 17:13:08,891 - src.infrastructure.mcp.manager - INFO -   Registering MCP tool: elo_obsidian_api_mcp_search_obsidian
+2026-02-25 17:13:08,893 - src.infrastructure.mcp.manager - INFO -   Registering MCP tool: elo_obsidian_api_mcp_get_active_file
+2026-02-25 17:13:08,893 - src.infrastructure.mcp.manager - INFO -   Registering MCP tool: elo_obsidian_api_mcp_execute_command
+2026-02-25 17:13:08,894 - src.infrastructure.mcp.manager - INFO -   Registering MCP tool: elo_obsidian_api_mcp_list_commands
+2026-02-25 17:13:08,894 - src.infrastructure.tools.local_tool_manager - INFO - Scanning for tools in /app/assets/langchain/tools...
+2026-02-25 17:13:08,894 - src.infrastructure.tools.local_tool_manager - INFO - Skipping deactivated local tool module: asset_tool
+2026-02-25 17:13:08,894 - src.infrastructure.tools.local_tool_manager - INFO - Scanning for tools in /app/workspace/langchain/tools...
+2026-02-25 17:13:08,894 - src.infrastructure.tools.local_tool_manager - INFO - Skipping deactivated local tool module: n8n_workflows
+2026-02-25 17:13:08,894 - src.infrastructure.tools.local_tool_manager - INFO - Skipping deactivated local tool module: test_hello
+2026-02-25 17:13:08,894 - src.infrastructure.tools.local_tool_manager - INFO - Skipping deactivated local tool module: echo
+2026-02-25 17:13:08,894 - src.infrastructure.tools.local_tool_manager - INFO - Skipping deactivated local tool module: test_math
+2026-02-25 17:13:08,904 - src.main - INFO - Binding 9 tools (4 MCP, 0 local, 1 semantic) to AI adapter.
+2026-02-25 17:13:38,895 - src.application.services.task_watcher_service - INFO - Found 1 tasks to process.
+2026-02-25 17:13:38,897 - src.application.services.task_watcher_service - INFO - Processing task: delegation_test_v2.md
+2026-02-25 17:13:40,058 - src.infrastructure.tools.local_tool_manager - INFO - Delegating task to human: No puedo ir físicamente a tu oficina a comprar pastelitos. Soy una IA y no tengo presencia física.
+2026-02-25 17:13:40,060 - src.infrastructure.tools.local_tool_manager - INFO - Delegation note created at /data/vault/tasks/todo/Delegate_2026-02-25_17-13-40.md
+2026-02-25 17:13:40,934 - langchain_google_genai.chat_models - WARNING - Gemini produced an empty response. Continuing with empty message
+Feedback: None
+2026-02-25 17:13:40,939 - src.application.services.task_watcher_service - INFO - Task delegation_test_v2.md completed successfully.
+2026-02-25 17:20:14,425 - src.main - INFO - Stopping MCP Manager...
+2026-02-25 17:20:14,537 - src.application.services.task_watcher_service - INFO - TaskWatcherService stopped.
+2026-02-25 17:20:16,841 - root - INFO - Logging initialized. File: /app/workspace/logs/elo-server.log
+2026-02-25 17:20:16,877 - src.main - INFO - Initializing Obsidian Semantic Search for /data/vault...
+2026-02-25 17:20:17,010 - root - INFO - Checking for Obsidian notes updates via API...
+2026-02-25 17:20:17,010 - root - INFO - Syncing with DQL: TABLE file.mtime WHERE file.mtime > date("2026-02-18T18:11:14")
+2026-02-25 17:20:17,153 - httpx - INFO - HTTP Request: POST http://host.docker.internal:27123/search/ "HTTP/1.1 200 OK"
+2026-02-25 17:20:17,154 - root - INFO - Syncing 1 modified/new files...
+2026-02-25 17:20:17,202 - httpx - INFO - HTTP Request: GET http://host.docker.internal:27123/vault/tasks/todo/Delegate_2026-02-25_17-13-40.md "HTTP/1.1 200 OK"
+2026-02-25 17:20:17,203 - root - INFO -  Prepared 1 chunks for: tasks/todo/Delegate_2026-02-25_17-13-40.md
+2026-02-25 17:20:17,877 - httpx - INFO - HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-embedding-001:batchEmbedContents "HTTP/1.1 200 OK"
+2026-02-25 17:20:18,136 - root - INFO - Successfully synchronized 1 chunks.
+2026-02-25 17:20:18,136 - root - INFO - Updated lastIndexDatetime to 2026-02-25T17:20:18
+2026-02-25 17:20:18,316 - src.main - INFO - Starting MCP Manager...
+2026-02-25 17:20:18,316 - src.infrastructure.mcp.manager - INFO - Skipping deactivated MCP server: mcp-obsidian
+2026-02-25 17:20:18,317 - src.infrastructure.mcp.manager - INFO - Connecting to elo-obsidian-api-mcp MCP server at /app/workspace/mcps/elo-obsidian-api-mcp/dist/index.js...
+2026-02-25 17:20:18,329 - src.infrastructure.mcp.manager - INFO - Initializing elo-obsidian-api-mcp session...
+2026-02-25 17:20:18,746 - src.infrastructure.mcp.manager - INFO - Connected and initialized elo-obsidian-api-mcp MCP server.
+2026-02-25 17:20:18,746 - src.application.services.task_watcher_service - INFO - TaskWatcherService started. Monitoring /app/workspace/task/todo
+2026-02-25 17:20:18,748 - src.infrastructure.mcp.manager - INFO -   Registering MCP tool: elo_obsidian_api_mcp_search_obsidian
+2026-02-25 17:20:18,749 - src.infrastructure.mcp.manager - INFO -   Registering MCP tool: elo_obsidian_api_mcp_get_active_file
+2026-02-25 17:20:18,749 - src.infrastructure.mcp.manager - INFO -   Registering MCP tool: elo_obsidian_api_mcp_execute_command
+2026-02-25 17:20:18,750 - src.infrastructure.mcp.manager - INFO -   Registering MCP tool: elo_obsidian_api_mcp_list_commands
+2026-02-25 17:20:18,750 - src.infrastructure.tools.local_tool_manager - INFO - Scanning for tools in /app/assets/langchain/tools...
+2026-02-25 17:20:18,750 - src.infrastructure.tools.local_tool_manager - INFO - Skipping deactivated local tool module: asset_tool
+2026-02-25 17:20:18,750 - src.infrastructure.tools.local_tool_manager - INFO - Scanning for tools in /app/workspace/langchain/tools...
+2026-02-25 17:20:18,750 - src.infrastructure.tools.local_tool_manager - INFO - Skipping deactivated local tool module: n8n_workflows
+2026-02-25 17:20:18,750 - src.infrastructure.tools.local_tool_manager - INFO - Skipping deactivated local tool module: test_hello
+2026-02-25 17:20:18,750 - src.infrastructure.tools.local_tool_manager - INFO - Skipping deactivated local tool module: echo
+2026-02-25 17:20:18,750 - src.infrastructure.tools.local_tool_manager - INFO - Skipping deactivated local tool module: test_math
+2026-02-25 17:20:18,754 - src.main - INFO - Binding 9 tools (4 MCP, 0 local, 1 semantic) to AI adapter.
+2026-02-25 17:20:30,770 - src.main - INFO - Stopping MCP Manager...
+2026-02-25 17:20:30,805 - src.application.services.task_watcher_service - INFO - TaskWatcherService stopped.
+2026-02-25 17:20:32,432 - root - INFO - Logging initialized. File: /app/workspace/logs/elo-server.log
+2026-02-25 17:20:32,495 - src.main - INFO - Initializing Obsidian Semantic Search for /data/vault...
+2026-02-25 17:20:32,566 - root - INFO - Checking for Obsidian notes updates via API...
+2026-02-25 17:20:32,566 - root - INFO - Syncing with DQL: TABLE file.mtime WHERE file.mtime > date("2026-02-18T18:11:14")
+2026-02-25 17:20:32,676 - httpx - INFO - HTTP Request: POST http://host.docker.internal:27123/search/ "HTTP/1.1 200 OK"
+2026-02-25 17:20:32,677 - root - INFO - Syncing 1 modified/new files...
+2026-02-25 17:20:32,681 - httpx - INFO - HTTP Request: GET http://host.docker.internal:27123/vault/tasks/todo/Delegate_2026-02-25_17-13-40.md "HTTP/1.1 200 OK"
+2026-02-25 17:20:32,682 - root - INFO -  Prepared 1 chunks for: tasks/todo/Delegate_2026-02-25_17-13-40.md
+2026-02-25 17:20:33,204 - httpx - INFO - HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-embedding-001:batchEmbedContents "HTTP/1.1 200 OK"
+2026-02-25 17:20:33,320 - root - INFO - Successfully synchronized 1 chunks.
+2026-02-25 17:20:33,320 - root - INFO - Updated lastIndexDatetime to 2026-02-25T17:20:33
+2026-02-25 17:20:33,484 - src.main - INFO - Starting MCP Manager...
+2026-02-25 17:20:33,485 - src.infrastructure.mcp.manager - INFO - Skipping deactivated MCP server: mcp-obsidian
+2026-02-25 17:20:33,485 - src.infrastructure.mcp.manager - INFO - Connecting to elo-obsidian-api-mcp MCP server at /app/workspace/mcps/elo-obsidian-api-mcp/dist/index.js...
+2026-02-25 17:20:33,497 - src.infrastructure.mcp.manager - INFO - Initializing elo-obsidian-api-mcp session...
+2026-02-25 17:20:33,768 - src.infrastructure.mcp.manager - INFO - Connected and initialized elo-obsidian-api-mcp MCP server.
+2026-02-25 17:20:33,768 - src.application.services.task_watcher_service - INFO - TaskWatcherService started. Monitoring /app/workspace/task/todo
+2026-02-25 17:20:33,769 - src.infrastructure.mcp.manager - INFO -   Registering MCP tool: elo_obsidian_api_mcp_search_obsidian
+2026-02-25 17:20:33,770 - src.infrastructure.mcp.manager - INFO -   Registering MCP tool: elo_obsidian_api_mcp_get_active_file
+2026-02-25 17:20:33,770 - src.infrastructure.mcp.manager - INFO -   Registering MCP tool: elo_obsidian_api_mcp_execute_command
+2026-02-25 17:20:33,770 - src.infrastructure.mcp.manager - INFO -   Registering MCP tool: elo_obsidian_api_mcp_list_commands
+2026-02-25 17:20:33,771 - src.infrastructure.tools.local_tool_manager - INFO - Scanning for tools in /app/assets/langchain/tools...
+2026-02-25 17:20:33,771 - src.infrastructure.tools.local_tool_manager - INFO - Skipping deactivated local tool module: asset_tool
+2026-02-25 17:20:33,771 - src.infrastructure.tools.local_tool_manager - INFO - Scanning for tools in /app/workspace/langchain/tools...
+2026-02-25 17:20:33,771 - src.infrastructure.tools.local_tool_manager - INFO - Skipping deactivated local tool module: n8n_workflows
+2026-02-25 17:20:33,771 - src.infrastructure.tools.local_tool_manager - INFO - Skipping deactivated local tool module: test_hello
+2026-02-25 17:20:33,771 - src.infrastructure.tools.local_tool_manager - INFO - Skipping deactivated local tool module: echo
+2026-02-25 17:20:33,771 - src.infrastructure.tools.local_tool_manager - INFO - Skipping deactivated local tool module: test_math
+2026-02-25 17:20:33,775 - src.main - INFO - Binding 9 tools (4 MCP, 0 local, 1 semantic) to AI adapter.
+2026-02-25 17:20:39,536 - src.main - INFO - Stopping MCP Manager...
+2026-02-25 17:20:39,589 - src.application.services.task_watcher_service - INFO - TaskWatcherService stopped.
+2026-02-25 17:20:44,084 - root - INFO - Logging initialized. File: /app/workspace/logs/elo-server.log
+2026-02-25 17:20:44,182 - src.main - INFO - Initializing Obsidian Semantic Search for /data/vault...
+2026-02-25 17:20:44,346 - root - INFO - Checking for Obsidian notes updates via API...
+2026-02-25 17:20:44,347 - root - INFO - Syncing with DQL: TABLE file.mtime WHERE file.mtime > date("2026-02-18T18:11:14")
+2026-02-25 17:20:44,471 - httpx - INFO - HTTP Request: POST http://host.docker.internal:27123/search/ "HTTP/1.1 200 OK"
+2026-02-25 17:20:44,475 - root - INFO - Syncing 1 modified/new files...
+2026-02-25 17:20:44,481 - httpx - INFO - HTTP Request: GET http://host.docker.internal:27123/vault/tasks/todo/Delegate_2026-02-25_17-13-40.md "HTTP/1.1 200 OK"
+2026-02-25 17:20:44,484 - root - INFO -  Prepared 1 chunks for: tasks/todo/Delegate_2026-02-25_17-13-40.md
+2026-02-25 17:20:45,115 - httpx - INFO - HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-embedding-001:batchEmbedContents "HTTP/1.1 200 OK"
+2026-02-25 17:20:45,397 - root - INFO - Successfully synchronized 1 chunks.
+2026-02-25 17:20:45,398 - root - INFO - Updated lastIndexDatetime to 2026-02-25T17:20:45
+2026-02-25 17:20:45,669 - src.main - INFO - Starting MCP Manager...
+2026-02-25 17:20:45,669 - src.infrastructure.mcp.manager - INFO - Skipping deactivated MCP server: mcp-obsidian
+2026-02-25 17:20:45,669 - src.infrastructure.mcp.manager - INFO - Connecting to elo-obsidian-api-mcp MCP server at /app/workspace/mcps/elo-obsidian-api-mcp/dist/index.js...
+2026-02-25 17:20:45,684 - src.infrastructure.mcp.manager - INFO - Initializing elo-obsidian-api-mcp session...
+2026-02-25 17:20:46,607 - src.infrastructure.mcp.manager - INFO - Connected and initialized elo-obsidian-api-mcp MCP server.
+2026-02-25 17:20:46,611 - src.application.services.task_watcher_service - INFO - TaskWatcherService started. Monitoring /app/workspace/task/todo
+2026-02-25 17:20:46,615 - src.application.services.task_watcher_service - INFO - Found 1 tasks to process.
+2026-02-25 17:20:46,616 - src.application.services.task_watcher_service - INFO - Processing task: delegation_final_test.md
+2026-02-25 17:20:46,642 - google_genai.models - INFO - AFC is enabled with max remote calls: 10.
+2026-02-25 17:20:46,655 - src.infrastructure.mcp.manager - INFO -   Registering MCP tool: elo_obsidian_api_mcp_search_obsidian
+2026-02-25 17:20:46,659 - src.infrastructure.mcp.manager - INFO -   Registering MCP tool: elo_obsidian_api_mcp_get_active_file
+2026-02-25 17:20:46,659 - src.infrastructure.mcp.manager - INFO -   Registering MCP tool: elo_obsidian_api_mcp_execute_command
+2026-02-25 17:20:46,659 - src.infrastructure.mcp.manager - INFO -   Registering MCP tool: elo_obsidian_api_mcp_list_commands
+2026-02-25 17:20:46,660 - src.infrastructure.tools.local_tool_manager - INFO - Scanning for tools in /app/assets/langchain/tools...
+2026-02-25 17:20:46,660 - src.infrastructure.tools.local_tool_manager - INFO - Skipping deactivated local tool module: asset_tool
+2026-02-25 17:20:46,660 - src.infrastructure.tools.local_tool_manager - INFO - Scanning for tools in /app/workspace/langchain/tools...
+2026-02-25 17:20:46,660 - src.infrastructure.tools.local_tool_manager - INFO - Skipping deactivated local tool module: n8n_workflows
+2026-02-25 17:20:46,660 - src.infrastructure.tools.local_tool_manager - INFO - Skipping deactivated local tool module: test_hello
+2026-02-25 17:20:46,660 - src.infrastructure.tools.local_tool_manager - INFO - Skipping deactivated local tool module: echo
+2026-02-25 17:20:46,661 - src.infrastructure.tools.local_tool_manager - INFO - Skipping deactivated local tool module: test_math
+2026-02-25 17:20:46,671 - src.main - INFO - Binding 9 tools (4 MCP, 0 local, 1 semantic) to AI adapter.
+2026-02-25 17:20:48,441 - src.application.services.task_watcher_service - INFO - Task delegation_final_test.md completed successfully.
+2026-02-25 17:22:06,776 - src.main - INFO - Stopping MCP Manager...
+2026-02-25 17:22:06,959 - src.application.services.task_watcher_service - INFO - TaskWatcherService stopped.
+2026-02-25 17:22:08,974 - root - INFO - Logging initialized. File: /app/workspace/logs/elo-server.log
+2026-02-25 17:22:09,003 - src.main - INFO - Initializing Obsidian Semantic Search for /data/vault...
+2026-02-25 17:22:09,076 - root - INFO - Checking for Obsidian notes updates via API...
+2026-02-25 17:22:09,076 - root - INFO - Syncing with DQL: TABLE file.mtime WHERE file.mtime > date("2026-02-18T18:11:14")
+2026-02-25 17:22:09,237 - httpx - INFO - HTTP Request: POST http://host.docker.internal:27123/search/ "HTTP/1.1 200 OK"
+2026-02-25 17:22:09,238 - root - INFO - Syncing 1 modified/new files...
+2026-02-25 17:22:09,246 - httpx - INFO - HTTP Request: GET http://host.docker.internal:27123/vault/tasks/todo/Delegate_2026-02-25_17-13-40.md "HTTP/1.1 200 OK"
+2026-02-25 17:22:09,247 - root - INFO -  Prepared 1 chunks for: tasks/todo/Delegate_2026-02-25_17-13-40.md
+2026-02-25 17:22:09,736 - httpx - INFO - HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-embedding-001:batchEmbedContents "HTTP/1.1 200 OK"
+2026-02-25 17:22:09,864 - root - INFO - Successfully synchronized 1 chunks.
+2026-02-25 17:22:09,864 - root - INFO - Updated lastIndexDatetime to 2026-02-25T17:22:09
+2026-02-25 17:22:10,034 - src.main - INFO - Starting MCP Manager...
+2026-02-25 17:22:10,035 - src.infrastructure.mcp.manager - INFO - Skipping deactivated MCP server: mcp-obsidian
+2026-02-25 17:22:10,035 - src.infrastructure.mcp.manager - INFO - Connecting to elo-obsidian-api-mcp MCP server at /app/workspace/mcps/elo-obsidian-api-mcp/dist/index.js...
+2026-02-25 17:22:10,049 - src.infrastructure.mcp.manager - INFO - Initializing elo-obsidian-api-mcp session...
+2026-02-25 17:22:10,402 - src.infrastructure.mcp.manager - INFO - Connected and initialized elo-obsidian-api-mcp MCP server.
+2026-02-25 17:22:10,402 - src.application.services.task_watcher_service - INFO - TaskWatcherService started. Monitoring /app/workspace/task/todo
+2026-02-25 17:22:10,404 - src.infrastructure.mcp.manager - INFO -   Registering MCP tool: elo_obsidian_api_mcp_search_obsidian
+2026-02-25 17:22:10,405 - src.infrastructure.mcp.manager - INFO -   Registering MCP tool: elo_obsidian_api_mcp_get_active_file
+2026-02-25 17:22:10,406 - src.infrastructure.mcp.manager - INFO -   Registering MCP tool: elo_obsidian_api_mcp_execute_command
+2026-02-25 17:22:10,406 - src.infrastructure.mcp.manager - INFO -   Registering MCP tool: elo_obsidian_api_mcp_list_commands
+2026-02-25 17:22:10,406 - src.infrastructure.tools.local_tool_manager - INFO - Scanning for tools in /app/assets/langchain/tools...
+2026-02-25 17:22:10,406 - src.infrastructure.tools.local_tool_manager - INFO - Skipping deactivated local tool module: asset_tool
+2026-02-25 17:22:10,406 - src.infrastructure.tools.local_tool_manager - INFO - Scanning for tools in /app/workspace/langchain/tools...
+2026-02-25 17:22:10,406 - src.infrastructure.tools.local_tool_manager - INFO - Skipping deactivated local tool module: n8n_workflows
+2026-02-25 17:22:10,406 - src.infrastructure.tools.local_tool_manager - INFO - Skipping deactivated local tool module: test_hello
+2026-02-25 17:22:10,406 - src.infrastructure.tools.local_tool_manager - INFO - Skipping deactivated local tool module: echo
+2026-02-25 17:22:10,406 - src.infrastructure.tools.local_tool_manager - INFO - Skipping deactivated local tool module: test_math
+2026-02-25 17:22:10,413 - src.main - INFO - Binding 9 tools (4 MCP, 0 local, 1 semantic) to AI adapter.
+2026-02-25 17:22:14,712 - src.main - INFO - Stopping MCP Manager...
+2026-02-25 17:22:14,757 - src.application.services.task_watcher_service - INFO - TaskWatcherService stopped.
+2026-02-25 17:22:16,366 - root - INFO - Logging initialized. File: /app/workspace/logs/elo-server.log
+2026-02-25 17:22:16,419 - src.main - INFO - Initializing Obsidian Semantic Search for /data/vault...
+2026-02-25 17:22:16,559 - root - INFO - Checking for Obsidian notes updates via API...
+2026-02-25 17:22:16,560 - root - INFO - Syncing with DQL: TABLE file.mtime WHERE file.mtime > date("2026-02-18T18:11:14")
+2026-02-25 17:22:16,681 - httpx - INFO - HTTP Request: POST http://host.docker.internal:27123/search/ "HTTP/1.1 200 OK"
+2026-02-25 17:22:16,684 - root - INFO - Syncing 1 modified/new files...
+2026-02-25 17:22:16,885 - httpx - INFO - HTTP Request: GET http://host.docker.internal:27123/vault/tasks/todo/Delegate_2026-02-25_17-13-40.md "HTTP/1.1 200 OK"
+2026-02-25 17:22:16,895 - root - INFO -  Prepared 1 chunks for: tasks/todo/Delegate_2026-02-25_17-13-40.md
+2026-02-25 17:22:17,448 - httpx - INFO - HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-embedding-001:batchEmbedContents "HTTP/1.1 200 OK"
+2026-02-25 17:22:17,550 - root - INFO - Successfully synchronized 1 chunks.
+2026-02-25 17:22:17,551 - root - INFO - Updated lastIndexDatetime to 2026-02-25T17:22:17
+2026-02-25 17:22:17,780 - src.main - INFO - Starting MCP Manager...
+2026-02-25 17:22:17,781 - src.infrastructure.mcp.manager - INFO - Skipping deactivated MCP server: mcp-obsidian
+2026-02-25 17:22:17,781 - src.infrastructure.mcp.manager - INFO - Connecting to elo-obsidian-api-mcp MCP server at /app/workspace/mcps/elo-obsidian-api-mcp/dist/index.js...
+2026-02-25 17:22:17,796 - src.infrastructure.mcp.manager - INFO - Initializing elo-obsidian-api-mcp session...
+2026-02-25 17:22:18,098 - src.infrastructure.mcp.manager - INFO - Connected and initialized elo-obsidian-api-mcp MCP server.
+2026-02-25 17:22:18,099 - src.application.services.task_watcher_service - INFO - TaskWatcherService started. Monitoring /app/workspace/task/todo
+2026-02-25 17:22:18,100 - src.infrastructure.mcp.manager - INFO -   Registering MCP tool: elo_obsidian_api_mcp_search_obsidian
+2026-02-25 17:22:18,101 - src.infrastructure.mcp.manager - INFO -   Registering MCP tool: elo_obsidian_api_mcp_get_active_file
+2026-02-25 17:22:18,101 - src.infrastructure.mcp.manager - INFO -   Registering MCP tool: elo_obsidian_api_mcp_execute_command
+2026-02-25 17:22:18,102 - src.infrastructure.mcp.manager - INFO -   Registering MCP tool: elo_obsidian_api_mcp_list_commands
+2026-02-25 17:22:18,102 - src.infrastructure.tools.local_tool_manager - INFO - Scanning for tools in /app/assets/langchain/tools...
+2026-02-25 17:22:18,102 - src.infrastructure.tools.local_tool_manager - INFO - Skipping deactivated local tool module: asset_tool
+2026-02-25 17:22:18,102 - src.infrastructure.tools.local_tool_manager - INFO - Scanning for tools in /app/workspace/langchain/tools...
+2026-02-25 17:22:18,102 - src.infrastructure.tools.local_tool_manager - INFO - Skipping deactivated local tool module: n8n_workflows
+2026-02-25 17:22:18,102 - src.infrastructure.tools.local_tool_manager - INFO - Skipping deactivated local tool module: test_hello
+2026-02-25 17:22:18,102 - src.infrastructure.tools.local_tool_manager - INFO - Skipping deactivated local tool module: echo
+2026-02-25 17:22:18,102 - src.infrastructure.tools.local_tool_manager - INFO - Skipping deactivated local tool module: test_math
+2026-02-25 17:22:18,107 - src.main - INFO - Binding 9 tools (4 MCP, 0 local, 1 semantic) to AI adapter.
+2026-02-25 17:22:23,743 - src.main - INFO - Stopping MCP Manager...
+2026-02-25 17:22:23,787 - src.application.services.task_watcher_service - INFO - TaskWatcherService stopped.
+2026-02-25 17:22:26,770 - root - INFO - Logging initialized. File: /app/workspace/logs/elo-server.log
+2026-02-25 17:22:26,796 - src.main - INFO - Initializing Obsidian Semantic Search for /data/vault...
+2026-02-25 17:22:26,861 - root - INFO - Checking for Obsidian notes updates via API...
+2026-02-25 17:22:26,861 - root - INFO - Syncing with DQL: TABLE file.mtime WHERE file.mtime > date("2026-02-18T18:11:14")
+2026-02-25 17:22:26,986 - httpx - INFO - HTTP Request: POST http://host.docker.internal:27123/search/ "HTTP/1.1 200 OK"
+2026-02-25 17:22:26,986 - root - INFO - Syncing 1 modified/new files...
+2026-02-25 17:22:26,989 - httpx - INFO - HTTP Request: GET http://host.docker.internal:27123/vault/tasks/todo/Delegate_2026-02-25_17-13-40.md "HTTP/1.1 200 OK"
+2026-02-25 17:22:26,989 - root - INFO -  Prepared 1 chunks for: tasks/todo/Delegate_2026-02-25_17-13-40.md
+2026-02-25 17:22:27,514 - httpx - INFO - HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-embedding-001:batchEmbedContents "HTTP/1.1 200 OK"
+2026-02-25 17:22:27,642 - root - INFO - Successfully synchronized 1 chunks.
+2026-02-25 17:22:27,643 - root - INFO - Updated lastIndexDatetime to 2026-02-25T17:22:27
+2026-02-25 17:22:27,802 - src.main - INFO - Starting MCP Manager...
+2026-02-25 17:22:27,802 - src.infrastructure.mcp.manager - INFO - Skipping deactivated MCP server: mcp-obsidian
+2026-02-25 17:22:27,802 - src.infrastructure.mcp.manager - INFO - Connecting to elo-obsidian-api-mcp MCP server at /app/workspace/mcps/elo-obsidian-api-mcp/dist/index.js...
+2026-02-25 17:22:27,817 - src.infrastructure.mcp.manager - INFO - Initializing elo-obsidian-api-mcp session...
+2026-02-25 17:22:28,409 - src.infrastructure.mcp.manager - INFO - Connected and initialized elo-obsidian-api-mcp MCP server.
+2026-02-25 17:22:28,409 - src.application.services.task_watcher_service - INFO - TaskWatcherService started. Monitoring /app/workspace/task/todo
+2026-02-25 17:22:28,410 - src.application.services.task_watcher_service - INFO - Found 1 tasks to process.
+2026-02-25 17:22:28,410 - src.application.services.task_watcher_service - INFO - Processing task: delegation_final_test_v3.md
+2026-02-25 17:22:28,426 - google_genai.models - INFO - AFC is enabled with max remote calls: 10.
+2026-02-25 17:22:28,434 - src.infrastructure.mcp.manager - INFO -   Registering MCP tool: elo_obsidian_api_mcp_search_obsidian
+2026-02-25 17:22:28,437 - src.infrastructure.mcp.manager - INFO -   Registering MCP tool: elo_obsidian_api_mcp_get_active_file
+2026-02-25 17:22:28,437 - src.infrastructure.mcp.manager - INFO -   Registering MCP tool: elo_obsidian_api_mcp_execute_command
+2026-02-25 17:22:28,438 - src.infrastructure.mcp.manager - INFO -   Registering MCP tool: elo_obsidian_api_mcp_list_commands
+2026-02-25 17:22:28,438 - src.infrastructure.tools.local_tool_manager - INFO - Scanning for tools in /app/assets/langchain/tools...
+2026-02-25 17:22:28,438 - src.infrastructure.tools.local_tool_manager - INFO - Skipping deactivated local tool module: asset_tool
+2026-02-25 17:22:28,438 - src.infrastructure.tools.local_tool_manager - INFO - Scanning for tools in /app/workspace/langchain/tools...
+2026-02-25 17:22:28,439 - src.infrastructure.tools.local_tool_manager - INFO - Skipping deactivated local tool module: n8n_workflows
+2026-02-25 17:22:28,439 - src.infrastructure.tools.local_tool_manager - INFO - Skipping deactivated local tool module: test_hello
+2026-02-25 17:22:28,439 - src.infrastructure.tools.local_tool_manager - INFO - Skipping deactivated local tool module: echo
+2026-02-25 17:22:28,439 - src.infrastructure.tools.local_tool_manager - INFO - Skipping deactivated local tool module: test_math
+2026-02-25 17:22:28,446 - src.main - INFO - Binding 9 tools (4 MCP, 0 local, 1 semantic) to AI adapter.
+2026-02-25 17:22:29,779 - src.application.services.task_watcher_service - INFO - Task delegation_final_test_v3.md completed successfully.
+2026-02-25 17:23:10,729 - src.main - INFO - Stopping MCP Manager...
+2026-02-25 17:23:10,770 - src.application.services.task_watcher_service - INFO - TaskWatcherService stopped.
+2026-02-25 17:23:12,682 - root - INFO - Logging initialized. File: /app/workspace/logs/elo-server.log
+2026-02-25 17:23:12,714 - src.main - INFO - Initializing Obsidian Semantic Search for /data/vault...
+2026-02-25 17:23:12,820 - root - INFO - Checking for Obsidian notes updates via API...
+2026-02-25 17:23:12,820 - root - INFO - Syncing with DQL: TABLE file.mtime WHERE file.mtime > date("2026-02-18T18:11:14")
+2026-02-25 17:23:12,971 - httpx - INFO - HTTP Request: POST http://host.docker.internal:27123/search/ "HTTP/1.1 200 OK"
+2026-02-25 17:23:12,972 - root - INFO - Syncing 1 modified/new files...
+2026-02-25 17:23:12,978 - httpx - INFO - HTTP Request: GET http://host.docker.internal:27123/vault/tasks/todo/Delegate_2026-02-25_17-13-40.md "HTTP/1.1 200 OK"
+2026-02-25 17:23:12,978 - root - INFO -  Prepared 1 chunks for: tasks/todo/Delegate_2026-02-25_17-13-40.md
+2026-02-25 17:23:13,465 - httpx - INFO - HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-embedding-001:batchEmbedContents "HTTP/1.1 200 OK"
+2026-02-25 17:23:13,614 - root - INFO - Successfully synchronized 1 chunks.
+2026-02-25 17:23:13,615 - root - INFO - Updated lastIndexDatetime to 2026-02-25T17:23:13
+2026-02-25 17:23:13,793 - src.main - INFO - Starting MCP Manager...
+2026-02-25 17:23:13,793 - src.infrastructure.mcp.manager - INFO - Skipping deactivated MCP server: mcp-obsidian
+2026-02-25 17:23:13,794 - src.infrastructure.mcp.manager - INFO - Connecting to elo-obsidian-api-mcp MCP server at /app/workspace/mcps/elo-obsidian-api-mcp/dist/index.js...
+2026-02-25 17:23:13,806 - src.infrastructure.mcp.manager - INFO - Initializing elo-obsidian-api-mcp session...
+2026-02-25 17:23:14,141 - src.infrastructure.mcp.manager - INFO - Connected and initialized elo-obsidian-api-mcp MCP server.
+2026-02-25 17:23:14,141 - src.application.services.task_watcher_service - INFO - TaskWatcherService started. Monitoring /app/workspace/task/todo
+2026-02-25 17:23:14,143 - src.infrastructure.mcp.manager - INFO -   Registering MCP tool: elo_obsidian_api_mcp_search_obsidian
+2026-02-25 17:23:14,144 - src.infrastructure.mcp.manager - INFO -   Registering MCP tool: elo_obsidian_api_mcp_get_active_file
+2026-02-25 17:23:14,144 - src.infrastructure.mcp.manager - INFO -   Registering MCP tool: elo_obsidian_api_mcp_execute_command
+2026-02-25 17:23:14,144 - src.infrastructure.mcp.manager - INFO -   Registering MCP tool: elo_obsidian_api_mcp_list_commands
+2026-02-25 17:23:14,145 - src.infrastructure.tools.local_tool_manager - INFO - Scanning for tools in /app/assets/langchain/tools...
+2026-02-25 17:23:14,145 - src.infrastructure.tools.local_tool_manager - INFO - Skipping deactivated local tool module: asset_tool
+2026-02-25 17:23:14,145 - src.infrastructure.tools.local_tool_manager - INFO - Scanning for tools in /app/workspace/langchain/tools...
+2026-02-25 17:23:14,145 - src.infrastructure.tools.local_tool_manager - INFO - Skipping deactivated local tool module: n8n_workflows
+2026-02-25 17:23:14,145 - src.infrastructure.tools.local_tool_manager - INFO - Skipping deactivated local tool module: test_hello
+2026-02-25 17:23:14,145 - src.infrastructure.tools.local_tool_manager - INFO - Skipping deactivated local tool module: echo
+2026-02-25 17:23:14,145 - src.infrastructure.tools.local_tool_manager - INFO - Skipping deactivated local tool module: test_math
+2026-02-25 17:23:14,150 - src.main - INFO - Binding 9 tools (4 MCP, 0 local, 1 semantic) to AI adapter.
+2026-02-25 17:23:18,767 - src.main - INFO - Stopping MCP Manager...
+2026-02-25 17:23:18,796 - src.application.services.task_watcher_service - INFO - TaskWatcherService stopped.
+2026-02-25 17:23:20,370 - root - INFO - Logging initialized. File: /app/workspace/logs/elo-server.log
+2026-02-25 17:23:20,402 - src.main - INFO - Initializing Obsidian Semantic Search for /data/vault...
+2026-02-25 17:23:20,507 - root - INFO - Checking for Obsidian notes updates via API...
+2026-02-25 17:23:20,508 - root - INFO - Syncing with DQL: TABLE file.mtime WHERE file.mtime > date("2026-02-18T18:11:14")
+2026-02-25 17:23:20,623 - httpx - INFO - HTTP Request: POST http://host.docker.internal:27123/search/ "HTTP/1.1 200 OK"
+2026-02-25 17:23:20,624 - root - INFO - Syncing 1 modified/new files...
+2026-02-25 17:23:20,626 - httpx - INFO - HTTP Request: GET http://host.docker.internal:27123/vault/tasks/todo/Delegate_2026-02-25_17-13-40.md "HTTP/1.1 200 OK"
+2026-02-25 17:23:20,626 - root - INFO -  Prepared 1 chunks for: tasks/todo/Delegate_2026-02-25_17-13-40.md
+2026-02-25 17:23:21,363 - httpx - INFO - HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-embedding-001:batchEmbedContents "HTTP/1.1 200 OK"
+2026-02-25 17:23:21,494 - root - INFO - Successfully synchronized 1 chunks.
+2026-02-25 17:23:21,494 - root - INFO - Updated lastIndexDatetime to 2026-02-25T17:23:21
+2026-02-25 17:23:21,704 - src.main - INFO - Starting MCP Manager...
+2026-02-25 17:23:21,705 - src.infrastructure.mcp.manager - INFO - Skipping deactivated MCP server: mcp-obsidian
+2026-02-25 17:23:21,705 - src.infrastructure.mcp.manager - INFO - Connecting to elo-obsidian-api-mcp MCP server at /app/workspace/mcps/elo-obsidian-api-mcp/dist/index.js...
+2026-02-25 17:23:21,717 - src.infrastructure.mcp.manager - INFO - Initializing elo-obsidian-api-mcp session...
+2026-02-25 17:23:22,024 - src.infrastructure.mcp.manager - INFO - Connected and initialized elo-obsidian-api-mcp MCP server.
+2026-02-25 17:23:22,024 - src.application.services.task_watcher_service - INFO - TaskWatcherService started. Monitoring /app/workspace/task/todo
+2026-02-25 17:23:22,026 - src.infrastructure.mcp.manager - INFO -   Registering MCP tool: elo_obsidian_api_mcp_search_obsidian
+2026-02-25 17:23:22,027 - src.infrastructure.mcp.manager - INFO -   Registering MCP tool: elo_obsidian_api_mcp_get_active_file
+2026-02-25 17:23:22,027 - src.infrastructure.mcp.manager - INFO -   Registering MCP tool: elo_obsidian_api_mcp_execute_command
+2026-02-25 17:23:22,027 - src.infrastructure.mcp.manager - INFO -   Registering MCP tool: elo_obsidian_api_mcp_list_commands
+2026-02-25 17:23:22,027 - src.infrastructure.tools.local_tool_manager - INFO - Scanning for tools in /app/assets/langchain/tools...
+2026-02-25 17:23:22,027 - src.infrastructure.tools.local_tool_manager - INFO - Skipping deactivated local tool module: asset_tool
+2026-02-25 17:23:22,027 - src.infrastructure.tools.local_tool_manager - INFO - Scanning for tools in /app/workspace/langchain/tools...
+2026-02-25 17:23:22,027 - src.infrastructure.tools.local_tool_manager - INFO - Skipping deactivated local tool module: n8n_workflows
+2026-02-25 17:23:22,027 - src.infrastructure.tools.local_tool_manager - INFO - Skipping deactivated local tool module: test_hello
+2026-02-25 17:23:22,027 - src.infrastructure.tools.local_tool_manager - INFO - Skipping deactivated local tool module: echo
+2026-02-25 17:23:22,027 - src.infrastructure.tools.local_tool_manager - INFO - Skipping deactivated local tool module: test_math
+2026-02-25 17:23:22,032 - src.main - INFO - Binding 9 tools (4 MCP, 0 local, 1 semantic) to AI adapter.
+2026-02-25 17:23:26,361 - src.main - INFO - Stopping MCP Manager...
+2026-02-25 17:23:26,407 - src.application.services.task_watcher_service - INFO - TaskWatcherService stopped.
+2026-02-25 17:23:29,099 - root - INFO - Logging initialized. File: /app/workspace/logs/elo-server.log
+2026-02-25 17:23:29,125 - src.main - INFO - Initializing Obsidian Semantic Search for /data/vault...
+2026-02-25 17:23:29,188 - root - INFO - Checking for Obsidian notes updates via API...
+2026-02-25 17:23:29,188 - root - INFO - Syncing with DQL: TABLE file.mtime WHERE file.mtime > date("2026-02-18T18:11:14")
+2026-02-25 17:23:29,317 - httpx - INFO - HTTP Request: POST http://host.docker.internal:27123/search/ "HTTP/1.1 200 OK"
+2026-02-25 17:23:29,318 - root - INFO - Syncing 1 modified/new files...
+2026-02-25 17:23:29,370 - httpx - INFO - HTTP Request: GET http://host.docker.internal:27123/vault/tasks/todo/Delegate_2026-02-25_17-13-40.md "HTTP/1.1 200 OK"
+2026-02-25 17:23:29,371 - root - INFO -  Prepared 1 chunks for: tasks/todo/Delegate_2026-02-25_17-13-40.md
+2026-02-25 17:23:29,878 - httpx - INFO - HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-embedding-001:batchEmbedContents "HTTP/1.1 200 OK"
+2026-02-25 17:23:30,032 - root - INFO - Successfully synchronized 1 chunks.
+2026-02-25 17:23:30,032 - root - INFO - Updated lastIndexDatetime to 2026-02-25T17:23:30
+2026-02-25 17:23:30,167 - src.main - INFO - Starting MCP Manager...
+2026-02-25 17:23:30,167 - src.infrastructure.mcp.manager - INFO - Skipping deactivated MCP server: mcp-obsidian
+2026-02-25 17:23:30,167 - src.infrastructure.mcp.manager - INFO - Connecting to elo-obsidian-api-mcp MCP server at /app/workspace/mcps/elo-obsidian-api-mcp/dist/index.js...
+2026-02-25 17:23:30,177 - src.infrastructure.mcp.manager - INFO - Initializing elo-obsidian-api-mcp session...
+2026-02-25 17:23:30,471 - src.infrastructure.mcp.manager - INFO - Connected and initialized elo-obsidian-api-mcp MCP server.
+2026-02-25 17:23:30,472 - src.application.services.task_watcher_service - INFO - TaskWatcherService started. Monitoring /app/workspace/task/todo
+2026-02-25 17:23:30,472 - src.application.services.task_watcher_service - INFO - Found 1 tasks to process.
+2026-02-25 17:23:30,472 - src.application.services.task_watcher_service - INFO - Processing task: delegation_final_test_v4.md
+2026-02-25 17:23:30,477 - google_genai.models - INFO - AFC is enabled with max remote calls: 10.
+2026-02-25 17:23:30,479 - src.infrastructure.mcp.manager - INFO -   Registering MCP tool: elo_obsidian_api_mcp_search_obsidian
+2026-02-25 17:23:30,479 - src.infrastructure.mcp.manager - INFO -   Registering MCP tool: elo_obsidian_api_mcp_get_active_file
+2026-02-25 17:23:30,480 - src.infrastructure.mcp.manager - INFO -   Registering MCP tool: elo_obsidian_api_mcp_execute_command
+2026-02-25 17:23:30,480 - src.infrastructure.mcp.manager - INFO -   Registering MCP tool: elo_obsidian_api_mcp_list_commands
+2026-02-25 17:23:30,480 - src.infrastructure.tools.local_tool_manager - INFO - Scanning for tools in /app/assets/langchain/tools...
+2026-02-25 17:23:30,480 - src.infrastructure.tools.local_tool_manager - INFO - Skipping deactivated local tool module: asset_tool
+2026-02-25 17:23:30,480 - src.infrastructure.tools.local_tool_manager - INFO - Scanning for tools in /app/workspace/langchain/tools...
+2026-02-25 17:23:30,480 - src.infrastructure.tools.local_tool_manager - INFO - Skipping deactivated local tool module: n8n_workflows
+2026-02-25 17:23:30,480 - src.infrastructure.tools.local_tool_manager - INFO - Skipping deactivated local tool module: test_hello
+2026-02-25 17:23:30,480 - src.infrastructure.tools.local_tool_manager - INFO - Skipping deactivated local tool module: echo
+2026-02-25 17:23:30,480 - src.infrastructure.tools.local_tool_manager - INFO - Skipping deactivated local tool module: test_math
+2026-02-25 17:23:30,484 - src.main - INFO - Binding 9 tools (4 MCP, 0 local, 1 semantic) to AI adapter.
+2026-02-25 17:23:31,509 - src.application.services.task_watcher_service - INFO - Task delegation_final_test_v4.md was delegated to human. Reason: The user has requested an impossible task (bringing the moon into their garden). This clearly requires human intervention and physical action, which is beyond the capabilities of an AI.
+2026-02-25 17:23:31,514 - src.application.services.task_watcher_service - INFO - Rescheduled delegation_final_test_v4.md to todo and created help note HUMAN_NEED_HELP_20260225_172331_delegation_final_test_v4.md
+2026-02-25 17:24:01,529 - src.application.services.task_watcher_service - INFO - Found 1 tasks to process.
+2026-02-25 17:24:01,532 - src.application.services.task_watcher_service - INFO - Processing task: delegation_final_test_v4.md
+2026-02-25 17:24:02,910 - src.infrastructure.tools.local_tool_manager - INFO - Delegating task to human: The user is asking to move the moon into their garden, which is a physically impossible task for an AI and requires human action.
+2026-02-25 17:24:03,663 - langchain_google_genai.chat_models - WARNING - Gemini produced an empty response. Continuing with empty message
+Feedback: None
+2026-02-25 17:24:03,666 - src.application.services.task_watcher_service - INFO - Task delegation_final_test_v4.md completed successfully.
+2026-02-25 17:27:03,693 - src.application.services.task_watcher_service - INFO - Found 1 tasks to process.
+2026-02-25 17:27:03,695 - src.application.services.task_watcher_service - INFO - Processing task: pp.md
+2026-02-25 17:27:05,245 - src.infrastructure.tools.local_tool_manager - INFO - Delegating task to human: The user wants to connect to WhatsApp, which requires functionality beyond the current toolset. Connecting to external messaging services is not possible with the available tools.
+2026-02-25 17:27:05,974 - langchain_google_genai.chat_models - WARNING - Gemini produced an empty response. Continuing with empty message
+Feedback: None
+2026-02-25 17:27:05,982 - src.application.services.task_watcher_service - INFO - Task pp.md completed successfully.
+2026-02-25 17:36:31,316 - src.main - INFO - Stopping MCP Manager...
+2026-02-25 17:36:31,451 - src.application.services.task_watcher_service - INFO - TaskWatcherService stopped.
+2026-02-25 17:39:18,523 - root - INFO - Logging initialized. File: /app/workspace/logs/elo-server.log
+2026-02-25 17:39:18,554 - src.main - INFO - Initializing Obsidian Semantic Search for /data/vault...
+2026-02-25 17:39:18,664 - root - INFO - Checking for Obsidian notes updates via API...
+2026-02-25 17:39:18,665 - root - INFO - Syncing with DQL: TABLE file.mtime WHERE file.mtime > date("2026-02-18T18:11:14")
+2026-02-25 17:39:18,844 - httpx - INFO - HTTP Request: POST http://host.docker.internal:27123/search/ "HTTP/1.1 200 OK"
+2026-02-25 17:39:18,845 - root - INFO - Syncing 1 modified/new files...
+2026-02-25 17:39:18,856 - httpx - INFO - HTTP Request: GET http://host.docker.internal:27123/vault/tasks/todo/Delegate_2026-02-25_17-13-40.md "HTTP/1.1 200 OK"
+2026-02-25 17:39:18,857 - root - INFO -  Prepared 1 chunks for: tasks/todo/Delegate_2026-02-25_17-13-40.md
+2026-02-25 17:39:19,545 - httpx - INFO - HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-embedding-001:batchEmbedContents "HTTP/1.1 200 OK"
+2026-02-25 17:39:19,695 - root - INFO - Successfully synchronized 1 chunks.
+2026-02-25 17:39:19,695 - root - INFO - Updated lastIndexDatetime to 2026-02-25T17:39:19
+2026-02-25 17:39:19,828 - src.main - INFO - Starting MCP Manager...
+2026-02-25 17:39:19,828 - src.infrastructure.mcp.manager - INFO - Skipping deactivated MCP server: mcp-obsidian
+2026-02-25 17:39:19,828 - src.infrastructure.mcp.manager - INFO - Connecting to elo-obsidian-api-mcp MCP server at /app/workspace/mcps/elo-obsidian-api-mcp/dist/index.js...
+2026-02-25 17:39:19,840 - src.infrastructure.mcp.manager - INFO - Initializing elo-obsidian-api-mcp session...
+2026-02-25 17:39:20,262 - src.infrastructure.mcp.manager - INFO - Connected and initialized elo-obsidian-api-mcp MCP server.
+2026-02-25 17:39:20,262 - src.application.services.task_watcher_service - INFO - TaskWatcherService started. Monitoring /app/workspace/task/todo
+2026-02-25 17:39:20,262 - src.application.services.task_watcher_service - INFO - Found 1 tasks to process.
+2026-02-25 17:39:20,262 - src.application.services.task_watcher_service - INFO - Processing task: pp.md
+2026-02-25 17:39:20,269 - google_genai.models - INFO - AFC is enabled with max remote calls: 10.
+2026-02-25 17:39:20,272 - src.infrastructure.mcp.manager - INFO -   Registering MCP tool: elo_obsidian_api_mcp_search_obsidian
+2026-02-25 17:39:20,272 - src.infrastructure.mcp.manager - INFO -   Registering MCP tool: elo_obsidian_api_mcp_get_active_file
+2026-02-25 17:39:20,273 - src.infrastructure.mcp.manager - INFO -   Registering MCP tool: elo_obsidian_api_mcp_execute_command
+2026-02-25 17:39:20,273 - src.infrastructure.mcp.manager - INFO -   Registering MCP tool: elo_obsidian_api_mcp_list_commands
+2026-02-25 17:39:20,273 - src.infrastructure.tools.local_tool_manager - INFO - Scanning for tools in /app/assets/langchain/tools...
+2026-02-25 17:39:20,273 - src.infrastructure.tools.local_tool_manager - INFO - Skipping deactivated local tool module: asset_tool
+2026-02-25 17:39:20,273 - src.infrastructure.tools.local_tool_manager - INFO - Scanning for tools in /app/workspace/langchain/tools...
+2026-02-25 17:39:20,273 - src.infrastructure.tools.local_tool_manager - INFO - Skipping deactivated local tool module: n8n_workflows
+2026-02-25 17:39:20,273 - src.infrastructure.tools.local_tool_manager - INFO - Skipping deactivated local tool module: test_hello
+2026-02-25 17:39:20,273 - src.infrastructure.tools.local_tool_manager - INFO - Skipping deactivated local tool module: echo
+2026-02-25 17:39:20,273 - src.infrastructure.tools.local_tool_manager - INFO - Skipping deactivated local tool module: test_math
+2026-02-25 17:39:20,278 - src.main - INFO - Binding 9 tools (4 MCP, 0 local, 1 semantic) to AI adapter.
+2026-02-25 17:39:21,339 - src.application.services.task_watcher_service - INFO - Task pp.md completed successfully.
+2026-02-25 17:40:17,181 - src.main - INFO - Stopping MCP Manager...
+2026-02-25 17:40:17,206 - src.application.services.task_watcher_service - INFO - TaskWatcherService stopped.
+2026-02-25 17:40:18,747 - root - INFO - Logging initialized. File: /app/workspace/logs/elo-server.log
+2026-02-25 17:40:18,773 - src.main - INFO - Initializing Obsidian Semantic Search for /data/vault...
+2026-02-25 17:40:18,842 - root - INFO - Checking for Obsidian notes updates via API...
+2026-02-25 17:40:18,842 - root - INFO - Syncing with DQL: TABLE file.mtime WHERE file.mtime > date("2026-02-18T18:11:14")
+2026-02-25 17:40:18,987 - httpx - INFO - HTTP Request: POST http://host.docker.internal:27123/search/ "HTTP/1.1 200 OK"
+2026-02-25 17:40:18,988 - root - INFO - Syncing 1 modified/new files...
+2026-02-25 17:40:18,993 - httpx - INFO - HTTP Request: GET http://host.docker.internal:27123/vault/tasks/todo/Delegate_2026-02-25_17-13-40.md "HTTP/1.1 200 OK"
+2026-02-25 17:40:18,994 - root - INFO -  Prepared 1 chunks for: tasks/todo/Delegate_2026-02-25_17-13-40.md
+2026-02-25 17:40:19,556 - httpx - INFO - HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-embedding-001:batchEmbedContents "HTTP/1.1 200 OK"
+2026-02-25 17:40:19,696 - root - INFO - Successfully synchronized 1 chunks.
+2026-02-25 17:40:19,696 - root - INFO - Updated lastIndexDatetime to 2026-02-25T17:40:19
+2026-02-25 17:40:19,846 - src.main - INFO - Starting MCP Manager...
+2026-02-25 17:40:19,846 - src.infrastructure.mcp.manager - INFO - Skipping deactivated MCP server: mcp-obsidian
+2026-02-25 17:40:19,847 - src.infrastructure.mcp.manager - INFO - Connecting to elo-obsidian-api-mcp MCP server at /app/workspace/mcps/elo-obsidian-api-mcp/dist/index.js...
+2026-02-25 17:40:19,862 - src.infrastructure.mcp.manager - INFO - Initializing elo-obsidian-api-mcp session...
+2026-02-25 17:40:20,160 - src.infrastructure.mcp.manager - INFO - Connected and initialized elo-obsidian-api-mcp MCP server.
+2026-02-25 17:40:20,160 - src.application.services.task_watcher_service - INFO - TaskWatcherService started. Monitoring /app/workspace/tasks/todo
+2026-02-25 17:40:20,161 - src.infrastructure.mcp.manager - INFO -   Registering MCP tool: elo_obsidian_api_mcp_search_obsidian
+2026-02-25 17:40:20,162 - src.infrastructure.mcp.manager - INFO -   Registering MCP tool: elo_obsidian_api_mcp_get_active_file
+2026-02-25 17:40:20,162 - src.infrastructure.mcp.manager - INFO -   Registering MCP tool: elo_obsidian_api_mcp_execute_command
+2026-02-25 17:40:20,162 - src.infrastructure.mcp.manager - INFO -   Registering MCP tool: elo_obsidian_api_mcp_list_commands
+2026-02-25 17:40:20,162 - src.infrastructure.tools.local_tool_manager - INFO - Scanning for tools in /app/assets/langchain/tools...
+2026-02-25 17:40:20,163 - src.infrastructure.tools.local_tool_manager - INFO - Skipping deactivated local tool module: asset_tool
+2026-02-25 17:40:20,163 - src.infrastructure.tools.local_tool_manager - INFO - Scanning for tools in /app/workspace/langchain/tools...
+2026-02-25 17:40:20,163 - src.infrastructure.tools.local_tool_manager - INFO - Skipping deactivated local tool module: n8n_workflows
+2026-02-25 17:40:20,163 - src.infrastructure.tools.local_tool_manager - INFO - Skipping deactivated local tool module: test_hello
+2026-02-25 17:40:20,163 - src.infrastructure.tools.local_tool_manager - INFO - Skipping deactivated local tool module: echo
+2026-02-25 17:40:20,163 - src.infrastructure.tools.local_tool_manager - INFO - Skipping deactivated local tool module: test_math
+2026-02-25 17:40:20,167 - src.main - INFO - Binding 9 tools (4 MCP, 0 local, 1 semantic) to AI adapter.
+2026-02-25 17:40:44,716 - src.main - INFO - Stopping MCP Manager...
+2026-02-25 17:40:44,745 - src.application.services.task_watcher_service - INFO - TaskWatcherService stopped.
+2026-02-25 17:40:47,199 - root - INFO - Logging initialized. File: /app/workspace/logs/elo-server.log
+2026-02-25 17:40:47,224 - src.main - INFO - Initializing Obsidian Semantic Search for /data/vault...
+2026-02-25 17:40:47,290 - root - INFO - Checking for Obsidian notes updates via API...
+2026-02-25 17:40:47,290 - root - INFO - Syncing with DQL: TABLE file.mtime WHERE file.mtime > date("2026-02-18T18:11:14")
+2026-02-25 17:40:47,446 - httpx - INFO - HTTP Request: POST http://host.docker.internal:27123/search/ "HTTP/1.1 200 OK"
+2026-02-25 17:40:47,447 - root - INFO - Syncing 1 modified/new files...
+2026-02-25 17:40:47,452 - httpx - INFO - HTTP Request: GET http://host.docker.internal:27123/vault/tasks/todo/Delegate_2026-02-25_17-13-40.md "HTTP/1.1 200 OK"
+2026-02-25 17:40:47,453 - root - INFO -  Prepared 1 chunks for: tasks/todo/Delegate_2026-02-25_17-13-40.md
+2026-02-25 17:40:48,020 - httpx - INFO - HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-embedding-001:batchEmbedContents "HTTP/1.1 200 OK"
+2026-02-25 17:40:48,136 - root - INFO - Successfully synchronized 1 chunks.
+2026-02-25 17:40:48,137 - root - INFO - Updated lastIndexDatetime to 2026-02-25T17:40:48
+2026-02-25 17:40:48,269 - src.main - INFO - Starting MCP Manager...
+2026-02-25 17:40:48,269 - src.infrastructure.mcp.manager - INFO - Skipping deactivated MCP server: mcp-obsidian
+2026-02-25 17:40:48,269 - src.infrastructure.mcp.manager - INFO - Connecting to elo-obsidian-api-mcp MCP server at /app/workspace/mcps/elo-obsidian-api-mcp/dist/index.js...
+2026-02-25 17:40:48,277 - src.infrastructure.mcp.manager - INFO - Initializing elo-obsidian-api-mcp session...
+2026-02-25 17:40:48,641 - src.infrastructure.mcp.manager - INFO - Connected and initialized elo-obsidian-api-mcp MCP server.
+2026-02-25 17:40:48,642 - src.application.services.task_watcher_service - INFO - TaskWatcherService started. Monitoring /app/workspace/tasks/todo
+2026-02-25 17:40:48,643 - src.infrastructure.mcp.manager - INFO -   Registering MCP tool: elo_obsidian_api_mcp_search_obsidian
+2026-02-25 17:40:48,644 - src.infrastructure.mcp.manager - INFO -   Registering MCP tool: elo_obsidian_api_mcp_get_active_file
+2026-02-25 17:40:48,644 - src.infrastructure.mcp.manager - INFO -   Registering MCP tool: elo_obsidian_api_mcp_execute_command
+2026-02-25 17:40:48,645 - src.infrastructure.mcp.manager - INFO -   Registering MCP tool: elo_obsidian_api_mcp_list_commands
+2026-02-25 17:40:48,645 - src.infrastructure.tools.local_tool_manager - INFO - Scanning for tools in /app/assets/langchain/tools...
+2026-02-25 17:40:48,645 - src.infrastructure.tools.local_tool_manager - INFO - Skipping deactivated local tool module: asset_tool
+2026-02-25 17:40:48,645 - src.infrastructure.tools.local_tool_manager - INFO - Scanning for tools in /app/workspace/langchain/tools...
+2026-02-25 17:40:48,645 - src.infrastructure.tools.local_tool_manager - INFO - Skipping deactivated local tool module: n8n_workflows
+2026-02-25 17:40:48,645 - src.infrastructure.tools.local_tool_manager - INFO - Skipping deactivated local tool module: test_hello
+2026-02-25 17:40:48,645 - src.infrastructure.tools.local_tool_manager - INFO - Skipping deactivated local tool module: echo
+2026-02-25 17:40:48,645 - src.infrastructure.tools.local_tool_manager - INFO - Skipping deactivated local tool module: test_math
+2026-02-25 17:40:48,650 - src.main - INFO - Binding 9 tools (4 MCP, 0 local, 1 semantic) to AI adapter.
+2026-02-25 17:42:56,348 - src.main - INFO - Stopping MCP Manager...
+2026-02-25 17:42:56,368 - src.application.services.task_watcher_service - INFO - TaskWatcherService stopped.
+2026-02-25 17:42:58,655 - root - INFO - Logging initialized. File: /app/workspace/logs/elo-server.log
+2026-02-25 17:42:58,681 - src.main - INFO - Initializing Obsidian Semantic Search for /data/vault...
+2026-02-25 17:42:58,766 - root - INFO - Checking for Obsidian notes updates via API...
+2026-02-25 17:42:58,766 - root - INFO - Syncing with DQL: TABLE file.mtime WHERE file.mtime > date("2026-02-18T18:11:14")
+2026-02-25 17:42:58,913 - httpx - INFO - HTTP Request: POST http://host.docker.internal:27123/search/ "HTTP/1.1 200 OK"
+2026-02-25 17:42:58,914 - root - INFO - Syncing 1 modified/new files...
+2026-02-25 17:42:58,959 - httpx - INFO - HTTP Request: GET http://host.docker.internal:27123/vault/tasks/todo/Delegate_2026-02-25_17-13-40.md "HTTP/1.1 200 OK"
+2026-02-25 17:42:58,972 - root - INFO -  Prepared 1 chunks for: tasks/todo/Delegate_2026-02-25_17-13-40.md
+2026-02-25 17:42:59,449 - httpx - INFO - HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-embedding-001:batchEmbedContents "HTTP/1.1 200 OK"
+2026-02-25 17:42:59,601 - root - INFO - Successfully synchronized 1 chunks.
+2026-02-25 17:42:59,601 - root - INFO - Updated lastIndexDatetime to 2026-02-25T17:42:59
+2026-02-25 17:42:59,780 - src.main - INFO - Starting MCP Manager...
+2026-02-25 17:42:59,781 - src.infrastructure.mcp.manager - INFO - Skipping deactivated MCP server: mcp-obsidian
+2026-02-25 17:42:59,781 - src.infrastructure.mcp.manager - INFO - Connecting to elo-obsidian-api-mcp MCP server at /app/workspace/mcps/elo-obsidian-api-mcp/dist/index.js...
+2026-02-25 17:42:59,794 - src.infrastructure.mcp.manager - INFO - Initializing elo-obsidian-api-mcp session...
+2026-02-25 17:43:00,115 - src.infrastructure.mcp.manager - INFO - Connected and initialized elo-obsidian-api-mcp MCP server.
+2026-02-25 17:43:00,115 - src.application.services.task_watcher_service - INFO - TaskWatcherService started. Monitoring /app/workspace/tasks/todo
+2026-02-25 17:43:00,117 - src.application.services.task_watcher_service - INFO - Found 1 tasks to process.
+2026-02-25 17:43:00,117 - src.application.services.task_watcher_service - INFO - Processing task: pp.md
+2026-02-25 17:43:00,123 - google_genai.models - INFO - AFC is enabled with max remote calls: 10.
+2026-02-25 17:43:00,125 - src.infrastructure.mcp.manager - INFO -   Registering MCP tool: elo_obsidian_api_mcp_search_obsidian
+2026-02-25 17:43:00,126 - src.infrastructure.mcp.manager - INFO -   Registering MCP tool: elo_obsidian_api_mcp_get_active_file
+2026-02-25 17:43:00,126 - src.infrastructure.mcp.manager - INFO -   Registering MCP tool: elo_obsidian_api_mcp_execute_command
+2026-02-25 17:43:00,126 - src.infrastructure.mcp.manager - INFO -   Registering MCP tool: elo_obsidian_api_mcp_list_commands
+2026-02-25 17:43:00,126 - src.infrastructure.tools.local_tool_manager - INFO - Scanning for tools in /app/assets/langchain/tools...
+2026-02-25 17:43:00,126 - src.infrastructure.tools.local_tool_manager - INFO - Skipping deactivated local tool module: asset_tool
+2026-02-25 17:43:00,126 - src.infrastructure.tools.local_tool_manager - INFO - Scanning for tools in /app/workspace/langchain/tools...
+2026-02-25 17:43:00,126 - src.infrastructure.tools.local_tool_manager - INFO - Loading tool module: n8n_workflows from /app/workspace/langchain/tools/n8n_workflows.py
+2026-02-25 17:43:00,129 - src.infrastructure.tools.local_tool_manager - INFO -   Found tool: call_n8n_workflow
+2026-02-25 17:43:00,129 - src.infrastructure.tools.local_tool_manager - INFO -   Found tool: list_n8n_workflows
+2026-02-25 17:43:00,129 - src.infrastructure.tools.local_tool_manager - INFO - Skipping deactivated local tool module: test_hello
+2026-02-25 17:43:00,129 - src.infrastructure.tools.local_tool_manager - INFO - Skipping deactivated local tool module: echo
+2026-02-25 17:43:00,129 - src.infrastructure.tools.local_tool_manager - INFO - Skipping deactivated local tool module: test_math
+2026-02-25 17:43:00,133 - src.main - INFO - Binding 11 tools (4 MCP, 2 local, 1 semantic) to AI adapter.
+2026-02-25 17:43:01,153 - src.application.services.task_watcher_service - INFO - Task pp.md completed successfully.
+2026-02-25 17:44:36,916 - src.main - INFO - Stopping MCP Manager...
+2026-02-25 17:44:36,961 - src.application.services.task_watcher_service - INFO - TaskWatcherService stopped.
+2026-02-25 17:44:39,060 - root - INFO - Logging initialized. File: /app/workspace/logs/elo-server.log
+2026-02-25 17:44:39,089 - src.main - INFO - Initializing Obsidian Semantic Search for /data/vault...
+2026-02-25 17:44:39,158 - root - INFO - Checking for Obsidian notes updates via API...
+2026-02-25 17:44:39,158 - root - INFO - Syncing with DQL: TABLE file.mtime WHERE file.mtime > date("2026-02-18T18:11:14")
+2026-02-25 17:44:39,309 - httpx - INFO - HTTP Request: POST http://host.docker.internal:27123/search/ "HTTP/1.1 200 OK"
+2026-02-25 17:44:39,309 - root - INFO - Syncing 1 modified/new files...
+2026-02-25 17:44:39,316 - httpx - INFO - HTTP Request: GET http://host.docker.internal:27123/vault/tasks/todo/Delegate_2026-02-25_17-13-40.md "HTTP/1.1 200 OK"
+2026-02-25 17:44:39,316 - root - INFO -  Prepared 1 chunks for: tasks/todo/Delegate_2026-02-25_17-13-40.md
+2026-02-25 17:44:39,861 - httpx - INFO - HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-embedding-001:batchEmbedContents "HTTP/1.1 200 OK"
+2026-02-25 17:44:39,980 - root - INFO - Successfully synchronized 1 chunks.
+2026-02-25 17:44:39,980 - root - INFO - Updated lastIndexDatetime to 2026-02-25T17:44:39
+2026-02-25 17:44:40,111 - src.main - INFO - Starting MCP Manager...
+2026-02-25 17:44:40,111 - src.infrastructure.mcp.manager - INFO - Skipping deactivated MCP server: mcp-obsidian
+2026-02-25 17:44:40,113 - src.infrastructure.mcp.manager - INFO - Connecting to elo-obsidian-api-mcp MCP server at /app/workspace/mcps/elo-obsidian-api-mcp/dist/index.js...
+2026-02-25 17:44:40,123 - src.infrastructure.mcp.manager - INFO - Initializing elo-obsidian-api-mcp session...
+2026-02-25 17:44:40,409 - src.infrastructure.mcp.manager - INFO - Connected and initialized elo-obsidian-api-mcp MCP server.
+2026-02-25 17:44:40,409 - src.application.services.task_watcher_service - INFO - TaskWatcherService started. Monitoring /app/workspace/tasks/todo
+2026-02-25 17:44:40,410 - src.infrastructure.mcp.manager - INFO -   Registering MCP tool: elo_obsidian_api_mcp_search_obsidian
+2026-02-25 17:44:40,411 - src.infrastructure.mcp.manager - INFO -   Registering MCP tool: elo_obsidian_api_mcp_get_active_file
+2026-02-25 17:44:40,411 - src.infrastructure.mcp.manager - INFO -   Registering MCP tool: elo_obsidian_api_mcp_execute_command
+2026-02-25 17:44:40,412 - src.infrastructure.mcp.manager - INFO -   Registering MCP tool: elo_obsidian_api_mcp_list_commands
+2026-02-25 17:44:40,412 - src.infrastructure.tools.local_tool_manager - INFO - Scanning for tools in /app/assets/langchain/tools...
+2026-02-25 17:44:40,412 - src.infrastructure.tools.local_tool_manager - INFO - Skipping deactivated local tool module: asset_tool
+2026-02-25 17:44:40,412 - src.infrastructure.tools.local_tool_manager - INFO - Scanning for tools in /app/workspace/langchain/tools...
+2026-02-25 17:44:40,412 - src.infrastructure.tools.local_tool_manager - INFO - Loading tool module: n8n_workflows from /app/workspace/langchain/tools/n8n_workflows.py
+2026-02-25 17:44:40,416 - src.infrastructure.tools.local_tool_manager - INFO -   Found tool: call_n8n_workflow
+2026-02-25 17:44:40,416 - src.infrastructure.tools.local_tool_manager - INFO -   Found tool: create_n8n_workflow
+2026-02-25 17:44:40,416 - src.infrastructure.tools.local_tool_manager - INFO -   Found tool: list_n8n_workflows
+2026-02-25 17:44:40,416 - src.infrastructure.tools.local_tool_manager - INFO - Skipping deactivated local tool module: test_hello
+2026-02-25 17:44:40,416 - src.infrastructure.tools.local_tool_manager - INFO - Skipping deactivated local tool module: echo
+2026-02-25 17:44:40,416 - src.infrastructure.tools.local_tool_manager - INFO - Skipping deactivated local tool module: test_math
+2026-02-25 17:44:40,420 - src.main - INFO - Binding 12 tools (4 MCP, 3 local, 1 semantic) to AI adapter.
+2026-02-25 17:44:53,111 - src.main - INFO - Stopping MCP Manager...
+2026-02-25 17:44:53,133 - src.application.services.task_watcher_service - INFO - TaskWatcherService stopped.
+2026-02-25 17:44:54,596 - root - INFO - Logging initialized. File: /app/workspace/logs/elo-server.log
+2026-02-25 17:44:54,624 - src.main - INFO - Initializing Obsidian Semantic Search for /data/vault...
+2026-02-25 17:44:54,686 - root - INFO - Checking for Obsidian notes updates via API...
+2026-02-25 17:44:54,686 - root - INFO - Syncing with DQL: TABLE file.mtime WHERE file.mtime > date("2026-02-18T18:11:14")
+2026-02-25 17:44:54,819 - httpx - INFO - HTTP Request: POST http://host.docker.internal:27123/search/ "HTTP/1.1 200 OK"
+2026-02-25 17:44:54,820 - root - INFO - Syncing 1 modified/new files...
+2026-02-25 17:44:54,833 - httpx - INFO - HTTP Request: GET http://host.docker.internal:27123/vault/tasks/todo/Delegate_2026-02-25_17-13-40.md "HTTP/1.1 200 OK"
+2026-02-25 17:44:54,833 - root - INFO -  Prepared 1 chunks for: tasks/todo/Delegate_2026-02-25_17-13-40.md
+2026-02-25 17:44:55,356 - httpx - INFO - HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-embedding-001:batchEmbedContents "HTTP/1.1 200 OK"
+2026-02-25 17:44:55,472 - root - INFO - Successfully synchronized 1 chunks.
+2026-02-25 17:44:55,473 - root - INFO - Updated lastIndexDatetime to 2026-02-25T17:44:55
+2026-02-25 17:44:55,635 - src.main - INFO - Starting MCP Manager...
+2026-02-25 17:44:55,635 - src.infrastructure.mcp.manager - INFO - Skipping deactivated MCP server: mcp-obsidian
+2026-02-25 17:44:55,636 - src.infrastructure.mcp.manager - INFO - Connecting to elo-obsidian-api-mcp MCP server at /app/workspace/mcps/elo-obsidian-api-mcp/dist/index.js...
+2026-02-25 17:44:55,651 - src.infrastructure.mcp.manager - INFO - Initializing elo-obsidian-api-mcp session...
+2026-02-25 17:44:56,066 - src.infrastructure.mcp.manager - INFO - Connected and initialized elo-obsidian-api-mcp MCP server.
+2026-02-25 17:44:56,066 - src.application.services.task_watcher_service - INFO - TaskWatcherService started. Monitoring /app/workspace/tasks/todo
+2026-02-25 17:44:56,067 - src.application.services.task_watcher_service - INFO - Found 1 tasks to process.
+2026-02-25 17:44:56,067 - src.application.services.task_watcher_service - INFO - Processing task: pp.md
+2026-02-25 17:44:56,072 - google_genai.models - INFO - AFC is enabled with max remote calls: 10.
+2026-02-25 17:44:56,074 - src.infrastructure.mcp.manager - INFO -   Registering MCP tool: elo_obsidian_api_mcp_search_obsidian
+2026-02-25 17:44:56,075 - src.infrastructure.mcp.manager - INFO -   Registering MCP tool: elo_obsidian_api_mcp_get_active_file
+2026-02-25 17:44:56,075 - src.infrastructure.mcp.manager - INFO -   Registering MCP tool: elo_obsidian_api_mcp_execute_command
+2026-02-25 17:44:56,075 - src.infrastructure.mcp.manager - INFO -   Registering MCP tool: elo_obsidian_api_mcp_list_commands
+2026-02-25 17:44:56,075 - src.infrastructure.tools.local_tool_manager - INFO - Scanning for tools in /app/assets/langchain/tools...
+2026-02-25 17:44:56,076 - src.infrastructure.tools.local_tool_manager - INFO - Skipping deactivated local tool module: asset_tool
+2026-02-25 17:44:56,076 - src.infrastructure.tools.local_tool_manager - INFO - Scanning for tools in /app/workspace/langchain/tools...
+2026-02-25 17:44:56,076 - src.infrastructure.tools.local_tool_manager - INFO - Loading tool module: n8n_workflows from /app/workspace/langchain/tools/n8n_workflows.py
+2026-02-25 17:44:56,079 - src.infrastructure.tools.local_tool_manager - INFO -   Found tool: call_n8n_workflow
+2026-02-25 17:44:56,079 - src.infrastructure.tools.local_tool_manager - INFO -   Found tool: create_n8n_workflow
+2026-02-25 17:44:56,080 - src.infrastructure.tools.local_tool_manager - INFO -   Found tool: list_n8n_workflows
+2026-02-25 17:44:56,080 - src.infrastructure.tools.local_tool_manager - INFO - Skipping deactivated local tool module: test_hello
+2026-02-25 17:44:56,080 - src.infrastructure.tools.local_tool_manager - INFO - Skipping deactivated local tool module: echo
+2026-02-25 17:44:56,080 - src.infrastructure.tools.local_tool_manager - INFO - Skipping deactivated local tool module: test_math
+2026-02-25 17:44:56,083 - src.main - INFO - Binding 12 tools (4 MCP, 3 local, 1 semantic) to AI adapter.
+2026-02-25 17:44:56,195 - src.main - INFO - Stopping MCP Manager...
+2026-02-25 17:44:56,200 - src.application.services.task_watcher_service - INFO - TaskWatcherService stopped.
+2026-02-25 17:44:58,426 - root - INFO - Logging initialized. File: /app/workspace/logs/elo-server.log
+2026-02-25 17:44:58,450 - src.main - INFO - Initializing Obsidian Semantic Search for /data/vault...
+2026-02-25 17:44:58,519 - root - INFO - Checking for Obsidian notes updates via API...
+2026-02-25 17:44:58,519 - root - INFO - Syncing with DQL: TABLE file.mtime WHERE file.mtime > date("2026-02-18T18:11:14")
+2026-02-25 17:44:58,660 - httpx - INFO - HTTP Request: POST http://host.docker.internal:27123/search/ "HTTP/1.1 200 OK"
+2026-02-25 17:44:58,661 - root - INFO - Syncing 1 modified/new files...
+2026-02-25 17:44:58,721 - httpx - INFO - HTTP Request: GET http://host.docker.internal:27123/vault/tasks/todo/Delegate_2026-02-25_17-13-40.md "HTTP/1.1 200 OK"
+2026-02-25 17:44:58,723 - root - INFO -  Prepared 1 chunks for: tasks/todo/Delegate_2026-02-25_17-13-40.md
+2026-02-25 17:44:59,243 - httpx - INFO - HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-embedding-001:batchEmbedContents "HTTP/1.1 200 OK"
+2026-02-25 17:44:59,512 - root - INFO - Successfully synchronized 1 chunks.
+2026-02-25 17:44:59,514 - root - INFO - Updated lastIndexDatetime to 2026-02-25T17:44:59
+2026-02-25 17:44:59,767 - src.main - INFO - Starting MCP Manager...
+2026-02-25 17:44:59,767 - src.infrastructure.mcp.manager - INFO - Skipping deactivated MCP server: mcp-obsidian
+2026-02-25 17:44:59,767 - src.infrastructure.mcp.manager - INFO - Connecting to elo-obsidian-api-mcp MCP server at /app/workspace/mcps/elo-obsidian-api-mcp/dist/index.js...
+2026-02-25 17:44:59,784 - src.infrastructure.mcp.manager - INFO - Initializing elo-obsidian-api-mcp session...
+2026-02-25 17:45:00,141 - src.infrastructure.mcp.manager - INFO - Connected and initialized elo-obsidian-api-mcp MCP server.
+2026-02-25 17:45:00,142 - src.application.services.task_watcher_service - INFO - TaskWatcherService started. Monitoring /app/workspace/tasks/todo
+2026-02-25 17:45:00,143 - src.infrastructure.mcp.manager - INFO -   Registering MCP tool: elo_obsidian_api_mcp_search_obsidian
+2026-02-25 17:45:00,144 - src.infrastructure.mcp.manager - INFO -   Registering MCP tool: elo_obsidian_api_mcp_get_active_file
+2026-02-25 17:45:00,145 - src.infrastructure.mcp.manager - INFO -   Registering MCP tool: elo_obsidian_api_mcp_execute_command
+2026-02-25 17:45:00,145 - src.infrastructure.mcp.manager - INFO -   Registering MCP tool: elo_obsidian_api_mcp_list_commands
+2026-02-25 17:45:00,145 - src.infrastructure.tools.local_tool_manager - INFO - Scanning for tools in /app/assets/langchain/tools...
+2026-02-25 17:45:00,145 - src.infrastructure.tools.local_tool_manager - INFO - Skipping deactivated local tool module: asset_tool
+2026-02-25 17:45:00,145 - src.infrastructure.tools.local_tool_manager - INFO - Scanning for tools in /app/workspace/langchain/tools...
+2026-02-25 17:45:00,145 - src.infrastructure.tools.local_tool_manager - INFO - Loading tool module: n8n_workflows from /app/workspace/langchain/tools/n8n_workflows.py
+2026-02-25 17:45:00,150 - src.infrastructure.tools.local_tool_manager - INFO -   Found tool: call_n8n_workflow
+2026-02-25 17:45:00,150 - src.infrastructure.tools.local_tool_manager - INFO -   Found tool: create_n8n_workflow
+2026-02-25 17:45:00,150 - src.infrastructure.tools.local_tool_manager - INFO -   Found tool: list_n8n_workflows
+2026-02-25 17:45:00,150 - src.infrastructure.tools.local_tool_manager - INFO - Skipping deactivated local tool module: test_hello
+2026-02-25 17:45:00,150 - src.infrastructure.tools.local_tool_manager - INFO - Skipping deactivated local tool module: echo
+2026-02-25 17:45:00,150 - src.infrastructure.tools.local_tool_manager - INFO - Skipping deactivated local tool module: test_math
+2026-02-25 17:45:00,154 - src.main - INFO - Binding 12 tools (4 MCP, 3 local, 1 semantic) to AI adapter.
+2026-02-25 17:47:17,567 - src.main - INFO - Stopping MCP Manager...
+2026-02-25 17:47:17,596 - src.application.services.task_watcher_service - INFO - TaskWatcherService stopped.
+2026-02-25 17:47:19,246 - root - INFO - Logging initialized. File: /app/workspace/logs/elo-server.log
+2026-02-25 17:47:19,274 - src.main - INFO - Initializing Obsidian Semantic Search for /data/vault...
+2026-02-25 17:47:19,349 - root - INFO - Checking for Obsidian notes updates via API...
+2026-02-25 17:47:19,349 - root - INFO - Syncing with DQL: TABLE file.mtime WHERE file.mtime > date("2026-02-18T18:11:14")
+2026-02-25 17:47:19,502 - httpx - INFO - HTTP Request: POST http://host.docker.internal:27123/search/ "HTTP/1.1 200 OK"
+2026-02-25 17:47:19,503 - root - INFO - Syncing 1 modified/new files...
+2026-02-25 17:47:19,510 - httpx - INFO - HTTP Request: GET http://host.docker.internal:27123/vault/tasks/todo/Delegate_2026-02-25_17-13-40.md "HTTP/1.1 200 OK"
+2026-02-25 17:47:19,511 - root - INFO -  Prepared 1 chunks for: tasks/todo/Delegate_2026-02-25_17-13-40.md
+2026-02-25 17:47:20,026 - httpx - INFO - HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-embedding-001:batchEmbedContents "HTTP/1.1 200 OK"
+2026-02-25 17:47:20,127 - root - INFO - Successfully synchronized 1 chunks.
+2026-02-25 17:47:20,127 - root - INFO - Updated lastIndexDatetime to 2026-02-25T17:47:20
+2026-02-25 17:47:20,279 - src.main - INFO - Starting MCP Manager...
+2026-02-25 17:47:20,279 - src.infrastructure.mcp.manager - INFO - Skipping deactivated MCP server: mcp-obsidian
+2026-02-25 17:47:20,280 - src.infrastructure.mcp.manager - INFO - Connecting to elo-obsidian-api-mcp MCP server at /app/workspace/mcps/elo-obsidian-api-mcp/dist/index.js...
+2026-02-25 17:47:20,291 - src.infrastructure.mcp.manager - INFO - Initializing elo-obsidian-api-mcp session...
+2026-02-25 17:47:20,604 - src.infrastructure.mcp.manager - INFO - Connected and initialized elo-obsidian-api-mcp MCP server.
+2026-02-25 17:47:20,605 - src.application.services.task_watcher_service - INFO - Recovering 1 stranded tasks from in-progress.
+2026-02-25 17:47:20,606 - src.application.services.task_watcher_service - INFO - Moved stranded task pp.md back to todo.
+2026-02-25 17:47:20,606 - src.application.services.task_watcher_service - INFO - TaskWatcherService started. Monitoring /app/workspace/tasks/todo
+2026-02-25 17:47:20,607 - src.application.services.task_watcher_service - INFO - Found 1 tasks to process.
+2026-02-25 17:47:20,607 - src.application.services.task_watcher_service - INFO - Processing task: pp.md
+2026-02-25 17:47:20,614 - google_genai.models - INFO - AFC is enabled with max remote calls: 10.
+2026-02-25 17:47:20,616 - src.infrastructure.mcp.manager - INFO -   Registering MCP tool: elo_obsidian_api_mcp_search_obsidian
+2026-02-25 17:47:20,617 - src.infrastructure.mcp.manager - INFO -   Registering MCP tool: elo_obsidian_api_mcp_get_active_file
+2026-02-25 17:47:20,617 - src.infrastructure.mcp.manager - INFO -   Registering MCP tool: elo_obsidian_api_mcp_execute_command
+2026-02-25 17:47:20,617 - src.infrastructure.mcp.manager - INFO -   Registering MCP tool: elo_obsidian_api_mcp_list_commands
+2026-02-25 17:47:20,618 - src.infrastructure.tools.local_tool_manager - INFO - Scanning for tools in /app/assets/langchain/tools...
+2026-02-25 17:47:20,618 - src.infrastructure.tools.local_tool_manager - INFO - Skipping deactivated local tool module: asset_tool
+2026-02-25 17:47:20,618 - src.infrastructure.tools.local_tool_manager - INFO - Scanning for tools in /app/workspace/langchain/tools...
+2026-02-25 17:47:20,618 - src.infrastructure.tools.local_tool_manager - INFO - Loading tool module: n8n_workflows from /app/workspace/langchain/tools/n8n_workflows.py
+2026-02-25 17:47:20,622 - src.infrastructure.tools.local_tool_manager - INFO -   Found tool: call_n8n_workflow
+2026-02-25 17:47:20,622 - src.infrastructure.tools.local_tool_manager - INFO -   Found tool: create_n8n_workflow
+2026-02-25 17:47:20,622 - src.infrastructure.tools.local_tool_manager - INFO -   Found tool: list_n8n_workflows
+2026-02-25 17:47:20,622 - src.infrastructure.tools.local_tool_manager - INFO - Skipping deactivated local tool module: test_hello
+2026-02-25 17:47:20,622 - src.infrastructure.tools.local_tool_manager - INFO - Skipping deactivated local tool module: echo
+2026-02-25 17:47:20,622 - src.infrastructure.tools.local_tool_manager - INFO - Skipping deactivated local tool module: test_math
+2026-02-25 17:47:20,626 - src.main - INFO - Binding 12 tools (4 MCP, 3 local, 1 semantic) to AI adapter.
+2026-02-25 17:47:23,720 - src.application.services.task_watcher_service - INFO - Task pp.md was delegated to human. Reason: Requires creating an n8n workflow to connect to WhatsApp. This involves setting up a WhatsApp Business API or Twilio account, creating an n8n workflow to handle messages, and a service to bridge the gap between n8n and the AI interface. This is beyond the current capabilities.
+2026-02-25 17:47:23,725 - src.application.services.task_watcher_service - INFO - Rescheduled pp.md to todo and created help note HUMAN_NEED_HELP_20260225_174723_pp.md
+2026-02-25 17:47:25,696 - src.main - INFO - Stopping MCP Manager...
+2026-02-25 17:47:25,718 - src.application.services.task_watcher_service - INFO - TaskWatcherService stopped.
+2026-02-25 17:47:27,827 - root - INFO - Logging initialized. File: /app/workspace/logs/elo-server.log
+2026-02-25 17:47:27,853 - src.main - INFO - Initializing Obsidian Semantic Search for /data/vault...
+2026-02-25 17:47:27,924 - root - INFO - Checking for Obsidian notes updates via API...
+2026-02-25 17:47:27,924 - root - INFO - Syncing with DQL: TABLE file.mtime WHERE file.mtime > date("2026-02-18T18:11:14")
+2026-02-25 17:47:28,041 - httpx - INFO - HTTP Request: POST http://host.docker.internal:27123/search/ "HTTP/1.1 200 OK"
+2026-02-25 17:47:28,041 - root - INFO - Syncing 1 modified/new files...
+2026-02-25 17:47:28,046 - httpx - INFO - HTTP Request: GET http://host.docker.internal:27123/vault/tasks/todo/Delegate_2026-02-25_17-13-40.md "HTTP/1.1 200 OK"
+2026-02-25 17:47:28,046 - root - INFO -  Prepared 1 chunks for: tasks/todo/Delegate_2026-02-25_17-13-40.md
+2026-02-25 17:47:28,521 - httpx - INFO - HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-embedding-001:batchEmbedContents "HTTP/1.1 200 OK"
+2026-02-25 17:47:28,689 - root - INFO - Successfully synchronized 1 chunks.
+2026-02-25 17:47:28,689 - root - INFO - Updated lastIndexDatetime to 2026-02-25T17:47:28
+2026-02-25 17:47:29,132 - src.main - INFO - Starting MCP Manager...
+2026-02-25 17:47:29,139 - src.infrastructure.mcp.manager - INFO - Skipping deactivated MCP server: mcp-obsidian
+2026-02-25 17:47:29,139 - src.infrastructure.mcp.manager - INFO - Connecting to elo-obsidian-api-mcp MCP server at /app/workspace/mcps/elo-obsidian-api-mcp/dist/index.js...
+2026-02-25 17:47:29,175 - src.infrastructure.mcp.manager - INFO - Initializing elo-obsidian-api-mcp session...
+2026-02-25 17:47:29,573 - src.infrastructure.mcp.manager - INFO - Connected and initialized elo-obsidian-api-mcp MCP server.
+2026-02-25 17:47:29,574 - src.application.services.task_watcher_service - INFO - TaskWatcherService started. Monitoring /app/workspace/tasks/todo
+2026-02-25 17:47:29,574 - src.application.services.task_watcher_service - INFO - Found 1 tasks to process.
+2026-02-25 17:47:29,574 - src.application.services.task_watcher_service - INFO - Processing task: pp.md
+2026-02-25 17:47:29,591 - google_genai.models - INFO - AFC is enabled with max remote calls: 10.
+2026-02-25 17:47:29,598 - src.infrastructure.mcp.manager - INFO -   Registering MCP tool: elo_obsidian_api_mcp_search_obsidian
+2026-02-25 17:47:29,599 - src.infrastructure.mcp.manager - INFO -   Registering MCP tool: elo_obsidian_api_mcp_get_active_file
+2026-02-25 17:47:29,599 - src.infrastructure.mcp.manager - INFO -   Registering MCP tool: elo_obsidian_api_mcp_execute_command
+2026-02-25 17:47:29,599 - src.infrastructure.mcp.manager - INFO -   Registering MCP tool: elo_obsidian_api_mcp_list_commands
+2026-02-25 17:47:29,600 - src.infrastructure.tools.local_tool_manager - INFO - Scanning for tools in /app/assets/langchain/tools...
+2026-02-25 17:47:29,600 - src.infrastructure.tools.local_tool_manager - INFO - Skipping deactivated local tool module: asset_tool
+2026-02-25 17:47:29,600 - src.infrastructure.tools.local_tool_manager - INFO - Scanning for tools in /app/workspace/langchain/tools...
+2026-02-25 17:47:29,600 - src.infrastructure.tools.local_tool_manager - INFO - Loading tool module: n8n_workflows from /app/workspace/langchain/tools/n8n_workflows.py
+2026-02-25 17:47:29,605 - src.infrastructure.tools.local_tool_manager - INFO -   Found tool: call_n8n_workflow
+2026-02-25 17:47:29,605 - src.infrastructure.tools.local_tool_manager - INFO -   Found tool: create_n8n_workflow
+2026-02-25 17:47:29,605 - src.infrastructure.tools.local_tool_manager - INFO -   Found tool: list_n8n_workflows
+2026-02-25 17:47:29,606 - src.infrastructure.tools.local_tool_manager - INFO - Skipping deactivated local tool module: test_hello
+2026-02-25 17:47:29,606 - src.infrastructure.tools.local_tool_manager - INFO - Skipping deactivated local tool module: echo
+2026-02-25 17:47:29,606 - src.infrastructure.tools.local_tool_manager - INFO - Skipping deactivated local tool module: test_math
+2026-02-25 17:47:29,610 - src.main - INFO - Binding 12 tools (4 MCP, 3 local, 1 semantic) to AI adapter.
+2026-02-25 17:47:31,427 - src.application.services.task_watcher_service - INFO - Task pp.md completed successfully.
+2026-02-25 17:55:30,361 - src.main - INFO - Stopping MCP Manager...
+2026-02-25 17:55:30,403 - src.application.services.task_watcher_service - INFO - TaskWatcherService stopped.
+2026-02-25 17:55:31,889 - root - INFO - Logging initialized. File: /app/workspace/logs/elo-server.log
+2026-02-25 17:55:31,918 - src.main - INFO - Initializing Obsidian Semantic Search for /data/vault...
+2026-02-25 17:55:31,992 - root - INFO - Checking for Obsidian notes updates via API...
+2026-02-25 17:55:31,992 - root - INFO - Syncing with DQL: TABLE file.mtime WHERE file.mtime > date("2026-02-18T18:11:14")
+2026-02-25 17:55:32,150 - httpx - INFO - HTTP Request: POST http://host.docker.internal:27123/search/ "HTTP/1.1 200 OK"
+2026-02-25 17:55:32,151 - root - INFO - Syncing 1 modified/new files...
+2026-02-25 17:55:32,157 - httpx - INFO - HTTP Request: GET http://host.docker.internal:27123/vault/tasks/todo/Delegate_2026-02-25_17-13-40.md "HTTP/1.1 200 OK"
+2026-02-25 17:55:32,158 - root - INFO -  Prepared 1 chunks for: tasks/todo/Delegate_2026-02-25_17-13-40.md
+2026-02-25 17:55:32,756 - httpx - INFO - HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-embedding-001:batchEmbedContents "HTTP/1.1 200 OK"
+2026-02-25 17:55:32,888 - root - INFO - Successfully synchronized 1 chunks.
+2026-02-25 17:55:32,888 - root - INFO - Updated lastIndexDatetime to 2026-02-25T17:55:32
+2026-02-25 17:55:33,024 - src.main - INFO - Starting MCP Manager...
+2026-02-25 17:55:33,024 - src.infrastructure.mcp.manager - INFO - Skipping deactivated MCP server: mcp-obsidian
+2026-02-25 17:55:33,025 - src.infrastructure.mcp.manager - INFO - Connecting to elo-obsidian-api-mcp MCP server at /app/workspace/mcps/elo-obsidian-api-mcp/dist/index.js...
+2026-02-25 17:55:33,046 - src.infrastructure.mcp.manager - INFO - Initializing elo-obsidian-api-mcp session...
+2026-02-25 17:55:33,345 - src.infrastructure.mcp.manager - INFO - Connected and initialized elo-obsidian-api-mcp MCP server.
+2026-02-25 17:55:33,345 - src.application.services.task_watcher_service - INFO - TaskWatcherService started. Monitoring /app/workspace/tasks/todo
+2026-02-25 17:55:33,346 - src.application.services.task_watcher_service - INFO - Found 1 tasks to process.
+2026-02-25 17:55:33,346 - src.application.services.task_watcher_service - INFO - Processing task: gmail.md
+2026-02-25 17:55:33,352 - google_genai.models - INFO - AFC is enabled with max remote calls: 10.
+2026-02-25 17:55:33,355 - src.infrastructure.mcp.manager - INFO -   Registering MCP tool: elo_obsidian_api_mcp_search_obsidian
+2026-02-25 17:55:33,355 - src.infrastructure.mcp.manager - INFO -   Registering MCP tool: elo_obsidian_api_mcp_get_active_file
+2026-02-25 17:55:33,356 - src.infrastructure.mcp.manager - INFO -   Registering MCP tool: elo_obsidian_api_mcp_execute_command
+2026-02-25 17:55:33,356 - src.infrastructure.mcp.manager - INFO -   Registering MCP tool: elo_obsidian_api_mcp_list_commands
+2026-02-25 17:55:33,356 - src.infrastructure.tools.local_tool_manager - INFO - Scanning for tools in /app/assets/langchain/tools...
+2026-02-25 17:55:33,356 - src.infrastructure.tools.local_tool_manager - INFO - Skipping deactivated local tool module: asset_tool
+2026-02-25 17:55:33,357 - src.infrastructure.tools.local_tool_manager - INFO - Scanning for tools in /app/workspace/langchain/tools...
+2026-02-25 17:55:33,357 - src.infrastructure.tools.local_tool_manager - INFO - Loading tool module: n8n_workflows from /app/workspace/langchain/tools/n8n_workflows.py
+2026-02-25 17:55:33,362 - src.infrastructure.tools.local_tool_manager - INFO -   Found tool: call_n8n_workflow
+2026-02-25 17:55:33,362 - src.infrastructure.tools.local_tool_manager - INFO -   Found tool: create_n8n_workflow
+2026-02-25 17:55:33,362 - src.infrastructure.tools.local_tool_manager - INFO -   Found tool: list_n8n_workflows
+2026-02-25 17:55:33,362 - src.infrastructure.tools.local_tool_manager - INFO - Skipping deactivated local tool module: test_hello
+2026-02-25 17:55:33,362 - src.infrastructure.tools.local_tool_manager - INFO - Skipping deactivated local tool module: echo
+2026-02-25 17:55:33,362 - src.infrastructure.tools.local_tool_manager - INFO - Skipping deactivated local tool module: test_math
+2026-02-25 17:55:33,365 - src.main - INFO - Binding 12 tools (4 MCP, 3 local, 1 semantic) to AI adapter.
+2026-02-25 17:55:34,850 - src.application.services.task_watcher_service - INFO - Task gmail.md completed successfully.
+2026-02-25 17:56:04,862 - src.application.services.task_watcher_service - INFO - Found 1 tasks to process.
+2026-02-25 17:56:04,865 - src.application.services.task_watcher_service - INFO - Processing task: gmail.md
+2026-02-25 17:56:06,782 - src.application.services.task_watcher_service - INFO - Task gmail.md completed successfully.
+2026-02-25 17:59:16,463 - src.main - INFO - Stopping MCP Manager...
+2026-02-25 17:59:16,491 - src.application.services.task_watcher_service - INFO - TaskWatcherService stopped.
+2026-02-25 17:59:18,182 - root - INFO - Logging initialized. File: /app/workspace/logs/elo-server.log
+2026-02-25 17:59:18,211 - src.main - INFO - Initializing Obsidian Semantic Search for /data/vault...
+2026-02-25 17:59:18,279 - root - INFO - Checking for Obsidian notes updates via API...
+2026-02-25 17:59:18,279 - root - INFO - Syncing with DQL: TABLE file.mtime WHERE file.mtime > date("2026-02-18T18:11:14")
+2026-02-25 17:59:18,451 - httpx - INFO - HTTP Request: POST http://host.docker.internal:27123/search/ "HTTP/1.1 200 OK"
+2026-02-25 17:59:18,451 - root - INFO - Syncing 1 modified/new files...
+2026-02-25 17:59:18,459 - httpx - INFO - HTTP Request: GET http://host.docker.internal:27123/vault/tasks/todo/Delegate_2026-02-25_17-13-40.md "HTTP/1.1 200 OK"
+2026-02-25 17:59:18,459 - root - INFO -  Prepared 1 chunks for: tasks/todo/Delegate_2026-02-25_17-13-40.md
+2026-02-25 17:59:18,986 - httpx - INFO - HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-embedding-001:batchEmbedContents "HTTP/1.1 200 OK"
+2026-02-25 17:59:19,093 - root - INFO - Successfully synchronized 1 chunks.
+2026-02-25 17:59:19,093 - root - INFO - Updated lastIndexDatetime to 2026-02-25T17:59:19
+2026-02-25 17:59:19,304 - src.main - INFO - Starting MCP Manager...
+2026-02-25 17:59:19,304 - src.infrastructure.mcp.manager - INFO - Skipping deactivated MCP server: mcp-obsidian
+2026-02-25 17:59:19,305 - src.infrastructure.mcp.manager - INFO - Connecting to elo-obsidian-api-mcp MCP server at /app/workspace/mcps/elo-obsidian-api-mcp/dist/index.js...
+2026-02-25 17:59:19,318 - src.infrastructure.mcp.manager - INFO - Initializing elo-obsidian-api-mcp session...
+2026-02-25 17:59:19,651 - src.infrastructure.mcp.manager - INFO - Connected and initialized elo-obsidian-api-mcp MCP server.
+2026-02-25 17:59:19,652 - src.application.services.task_watcher_service - INFO - TaskWatcherService started. Monitoring /app/workspace/tasks/todo
+2026-02-25 17:59:19,653 - src.infrastructure.mcp.manager - INFO -   Registering MCP tool: elo_obsidian_api_mcp_search_obsidian
+2026-02-25 17:59:19,654 - src.infrastructure.mcp.manager - INFO -   Registering MCP tool: elo_obsidian_api_mcp_get_active_file
+2026-02-25 17:59:19,654 - src.infrastructure.mcp.manager - INFO -   Registering MCP tool: elo_obsidian_api_mcp_execute_command
+2026-02-25 17:59:19,654 - src.infrastructure.mcp.manager - INFO -   Registering MCP tool: elo_obsidian_api_mcp_list_commands
+2026-02-25 17:59:19,655 - src.infrastructure.tools.local_tool_manager - INFO - Scanning for tools in /app/assets/langchain/tools...
+2026-02-25 17:59:19,655 - src.infrastructure.tools.local_tool_manager - INFO - Skipping deactivated local tool module: asset_tool
+2026-02-25 17:59:19,655 - src.infrastructure.tools.local_tool_manager - INFO - Scanning for tools in /app/workspace/langchain/tools...
+2026-02-25 17:59:19,655 - src.infrastructure.tools.local_tool_manager - INFO - Loading tool module: n8n_workflows from /app/workspace/langchain/tools/n8n_workflows.py
+2026-02-25 17:59:19,659 - src.infrastructure.tools.local_tool_manager - INFO -   Found tool: call_n8n_workflow
+2026-02-25 17:59:19,659 - src.infrastructure.tools.local_tool_manager - INFO -   Found tool: create_n8n_workflow
+2026-02-25 17:59:19,660 - src.infrastructure.tools.local_tool_manager - INFO -   Found tool: list_n8n_workflows
+2026-02-25 17:59:19,660 - src.infrastructure.tools.local_tool_manager - INFO - Skipping deactivated local tool module: test_hello
+2026-02-25 17:59:19,660 - src.infrastructure.tools.local_tool_manager - INFO - Skipping deactivated local tool module: echo
+2026-02-25 17:59:19,660 - src.infrastructure.tools.local_tool_manager - INFO - Skipping deactivated local tool module: test_math
+2026-02-25 17:59:19,664 - src.main - INFO - Binding 12 tools (4 MCP, 3 local, 1 semantic) to AI adapter.
+2026-02-25 17:59:36,972 - src.main - INFO - Stopping MCP Manager...
+2026-02-25 17:59:37,001 - src.application.services.task_watcher_service - INFO - TaskWatcherService stopped.
+2026-02-25 17:59:39,416 - root - INFO - Logging initialized. File: /app/workspace/logs/elo-server.log
+2026-02-25 17:59:39,441 - src.main - INFO - Initializing Obsidian Semantic Search for /data/vault...
+2026-02-25 17:59:39,506 - root - INFO - Checking for Obsidian notes updates via API...
+2026-02-25 17:59:39,506 - root - INFO - Syncing with DQL: TABLE file.mtime WHERE file.mtime > date("2026-02-18T18:11:14")
+2026-02-25 17:59:39,644 - httpx - INFO - HTTP Request: POST http://host.docker.internal:27123/search/ "HTTP/1.1 200 OK"
+2026-02-25 17:59:39,645 - root - INFO - Syncing 1 modified/new files...
+2026-02-25 17:59:39,652 - httpx - INFO - HTTP Request: GET http://host.docker.internal:27123/vault/tasks/todo/Delegate_2026-02-25_17-13-40.md "HTTP/1.1 200 OK"
+2026-02-25 17:59:39,652 - root - INFO -  Prepared 1 chunks for: tasks/todo/Delegate_2026-02-25_17-13-40.md
+2026-02-25 17:59:40,218 - httpx - INFO - HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-embedding-001:batchEmbedContents "HTTP/1.1 200 OK"
+2026-02-25 17:59:40,352 - root - INFO - Successfully synchronized 1 chunks.
+2026-02-25 17:59:40,352 - root - INFO - Updated lastIndexDatetime to 2026-02-25T17:59:40
+2026-02-25 17:59:40,481 - src.main - INFO - Starting MCP Manager...
+2026-02-25 17:59:40,481 - src.infrastructure.mcp.manager - INFO - Skipping deactivated MCP server: mcp-obsidian
+2026-02-25 17:59:40,481 - src.infrastructure.mcp.manager - INFO - Connecting to elo-obsidian-api-mcp MCP server at /app/workspace/mcps/elo-obsidian-api-mcp/dist/index.js...
+2026-02-25 17:59:40,496 - src.infrastructure.mcp.manager - INFO - Initializing elo-obsidian-api-mcp session...
+2026-02-25 17:59:40,830 - src.infrastructure.mcp.manager - INFO - Connected and initialized elo-obsidian-api-mcp MCP server.
+2026-02-25 17:59:40,830 - src.application.services.task_watcher_service - INFO - TaskWatcherService started. Monitoring /app/workspace/tasks/todo
+2026-02-25 17:59:40,830 - src.application.services.task_watcher_service - INFO - Found 1 tasks to process.
+2026-02-25 17:59:40,830 - src.application.services.task_watcher_service - INFO - Processing task: gmail.md
+2026-02-25 17:59:40,837 - google_genai.models - INFO - AFC is enabled with max remote calls: 10.
+2026-02-25 17:59:40,840 - src.infrastructure.mcp.manager - INFO -   Registering MCP tool: elo_obsidian_api_mcp_search_obsidian
+2026-02-25 17:59:40,841 - src.infrastructure.mcp.manager - INFO -   Registering MCP tool: elo_obsidian_api_mcp_get_active_file
+2026-02-25 17:59:40,841 - src.infrastructure.mcp.manager - INFO -   Registering MCP tool: elo_obsidian_api_mcp_execute_command
+2026-02-25 17:59:40,842 - src.infrastructure.mcp.manager - INFO -   Registering MCP tool: elo_obsidian_api_mcp_list_commands
+2026-02-25 17:59:40,842 - src.infrastructure.tools.local_tool_manager - INFO - Scanning for tools in /app/assets/langchain/tools...
+2026-02-25 17:59:40,842 - src.infrastructure.tools.local_tool_manager - INFO - Skipping deactivated local tool module: asset_tool
+2026-02-25 17:59:40,842 - src.infrastructure.tools.local_tool_manager - INFO - Scanning for tools in /app/workspace/langchain/tools...
+2026-02-25 17:59:40,842 - src.infrastructure.tools.local_tool_manager - INFO - Loading tool module: n8n_workflows from /app/workspace/langchain/tools/n8n_workflows.py
+2026-02-25 17:59:40,847 - src.infrastructure.tools.local_tool_manager - INFO -   Found tool: call_n8n_workflow
+2026-02-25 17:59:40,847 - src.infrastructure.tools.local_tool_manager - INFO -   Found tool: create_n8n_workflow
+2026-02-25 17:59:40,847 - src.infrastructure.tools.local_tool_manager - INFO -   Found tool: list_n8n_workflows
+2026-02-25 17:59:40,847 - src.infrastructure.tools.local_tool_manager - INFO - Skipping deactivated local tool module: test_hello
+2026-02-25 17:59:40,847 - src.infrastructure.tools.local_tool_manager - INFO - Skipping deactivated local tool module: echo
+2026-02-25 17:59:40,847 - src.infrastructure.tools.local_tool_manager - INFO - Skipping deactivated local tool module: test_math
+2026-02-25 17:59:40,851 - src.main - INFO - Binding 12 tools (4 MCP, 3 local, 1 semantic) to AI adapter.
+2026-02-25 17:59:42,123 - src.application.services.task_watcher_service - INFO - Task gmail.md was delegated to human. Reason: I need permission to create an n8n workflow and access the user\'s Google Calendar, as well as store data in their Obsidian vault.
+2026-02-25 17:59:42,127 - src.application.services.task_watcher_service - INFO - Rescheduled gmail.md to todo and created help note HUMAN_NEED_HELP_20260225_175942_gmail.md
+2026-02-25 18:00:12,144 - src.application.services.task_watcher_service - INFO - Found 1 tasks to process.
+2026-02-25 18:00:12,146 - src.application.services.task_watcher_service - INFO - Processing task: gmail.md
+2026-02-25 18:00:14,594 - src.application.services.task_watcher_service - INFO - Task gmail.md was delegated to human. Reason: Need a human to build an n8n workflow that connects to Google Calendar, fetches events for the current day, summarizes them, and stores the summary in a note in the Obsidian vault. The Google Calendar node needs to be configured with the user\'s credentials. The workflow should create a new note or update an existing note (e.g., "Daily Agenda
+2026-02-25 18:00:14,596 - src.application.services.task_watcher_service - INFO - Rescheduled gmail.md to todo and created help note HUMAN_NEED_HELP_20260225_180014_gmail.md
+2026-02-25 18:00:44,604 - src.application.services.task_watcher_service - INFO - Found 1 tasks to process.
+2026-02-25 18:00:44,606 - src.application.services.task_watcher_service - INFO - Processing task: gmail.md
+2026-02-25 18:00:46,026 - src.application.services.task_watcher_service - INFO - Task gmail.md completed successfully.
+2026-02-25 18:01:46,052 - src.application.services.task_watcher_service - INFO - Found 1 tasks to process.
+2026-02-25 18:01:46,060 - src.application.services.task_watcher_service - INFO - Processing task: gmail.md
+2026-02-25 18:01:47,412 - src.application.services.task_watcher_service - INFO - Task gmail.md was delegated to human. Reason: Need to know the name of the n8n workflow that was created by a human to access the Google Calendar.
+2026-02-25 18:01:47,414 - src.application.services.task_watcher_service - INFO - Rescheduled gmail.md to todo and created help note HUMAN_NEED_HELP_20260225_180147_gmail.md
+2026-02-25 18:02:17,426 - src.application.services.task_watcher_service - INFO - Found 1 tasks to process.
+2026-02-25 18:02:17,432 - src.application.services.task_watcher_service - INFO - Processing task: gmail.md
+2026-02-25 18:02:18,711 - src.application.services.task_watcher_service - INFO - Task gmail.md was delegated to human. Reason: The user needs to provide the name of the n8n workflow so I can execute it.
+2026-02-25 18:02:18,714 - src.application.services.task_watcher_service - INFO - Rescheduled gmail.md to todo and created help note HUMAN_NEED_HELP_20260225_180218_gmail.md
+2026-02-25 18:02:48,720 - src.application.services.task_watcher_service - INFO - Found 1 tasks to process.
+2026-02-25 18:02:48,724 - src.application.services.task_watcher_service - INFO - Processing task: gmail.md
+2026-02-25 18:02:49,929 - src.application.services.task_watcher_service - INFO - Task gmail.md was delegated to human. Reason: Still waiting for the user to provide the name of the n8n workflow.
+2026-02-25 18:02:49,932 - src.application.services.task_watcher_service - INFO - Rescheduled gmail.md to todo and created help note HUMAN_NEED_HELP_20260225_180249_gmail.md
+2026-02-25 18:03:19,941 - src.application.services.task_watcher_service - INFO - Found 1 tasks to process.
+2026-02-25 18:03:19,942 - src.application.services.task_watcher_service - INFO - Processing task: gmail.md
+2026-02-25 18:03:21,267 - src.application.services.task_watcher_service - INFO - Task gmail.md was delegated to human. Reason: Still awaiting the name of the n8n workflow from the user.
+2026-02-25 18:03:21,270 - src.application.services.task_watcher_service - INFO - Rescheduled gmail.md to todo and created help note HUMAN_NEED_HELP_20260225_180321_gmail.md
+2026-02-25 18:03:51,277 - src.application.services.task_watcher_service - INFO - Found 1 tasks to process.
+2026-02-25 18:03:51,279 - src.application.services.task_watcher_service - INFO - Processing task: gmail.md
+2026-02-25 18:03:52,511 - src.application.services.task_watcher_service - INFO - Task gmail.md was delegated to human. Reason: Still need the name of the n8n workflow from the user.
+2026-02-25 18:03:52,513 - src.application.services.task_watcher_service - INFO - Rescheduled gmail.md to todo and created help note HUMAN_NEED_HELP_20260225_180352_gmail.md
+2026-02-25 18:04:22,522 - src.application.services.task_watcher_service - INFO - Found 1 tasks to process.
+2026-02-25 18:04:22,523 - src.application.services.task_watcher_service - INFO - Processing task: gmail.md
+2026-02-25 18:04:23,732 - src.application.services.task_watcher_service - INFO - Task gmail.md was delegated to human. Reason: Waiting for the user to provide the n8n workflow name.
+2026-02-25 18:04:23,736 - src.application.services.task_watcher_service - INFO - Rescheduled gmail.md to todo and created help note HUMAN_NEED_HELP_20260225_180423_gmail.md
+2026-02-25 18:04:53,743 - src.application.services.task_watcher_service - INFO - Found 1 tasks to process.
+2026-02-25 18:04:53,746 - src.application.services.task_watcher_service - INFO - Processing task: gmail.md
+2026-02-25 18:04:54,969 - src.application.services.task_watcher_service - INFO - Task gmail.md was delegated to human. Reason: Awaiting user response with the name of the n8n workflow.
+2026-02-25 18:04:54,971 - src.application.services.task_watcher_service - INFO - Rescheduled gmail.md to todo and created help note HUMAN_NEED_HELP_20260225_180454_gmail.md
+2026-02-25 18:05:24,979 - src.application.services.task_watcher_service - INFO - Found 1 tasks to process.
+2026-02-25 18:05:24,982 - src.application.services.task_watcher_service - INFO - Processing task: gmail.md
+2026-02-25 18:05:26,197 - src.application.services.task_watcher_service - INFO - Task gmail.md was delegated to human. Reason: Still waiting for the user to provide the name of the n8n workflow.
+2026-02-25 18:05:26,200 - src.application.services.task_watcher_service - INFO - Rescheduled gmail.md to todo and created help note HUMAN_NEED_HELP_20260225_180526_gmail.md
+2026-02-25 18:05:56,206 - src.application.services.task_watcher_service - INFO - Found 1 tasks to process.
+2026-02-25 18:05:56,208 - src.application.services.task_watcher_service - INFO - Processing task: gmail.md
+2026-02-25 18:05:57,621 - src.application.services.task_watcher_service - INFO - Task gmail.md was delegated to human. Reason: The user has not provided the name of the n8n workflow. I need this information to proceed.
+2026-02-25 18:05:57,625 - src.application.services.task_watcher_service - INFO - Rescheduled gmail.md to todo and created help note HUMAN_NEED_HELP_20260225_180557_gmail.md
+2026-02-25 18:06:27,631 - src.application.services.task_watcher_service - INFO - Found 1 tasks to process.
+2026-02-25 18:06:27,634 - src.application.services.task_watcher_service - INFO - Processing task: gmail.md
+2026-02-25 18:06:28,868 - src.application.services.task_watcher_service - INFO - Task gmail.md was delegated to human. Reason: Still waiting for the user to tell me the name of the n8n workflow.
+2026-02-25 18:06:28,871 - src.application.services.task_watcher_service - INFO - Rescheduled gmail.md to todo and created help note HUMAN_NEED_HELP_20260225_180628_gmail.md
+2026-02-25 18:06:58,880 - src.application.services.task_watcher_service - INFO - Found 1 tasks to process.
+2026-02-25 18:06:58,882 - src.application.services.task_watcher_service - INFO - Processing task: gmail.md
+2026-02-25 18:07:00,310 - src.application.services.task_watcher_service - INFO - Task gmail.md was delegated to human. Reason: Still waiting on the user to provide the name of the n8n workflow.
+2026-02-25 18:07:00,312 - src.application.services.task_watcher_service - INFO - Rescheduled gmail.md to todo and created help note HUMAN_NEED_HELP_20260225_180700_gmail.md
+2026-02-25 18:07:30,320 - src.application.services.task_watcher_service - INFO - Found 1 tasks to process.
+2026-02-25 18:07:30,322 - src.application.services.task_watcher_service - INFO - Processing task: gmail.md
+2026-02-25 18:07:31,536 - src.application.services.task_watcher_service - INFO - Task gmail.md was delegated to human. Reason: User needs to provide the name of the n8n workflow.
+2026-02-25 18:07:31,538 - src.application.services.task_watcher_service - INFO - Rescheduled gmail.md to todo and created help note HUMAN_NEED_HELP_20260225_180731_gmail.md
+2026-02-25 18:08:01,546 - src.application.services.task_watcher_service - INFO - Found 1 tasks to process.
+2026-02-25 18:08:01,554 - src.application.services.task_watcher_service - INFO - Processing task: gmail.md
+2026-02-25 18:08:02,771 - src.application.services.task_watcher_service - INFO - Task gmail.md was delegated to human. Reason: Still waiting for the name of the n8n workflow from the user.
+2026-02-25 18:08:02,772 - src.application.services.task_watcher_service - INFO - Rescheduled gmail.md to todo and created help note HUMAN_NEED_HELP_20260225_180802_gmail.md
+2026-02-25 18:08:32,786 - src.application.services.task_watcher_service - INFO - Found 1 tasks to process.
+2026-02-25 18:08:32,788 - src.application.services.task_watcher_service - INFO - Processing task: gmail.md
+2026-02-25 18:08:34,213 - src.application.services.task_watcher_service - INFO - Task gmail.md was delegated to human. Reason: Still need the name of the n8n workflow from the user to proceed.
+2026-02-25 18:08:34,216 - src.application.services.task_watcher_service - INFO - Rescheduled gmail.md to todo and created help note HUMAN_NEED_HELP_20260225_180834_gmail.md
+2026-02-25 18:09:04,223 - src.application.services.task_watcher_service - INFO - Found 1 tasks to process.
+2026-02-25 18:09:04,225 - src.application.services.task_watcher_service - INFO - Processing task: gmail.md
+2026-02-25 18:09:05,612 - src.application.services.task_watcher_service - INFO - Task gmail.md was delegated to human. Reason: Still requesting the name of the n8n workflow from the user.
+2026-02-25 18:09:05,615 - src.application.services.task_watcher_service - INFO - Rescheduled gmail.md to todo and created help note HUMAN_NEED_HELP_20260225_180905_gmail.md
+2026-02-25 18:09:27,316 - src.main - INFO - Stopping MCP Manager...
+2026-02-25 18:09:27,350 - src.application.services.task_watcher_service - INFO - TaskWatcherService stopped.
+2026-02-25 18:09:29,278 - root - INFO - Logging initialized. File: /app/workspace/logs/elo-server.log
+2026-02-25 18:09:29,315 - src.main - INFO - Initializing Obsidian Semantic Search for /data/vault...
+2026-02-25 18:09:29,404 - root - INFO - Checking for Obsidian notes updates via API...
+2026-02-25 18:09:29,404 - root - INFO - Syncing with DQL: TABLE file.mtime WHERE file.mtime > date("2026-02-18T18:11:14")
+2026-02-25 18:09:29,523 - httpx - INFO - HTTP Request: POST http://host.docker.internal:27123/search/ "HTTP/1.1 200 OK"
+2026-02-25 18:09:29,524 - root - INFO - Syncing 1 modified/new files...
+2026-02-25 18:09:29,532 - httpx - INFO - HTTP Request: GET http://host.docker.internal:27123/vault/tasks/todo/Delegate_2026-02-25_17-13-40.md "HTTP/1.1 200 OK"
+2026-02-25 18:09:29,533 - root - INFO -  Prepared 1 chunks for: tasks/todo/Delegate_2026-02-25_17-13-40.md
+2026-02-25 18:09:30,216 - httpx - INFO - HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-embedding-001:batchEmbedContents "HTTP/1.1 200 OK"
+2026-02-25 18:09:30,358 - root - INFO - Successfully synchronized 1 chunks.
+2026-02-25 18:09:30,358 - root - INFO - Updated lastIndexDatetime to 2026-02-25T18:09:30
+2026-02-25 18:09:30,498 - src.main - INFO - Starting MCP Manager...
+2026-02-25 18:09:30,500 - src.infrastructure.mcp.manager - INFO - Skipping deactivated MCP server: mcp-obsidian
+2026-02-25 18:09:30,501 - src.infrastructure.mcp.manager - INFO - Connecting to elo-obsidian-api-mcp MCP server at /app/workspace/mcps/elo-obsidian-api-mcp/dist/index.js...
+2026-02-25 18:09:30,510 - src.infrastructure.mcp.manager - INFO - Initializing elo-obsidian-api-mcp session...
+2026-02-25 18:09:31,133 - src.infrastructure.mcp.manager - INFO - Connected and initialized elo-obsidian-api-mcp MCP server.
+2026-02-25 18:09:31,135 - src.application.services.task_watcher_service - INFO - TaskWatcherService started. Monitoring /app/workspace/tasks/todo
+2026-02-25 18:09:31,136 - src.application.services.task_watcher_service - INFO - Found 1 tasks to process.
+2026-02-25 18:09:31,136 - src.application.services.task_watcher_service - INFO - Processing task: gmail.md
+2026-02-25 18:09:31,156 - google_genai.models - INFO - AFC is enabled with max remote calls: 10.
+2026-02-25 18:09:31,164 - src.infrastructure.mcp.manager - INFO -   Registering MCP tool: elo_obsidian_api_mcp_search_obsidian
+2026-02-25 18:09:31,167 - src.infrastructure.mcp.manager - INFO -   Registering MCP tool: elo_obsidian_api_mcp_get_active_file
+2026-02-25 18:09:31,167 - src.infrastructure.mcp.manager - INFO -   Registering MCP tool: elo_obsidian_api_mcp_execute_command
+2026-02-25 18:09:31,167 - src.infrastructure.mcp.manager - INFO -   Registering MCP tool: elo_obsidian_api_mcp_list_commands
+2026-02-25 18:09:31,168 - src.infrastructure.tools.local_tool_manager - INFO - Scanning for tools in /app/assets/langchain/tools...
+2026-02-25 18:09:31,168 - src.infrastructure.tools.local_tool_manager - INFO - Skipping deactivated local tool module: asset_tool
+2026-02-25 18:09:31,168 - src.infrastructure.tools.local_tool_manager - INFO - Scanning for tools in /app/workspace/langchain/tools...
+2026-02-25 18:09:31,168 - src.infrastructure.tools.local_tool_manager - INFO - Loading tool module: n8n_workflows from /app/workspace/langchain/tools/n8n_workflows.py
+2026-02-25 18:09:31,173 - src.infrastructure.tools.local_tool_manager - INFO -   Found tool: call_n8n_workflow
+2026-02-25 18:09:31,173 - src.infrastructure.tools.local_tool_manager - INFO -   Found tool: create_n8n_workflow
+2026-02-25 18:09:31,173 - src.infrastructure.tools.local_tool_manager - INFO -   Found tool: list_n8n_workflows
+2026-02-25 18:09:31,174 - src.infrastructure.tools.local_tool_manager - INFO - Skipping deactivated local tool module: test_hello
+2026-02-25 18:09:31,174 - src.infrastructure.tools.local_tool_manager - INFO - Skipping deactivated local tool module: echo
+2026-02-25 18:09:31,174 - src.infrastructure.tools.local_tool_manager - INFO - Skipping deactivated local tool module: test_math
+2026-02-25 18:09:31,178 - src.main - INFO - Binding 12 tools (4 MCP, 3 local, 1 semantic) to AI adapter.
+2026-02-25 18:09:32,581 - src.application.services.task_watcher_service - INFO - Task gmail.md was delegated to human. Reason: I need the name of the n8n workflow that was created to access the Google Calendar to proceed. I cannot execute an n8n workflow without knowing its exact name.
+2026-02-25 18:09:32,585 - src.application.services.task_watcher_service - INFO - Task gmail.md is now blocked by HUMAN_NEED_HELP_20260225_180932_gmail.md. Left in in-progress.
+2026-02-25 18:09:44,295 - src.main - INFO - Stopping MCP Manager...
+2026-02-25 18:09:44,333 - src.application.services.task_watcher_service - INFO - TaskWatcherService stopped.
+2026-02-25 18:09:46,644 - root - INFO - Logging initialized. File: /app/workspace/logs/elo-server.log
+2026-02-25 18:09:46,673 - src.main - INFO - Initializing Obsidian Semantic Search for /data/vault...
+2026-02-25 18:09:46,744 - root - INFO - Checking for Obsidian notes updates via API...
+2026-02-25 18:09:46,744 - root - INFO - Syncing with DQL: TABLE file.mtime WHERE file.mtime > date("2026-02-18T18:11:14")
+2026-02-25 18:09:46,839 - httpx - INFO - HTTP Request: POST http://host.docker.internal:27123/search/ "HTTP/1.1 200 OK"
+2026-02-25 18:09:46,839 - root - INFO - Syncing 1 modified/new files...
+2026-02-25 18:09:46,843 - httpx - INFO - HTTP Request: GET http://host.docker.internal:27123/vault/tasks/todo/Delegate_2026-02-25_17-13-40.md "HTTP/1.1 200 OK"
+2026-02-25 18:09:46,844 - root - INFO -  Prepared 1 chunks for: tasks/todo/Delegate_2026-02-25_17-13-40.md
+2026-02-25 18:09:47,454 - httpx - INFO - HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-embedding-001:batchEmbedContents "HTTP/1.1 200 OK"
+2026-02-25 18:09:47,563 - root - INFO - Successfully synchronized 1 chunks.
+2026-02-25 18:09:47,563 - root - INFO - Updated lastIndexDatetime to 2026-02-25T18:09:47
+2026-02-25 18:09:47,696 - src.main - INFO - Starting MCP Manager...
+2026-02-25 18:09:47,696 - src.infrastructure.mcp.manager - INFO - Skipping deactivated MCP server: mcp-obsidian
+2026-02-25 18:09:47,696 - src.infrastructure.mcp.manager - INFO - Connecting to elo-obsidian-api-mcp MCP server at /app/workspace/mcps/elo-obsidian-api-mcp/dist/index.js...
+2026-02-25 18:09:47,708 - src.infrastructure.mcp.manager - INFO - Initializing elo-obsidian-api-mcp session...
+2026-02-25 18:09:48,041 - src.infrastructure.mcp.manager - INFO - Connected and initialized elo-obsidian-api-mcp MCP server.
+2026-02-25 18:09:48,041 - src.application.services.task_watcher_service - INFO - Checking 1 tasks in in-progress on startup.
+2026-02-25 18:09:48,042 - src.application.services.task_watcher_service - INFO - TaskWatcherService started. Monitoring /app/workspace/tasks/todo
+2026-02-25 18:09:48,044 - src.infrastructure.mcp.manager - INFO -   Registering MCP tool: elo_obsidian_api_mcp_search_obsidian
+2026-02-25 18:09:48,045 - src.infrastructure.mcp.manager - INFO -   Registering MCP tool: elo_obsidian_api_mcp_get_active_file
+2026-02-25 18:09:48,045 - src.infrastructure.mcp.manager - INFO -   Registering MCP tool: elo_obsidian_api_mcp_execute_command
+2026-02-25 18:09:48,046 - src.infrastructure.mcp.manager - INFO -   Registering MCP tool: elo_obsidian_api_mcp_list_commands
+2026-02-25 18:09:48,046 - src.infrastructure.tools.local_tool_manager - INFO - Scanning for tools in /app/assets/langchain/tools...
+2026-02-25 18:09:48,046 - src.infrastructure.tools.local_tool_manager - INFO - Skipping deactivated local tool module: asset_tool
+2026-02-25 18:09:48,046 - src.infrastructure.tools.local_tool_manager - INFO - Scanning for tools in /app/workspace/langchain/tools...
+2026-02-25 18:09:48,046 - src.infrastructure.tools.local_tool_manager - INFO - Loading tool module: n8n_workflows from /app/workspace/langchain/tools/n8n_workflows.py
+2026-02-25 18:09:48,051 - src.infrastructure.tools.local_tool_manager - INFO -   Found tool: call_n8n_workflow
+2026-02-25 18:09:48,051 - src.infrastructure.tools.local_tool_manager - INFO -   Found tool: create_n8n_workflow
+2026-02-25 18:09:48,051 - src.infrastructure.tools.local_tool_manager - INFO -   Found tool: list_n8n_workflows
+2026-02-25 18:09:48,051 - src.infrastructure.tools.local_tool_manager - INFO - Skipping deactivated local tool module: test_hello
+2026-02-25 18:09:48,051 - src.infrastructure.tools.local_tool_manager - INFO - Skipping deactivated local tool module: echo
+2026-02-25 18:09:48,051 - src.infrastructure.tools.local_tool_manager - INFO - Skipping deactivated local tool module: test_math
+2026-02-25 18:09:48,055 - src.main - INFO - Binding 12 tools (4 MCP, 3 local, 1 semantic) to AI adapter.
+2026-02-25 18:13:18,112 - src.application.services.task_watcher_service - INFO - Dependency HUMAN_NEED_HELP_20260225_180932_gmail.md resolved for gmail.md. Resuming task.
+2026-02-25 18:13:18,122 - src.application.services.task_watcher_service - INFO - Found 1 tasks to process.
+2026-02-25 18:13:18,123 - src.application.services.task_watcher_service - INFO - Processing task: gmail.md
+2026-02-25 18:13:19,399 - src.infrastructure.tools.local_tool_manager - INFO - Delegating task to human: I need the name of the n8n workflow that was created to access the Google Calendar.
+2026-02-25 18:13:20,209 - langchain_google_genai.chat_models - WARNING - Gemini produced an empty response. Continuing with empty message
+Feedback: None
+2026-02-25 18:13:20,215 - src.application.services.task_watcher_service - INFO - Task gmail.md completed successfully.
+2026-02-25 18:21:50,299 - src.application.services.task_watcher_service - INFO - Found 1 tasks to process.
+2026-02-25 18:21:50,303 - src.application.services.task_watcher_service - INFO - Processing task: gmail.md
+2026-02-25 18:21:51,814 - src.infrastructure.tools.local_tool_manager - INFO - Delegating task to human: I cannot directly access your Google Calendar. I need the name of the n8n workflow that was created to access the Google Calendar, or the instructions to create such a workflow.
+2026-02-25 18:21:52,626 - langchain_google_genai.chat_models - WARNING - Gemini produced an empty response. Continuing with empty message
+Feedback: None
+2026-02-25 18:21:52,633 - src.application.services.task_watcher_service - INFO - Task gmail.md completed successfully.
+2026-02-25 18:24:32,259 - src.main - INFO - Stopping MCP Manager...
+2026-02-25 18:24:32,291 - src.application.services.task_watcher_service - INFO - TaskWatcherService stopped.
+2026-02-25 18:24:34,015 - root - INFO - Logging initialized. File: /app/workspace/logs/elo-server.log
+2026-02-25 18:24:34,138 - src.main - INFO - Initializing Obsidian Semantic Search for /data/vault...
+2026-02-25 18:24:34,275 - root - INFO - Checking for Obsidian notes updates via API...
+2026-02-25 18:24:34,275 - root - INFO - Syncing with DQL: TABLE file.mtime WHERE file.mtime > date("2026-02-18T18:11:14")
+2026-02-25 18:24:34,496 - httpx - INFO - HTTP Request: POST http://host.docker.internal:27123/search/ "HTTP/1.1 200 OK"
+2026-02-25 18:24:34,499 - root - INFO - Syncing 1 modified/new files...
+2026-02-25 18:24:34,505 - httpx - INFO - HTTP Request: GET http://host.docker.internal:27123/vault/tasks/todo/Delegate_2026-02-25_17-13-40.md "HTTP/1.1 200 OK"
+2026-02-25 18:24:34,507 - root - INFO -  Prepared 1 chunks for: tasks/todo/Delegate_2026-02-25_17-13-40.md
+2026-02-25 18:24:35,140 - httpx - INFO - HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-embedding-001:batchEmbedContents "HTTP/1.1 200 OK"
+2026-02-25 18:24:35,289 - root - INFO - Successfully synchronized 1 chunks.
+2026-02-25 18:24:35,289 - root - INFO - Updated lastIndexDatetime to 2026-02-25T18:24:35
+2026-02-25 18:24:35,498 - src.main - INFO - Starting MCP Manager...
+2026-02-25 18:24:35,499 - src.infrastructure.mcp.manager - INFO - Skipping deactivated MCP server: mcp-obsidian
+2026-02-25 18:24:35,500 - src.infrastructure.mcp.manager - INFO - Connecting to elo-obsidian-api-mcp MCP server at /app/workspace/mcps/elo-obsidian-api-mcp/dist/index.js...
+2026-02-25 18:24:35,515 - src.infrastructure.mcp.manager - INFO - Initializing elo-obsidian-api-mcp session...
+2026-02-25 18:24:35,806 - src.infrastructure.mcp.manager - INFO - Connected and initialized elo-obsidian-api-mcp MCP server.
+2026-02-25 18:24:35,806 - src.application.services.task_watcher_service - INFO - TaskWatcherService started. Monitoring /app/workspace/tasks/todo
+2026-02-25 18:24:35,808 - src.infrastructure.mcp.manager - INFO -   Registering MCP tool: elo_obsidian_api_mcp_search_obsidian
+2026-02-25 18:24:35,808 - src.infrastructure.mcp.manager - INFO -   Registering MCP tool: elo_obsidian_api_mcp_get_active_file
+2026-02-25 18:24:35,808 - src.infrastructure.mcp.manager - INFO -   Registering MCP tool: elo_obsidian_api_mcp_execute_command
+2026-02-25 18:24:35,809 - src.infrastructure.mcp.manager - INFO -   Registering MCP tool: elo_obsidian_api_mcp_list_commands
+2026-02-25 18:24:35,809 - src.infrastructure.tools.local_tool_manager - INFO - Scanning for tools in /app/assets/langchain/tools...
+2026-02-25 18:24:35,809 - src.infrastructure.tools.local_tool_manager - INFO - Skipping deactivated local tool module: asset_tool
+2026-02-25 18:24:35,809 - src.infrastructure.tools.local_tool_manager - INFO - Scanning for tools in /app/workspace/langchain/tools...
+2026-02-25 18:24:35,809 - src.infrastructure.tools.local_tool_manager - INFO - Loading tool module: n8n_workflows from /app/workspace/langchain/tools/n8n_workflows.py
+2026-02-25 18:24:35,813 - src.infrastructure.tools.local_tool_manager - INFO -   Found tool: call_n8n_workflow
+2026-02-25 18:24:35,813 - src.infrastructure.tools.local_tool_manager - INFO -   Found tool: create_n8n_workflow
+2026-02-25 18:24:35,813 - src.infrastructure.tools.local_tool_manager - INFO -   Found tool: list_n8n_workflows
+2026-02-25 18:24:35,813 - src.infrastructure.tools.local_tool_manager - INFO - Skipping deactivated local tool module: test_hello
+2026-02-25 18:24:35,813 - src.infrastructure.tools.local_tool_manager - INFO - Skipping deactivated local tool module: echo
+2026-02-25 18:24:35,813 - src.infrastructure.tools.local_tool_manager - INFO - Skipping deactivated local tool module: test_math
+2026-02-25 18:24:35,817 - src.main - INFO - Binding 12 tools (4 MCP, 3 local, 1 semantic) to AI adapter.
+2026-02-25 18:24:47,538 - src.main - INFO - Stopping MCP Manager...
+2026-02-25 18:24:47,573 - src.application.services.task_watcher_service - INFO - TaskWatcherService stopped.
+2026-02-25 18:24:49,989 - root - INFO - Logging initialized. File: /app/workspace/logs/elo-server.log
+2026-02-25 18:24:50,017 - src.main - INFO - Initializing Obsidian Semantic Search for /data/vault...
+2026-02-25 18:24:50,082 - root - INFO - Checking for Obsidian notes updates via API...
+2026-02-25 18:24:50,082 - root - INFO - Syncing with DQL: TABLE file.mtime WHERE file.mtime > date("2026-02-18T18:11:14")
+2026-02-25 18:24:50,205 - httpx - INFO - HTTP Request: POST http://host.docker.internal:27123/search/ "HTTP/1.1 200 OK"
+2026-02-25 18:24:50,205 - root - INFO - Syncing 1 modified/new files...
+2026-02-25 18:24:50,212 - httpx - INFO - HTTP Request: GET http://host.docker.internal:27123/vault/tasks/todo/Delegate_2026-02-25_17-13-40.md "HTTP/1.1 200 OK"
+2026-02-25 18:24:50,213 - root - INFO -  Prepared 1 chunks for: tasks/todo/Delegate_2026-02-25_17-13-40.md
+2026-02-25 18:24:50,911 - httpx - INFO - HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-embedding-001:batchEmbedContents "HTTP/1.1 200 OK"
+2026-02-25 18:24:51,079 - root - INFO - Successfully synchronized 1 chunks.
+2026-02-25 18:24:51,080 - root - INFO - Updated lastIndexDatetime to 2026-02-25T18:24:51
+2026-02-25 18:24:51,221 - src.main - INFO - Starting MCP Manager...
+2026-02-25 18:24:51,221 - src.infrastructure.mcp.manager - INFO - Skipping deactivated MCP server: mcp-obsidian
+2026-02-25 18:24:51,221 - src.infrastructure.mcp.manager - INFO - Connecting to elo-obsidian-api-mcp MCP server at /app/workspace/mcps/elo-obsidian-api-mcp/dist/index.js...
+2026-02-25 18:24:51,230 - src.infrastructure.mcp.manager - INFO - Initializing elo-obsidian-api-mcp session...
+2026-02-25 18:24:51,531 - src.infrastructure.mcp.manager - INFO - Connected and initialized elo-obsidian-api-mcp MCP server.
+2026-02-25 18:24:51,532 - src.application.services.task_watcher_service - INFO - TaskWatcherService started. Monitoring /app/workspace/tasks/todo
+2026-02-25 18:24:51,532 - src.application.services.task_watcher_service - INFO - Found 1 tasks to process.
+2026-02-25 18:24:51,532 - src.application.services.task_watcher_service - INFO - Processing task: gmail.md
+2026-02-25 18:24:51,537 - google_genai.models - INFO - AFC is enabled with max remote calls: 10.
+2026-02-25 18:24:51,539 - src.infrastructure.mcp.manager - INFO -   Registering MCP tool: elo_obsidian_api_mcp_search_obsidian
+2026-02-25 18:24:51,540 - src.infrastructure.mcp.manager - INFO -   Registering MCP tool: elo_obsidian_api_mcp_get_active_file
+2026-02-25 18:24:51,540 - src.infrastructure.mcp.manager - INFO -   Registering MCP tool: elo_obsidian_api_mcp_execute_command
+2026-02-25 18:24:51,540 - src.infrastructure.mcp.manager - INFO -   Registering MCP tool: elo_obsidian_api_mcp_list_commands
+2026-02-25 18:24:51,540 - src.infrastructure.tools.local_tool_manager - INFO - Scanning for tools in /app/assets/langchain/tools...
+2026-02-25 18:24:51,540 - src.infrastructure.tools.local_tool_manager - INFO - Skipping deactivated local tool module: asset_tool
+2026-02-25 18:24:51,540 - src.infrastructure.tools.local_tool_manager - INFO - Scanning for tools in /app/workspace/langchain/tools...
+2026-02-25 18:24:51,540 - src.infrastructure.tools.local_tool_manager - INFO - Loading tool module: n8n_workflows from /app/workspace/langchain/tools/n8n_workflows.py
+2026-02-25 18:24:51,544 - src.infrastructure.tools.local_tool_manager - INFO -   Found tool: call_n8n_workflow
+2026-02-25 18:24:51,544 - src.infrastructure.tools.local_tool_manager - INFO -   Found tool: create_n8n_workflow
+2026-02-25 18:24:51,544 - src.infrastructure.tools.local_tool_manager - INFO -   Found tool: list_n8n_workflows
+2026-02-25 18:24:51,544 - src.infrastructure.tools.local_tool_manager - INFO - Skipping deactivated local tool module: test_hello
+2026-02-25 18:24:51,544 - src.infrastructure.tools.local_tool_manager - INFO - Skipping deactivated local tool module: echo
+2026-02-25 18:24:51,544 - src.infrastructure.tools.local_tool_manager - INFO - Skipping deactivated local tool module: test_math
+2026-02-25 18:24:51,548 - src.main - INFO - Binding 12 tools (4 MCP, 3 local, 1 semantic) to AI adapter.
+2026-02-25 18:24:53,172 - src.application.services.task_watcher_service - INFO - Task gmail.md was delegated to human. Reason: I need permission to create an n8n workflow that connects to the user\'s Google Calendar.
+2026-02-25 18:24:53,175 - src.application.services.task_watcher_service - INFO - Task gmail.md is now blocked by HUMAN_NEED_HELP_20260225_182453_gmail.md. Left in in-progress.
+2026-02-25 19:40:09,477 - src.main - INFO - Stopping MCP Manager...
+2026-02-25 19:40:09,512 - src.application.services.task_watcher_service - INFO - TaskWatcherService stopped.

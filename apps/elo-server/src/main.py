@@ -1,7 +1,7 @@
 import uvicorn
 import os
 from contextlib import asynccontextmanager
-from fastapi import FastAPI
+from fastapi import FastAPI, Depends
 from src.infrastructure.config import load_config
 from src.infrastructure.adapters.ai.langgraph_agent_adapter import LangGraphAgentAdapter
 from src.application.use_cases.ask_ai_use_case import AskAIUseCase
@@ -11,8 +11,8 @@ from src.infrastructure.tools.local_tool_manager import LocalToolManager
 from langserve import add_routes, RemoteRunnable
 import re as re_module
 from starlette.types import ASGIApp, Receive, Scope, Send
-from fastapi import Depends
 from src.infrastructure.adapters.api.auth import verify_token
+from src.application.services.task_watcher_service import TaskWatcherService
 
 from src.infrastructure.adapters.obsidian.langchain_obsidian_adapter import LangChainObsidianAdapter
 from langchain_core.tools import tool
@@ -33,7 +33,8 @@ mcp_manager = MCPManager(workspace_path=config.paths.mcps)
 local_tool_manager = LocalToolManager(
     tools_dirs=config.paths.local_tools, 
     root_path=config.paths.root,
-    activated_tools=config.activated_tools
+    activated_tools=config.activated_tools,
+    vault_path=config.obsidian.vault_path
 )
 ai_adapter = LangGraphAgentAdapter(
     api_key=config.ai.api_key, 
@@ -41,6 +42,7 @@ ai_adapter = LangGraphAgentAdapter(
     vault_path=config.obsidian.vault_path,
     base_storage_path=os.path.join(config.paths.workspace, "users")
 )
+task_watcher = None
 
 # Initialize Obsidian Semantic Search Adapter (optional/lazy)
 obsidian_adapter = None
@@ -64,6 +66,9 @@ async def lifespan(app: FastAPI):
     # Startup
     logger.info("Starting MCP Manager...")
     await mcp_manager.start()
+    
+    if task_watcher:
+        await task_watcher.start()
     
     try:
         mcp_tools = await mcp_manager.get_tools()
@@ -108,6 +113,9 @@ async def lifespan(app: FastAPI):
     
     logger.info("Stopping MCP Manager...")
     await mcp_manager.stop()
+
+    if task_watcher:
+        await task_watcher.stop()
 
 class ConstToEnumMiddleware:
     """
@@ -252,6 +260,13 @@ def bootstrap():
     # 2. Initialize Use Cases (Application)
     ask_ai_use_case = AskAIUseCase(ai_adapter)
     
+    # Initialize Task Watcher
+    global task_watcher
+    task_watcher = TaskWatcherService(
+        ask_ai_use_case=ask_ai_use_case,
+        workspace_path=config.paths.workspace
+    )
+
     # 3. Initialize API (Infrastructure)
     app = create_app(ask_ai_use_case, lifespan=lifespan)
     

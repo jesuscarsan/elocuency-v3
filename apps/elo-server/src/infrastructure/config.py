@@ -119,12 +119,16 @@ def load_config(config_path: Optional[str] = None) -> AppConfig:
         # Based on user info: /Users/joshua/my-docs/code/elocuency-v3/apps/elo-server
         # Workspace is at /Users/joshua/my-docs/code/elocuency-v3/workspace
         
-        # Check standard locations
-        potential_workspace = os.path.join(project_root, "workspace")
+        # Check standard locations (prioritize monorepo root elo-workspace)
+        monorepo_root = os.path.dirname(os.path.dirname(project_root))
+        potential_workspace = os.path.join(monorepo_root, "elo-workspace")
+        
         if not os.path.exists(potential_workspace):
-             # Try one level up (monorepo root)
-             monorepo_root = os.path.dirname(project_root)
-             potential_workspace = os.path.join(monorepo_root, "workspace")
+            potential_workspace = os.path.join(monorepo_root, "workspace")
+            if not os.path.exists(potential_workspace):
+                potential_workspace = os.path.join(project_root, "elo-workspace")
+                if not os.path.exists(potential_workspace):
+                    potential_workspace = os.path.join(project_root, "workspace")
         
         workspace_path = potential_workspace
         

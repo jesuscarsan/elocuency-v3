@@ -28,6 +28,24 @@ else
     echo "✅ Instalado correctamente en $DEST usando sudo"
 fi
 
+# Configuración de autocompletado (zsh)
+if [[ "$SHELL" == *"zsh"* ]]; then
+    ZSH_CONFIG="$HOME/.zshrc"
+    COMPLETION_LINE="source <(elo completion zsh)"
+    
+    if [ -f "$ZSH_CONFIG" ]; then
+        if ! grep -qF "$COMPLETION_LINE" "$ZSH_CONFIG"; then
+            echo "" >> "$ZSH_CONFIG"
+            echo "# Elo CLI autocompletion" >> "$ZSH_CONFIG"
+            echo "$COMPLETION_LINE" >> "$ZSH_CONFIG"
+            echo "✨ Autocompletado configurado en $ZSH_CONFIG"
+            echo "   (Reinicia tu terminal o ejecuta 'source $ZSH_CONFIG' para activarlo)"
+        else
+            echo "ℹ️ El autocompletado ya está configurado en $ZSH_CONFIG"
+        fi
+    fi
+fi
+
 echo "========================================="
 echo "¡Todo listo! Ya puedes usar el comando 'elo' desde cualquier directorio."
 echo "Prueba a ejecutar: elo --help"

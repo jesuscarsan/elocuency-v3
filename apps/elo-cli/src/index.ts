@@ -1,8 +1,9 @@
 import { Command } from 'commander';
-import { startCommand } from './commands/start.js';
-import { stopCommand } from './commands/stop.js';
+import { serverCommand } from './commands/server.js';
 import { mcpCommand } from './commands/mcp.js';
 import { authCommand } from './commands/auth.js';
+import { completionCommand } from './commands/completion.js';
+import { chatCommand } from './commands/chat.js';
 import { readFileSync } from 'node:fs';
 
 const packageJson = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf-8'));
@@ -16,10 +17,11 @@ program
 	.version(version);
 
 // Register commands
-program.addCommand(startCommand);
-program.addCommand(stopCommand);
+program.addCommand(serverCommand);
 program.addCommand(mcpCommand);
 program.addCommand(authCommand);
+program.addCommand(completionCommand);
+program.addCommand(chatCommand);
 
 // Parse arguments
 program.parse(process.argv);
