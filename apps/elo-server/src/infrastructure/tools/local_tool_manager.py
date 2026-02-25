@@ -184,17 +184,17 @@ class LocalToolManager:
                 return f"Unexpected error during workspace synchronization: {str(e)}"
 
         @tool
-        def delegate_to_human(reason: str = "", note_content: str = "") -> str:
+        def delegate_to_human(analysis: str = "", proposed_solution: str = "") -> str:
             """
             Use this tool ONLY when you encounter a task that is physically impossible 
             for an AI (like bringing coffee) or that you cannot solve with ANY of your tools 
             (MCPs, local tools, n8n workflows). 
             
             Args:
-                reason: The reason why you are delegating (e.g. 'This requires physical action').
-                note_content: Alternative parameter for the reasoning.
+                analysis: Detailed analysis of why the task cannot be completed or what is missing.
+                proposed_solution: What the human should do or provide to unblock the task.
             """
-            actual_reason = reason or note_content or "No reason provided"
+            actual_reason = f"Analysis: {analysis}\nProposed Solution: {proposed_solution}" if analysis or proposed_solution else "No analysis provided."
             logger.info(f"Delegating task to human: {actual_reason}")
             return f"DELEGATED_TO_HUMAN: {actual_reason}"
 

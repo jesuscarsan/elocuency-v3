@@ -1,12 +1,15 @@
-from typing import Any, List, Optional, Sequence, Type
+import operator
+from typing import Any, List, Optional, Sequence, Type, TypedDict, Annotated, Literal
 from datetime import datetime
 from pathlib import Path
 from pydantic import BaseModel, Field
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langgraph.prebuilt import create_react_agent
 from langgraph.checkpoint.memory import MemorySaver
+from langgraph.graph import StateGraph, START, END
+from langgraph.graph.message import add_messages
 import os
-from langchain_core.messages import AIMessage, AnyMessage, HumanMessage, BaseMessage
+from langchain_core.messages import AIMessage, AnyMessage, HumanMessage, BaseMessage, SystemMessage
 from langchain_core.runnables import Runnable
 
 from src.domain.ports.ai_port import AIPort
@@ -18,6 +21,15 @@ class ChatInputSchema(BaseModel):
         ...,
         description="The list of chat messages",
     )
+
+class Plan(BaseModel):
+    """A list of steps to accomplish a task."""
+    steps: List[str] = Field(description="A sequential list of actions required to accomplish the user's objective.")
+
+class AgentState(TypedDict):
+    messages: Annotated[list[AnyMessage], add_messages]
+    plan: List[str]
+    delegation_reason: Optional[str]
 
 class LangGraphAgentAdapter(AIPort, Runnable):
 
@@ -74,18 +86,18 @@ class LangGraphAgentAdapter(AIPort, Runnable):
 
     def _initialize_agent(self):
         """
-        Initializes the ReAct agent with MemorySaver persistence and system prompt.
+        Initializes the custom Plan-and-Execute StateGraph with MemorySaver persistence and system prompt.
         """
         system_msg = (
             "You are a powerful AI assistant with full access to an Obsidian vault and an n8n automation environment. "
             "You can read, search, and modify notes, as well as list, call, and CREATE n8n workflows. "
-            "\n\nProactivity: If a user asks for a capability you don't have (like WhatsApp integration or email notifications), "
+            "\\n\\nProactivity: If a user asks for a capability you don't have (like WhatsApp integration or email notifications), "
             "check if you can solve it by CREATE-ing an n8n workflow. If you can't build it yourself, "
             "delegate the task to a human with a clear description of what's needed. "
-            "\n\nCRITICAL: If you encounter a task that you cannot complete with your current tools, "
+            "\\n\\nCRITICAL: If you encounter a task that you cannot complete with your current tools, "
             "OR if you need to ask the user a question, clarify requirements, or get permission to proceed, "
             "you MUST use the 'delegate_to_human' tool. "
-            "Call it as: delegate_to_human(reason='detailed reason or your question here'). "
+            "Call it as: delegate_to_human(analysis='why you are stuck', proposed_solution='what you need from the human'). "
             "Do NOT wrap the tool call in markdown code blocks. Use the tool calling API provided to you. "
             "Do NOT ask questions, offer options, or explain why you can't do it in your final response text; use the tool instead. "
             "If you see a '<!-- DELEGATED_TO_HUMAN -->' marker in the task, it means you have already asked for help. "
@@ -95,22 +107,88 @@ class LangGraphAgentAdapter(AIPort, Runnable):
         if self.vault_schema:
             schema_keys = ", ".join(list(self.vault_schema.keys()))
             system_msg += (
-                f"\n\nVault Metadata Schema (Frontmatter keys):\n{schema_keys}\n"
+                f"\\n\\nVault Metadata Schema (Frontmatter keys):\\n{schema_keys}\\n"
                 "When searching or querying notes, use these exact keys in your queries if possible. "
                 "Be aware of accents and specific naming (e.g., 'Oficios', 'Profesión')."
             )
 
         system_msg += (
-            "\n\nIf a tool fails due to missing content or search issues, try using "
+            "\\n\\nIf a tool fails due to missing content or search issues, try using "
             "the Filesystem tools as a fallback or broaden your search."
         )
 
-        self.graph = create_react_agent(
-            self.llm, 
-            self.tools, 
-            checkpointer=self.checkpointer,
-            prompt=system_msg
-        )
+        async def planner_node(state: AgentState):
+            messages = state.get("messages", [])
+            
+            # The planner doesn't have tools, it just creates a step-by-step plan
+            planner = self.llm.with_structured_output(Plan)
+            planner_prompt = SystemMessage(
+                content="You are an expert planner. Create a step-by-step plan to accomplish the user's objective based on the conversation history. Keep the steps clear and actionable."
+            )
+            
+            # Use all prior messages to generate the plan
+            plan_result = await planner.ainvoke([planner_prompt] + messages)
+            return {"plan": plan_result.steps}
+
+        async def executor_node(state: AgentState):
+            messages = state.get("messages", [])
+            plan = state.get("plan", [])
+            
+            plan_text = "\\n".join([f"{i+1}. {step}" for i, step in enumerate(plan)])
+            executor_sys_msg = f"{system_msg}\\n\\nHere is your step-by-step plan:\\n{plan_text}\\n\\nExecute the plan step-by-step."
+            
+            # Create a localized ReAct agent for execution
+            executor_agent = create_react_agent(
+                self.llm, 
+                self.tools, 
+                prompt=executor_sys_msg
+            )
+            
+            # Execute taking the entire message history
+            result = await executor_agent.ainvoke({"messages": messages})
+            
+            new_msgs = result["messages"][len(messages):]
+            
+            delegation_reason = None
+            for msg in reversed(new_msgs):
+                if hasattr(msg, "content") and "DELEGATED_TO_HUMAN:" in str(msg.content):
+                    delegation_reason = str(msg.content).split("DELEGATED_TO_HUMAN: ")[-1]
+                    break
+            
+            return {"messages": new_msgs, "delegation_reason": delegation_reason}
+
+        async def delegator_node(state: AgentState):
+            plan = state.get("plan", [])
+            delegation_reason = state.get("delegation_reason", "No specific reason provided.")
+            
+            plan_text = "\\n".join([f"- {step}" for step in plan])
+            
+            final_msg = AIMessage(
+                content=(
+                    "DELEGATED_TO_HUMAN: I need your help to continue.\\n\\n"
+                    f"**Delegation Reason/Analysis:**\\n{delegation_reason}\\n\\n"
+                    f"**My Plan Was:**\\n{plan_text}\\n\\n"
+                    "Please provide the requested information or perform the required action, then let me know."
+                )
+            )
+            return {"messages": [final_msg]}
+
+        def should_delegate(state: AgentState) -> str:
+            if state.get("delegation_reason"):
+                return "delegator"
+            return "__end__"
+
+        workflow = StateGraph(AgentState)
+        workflow.add_node("planner", planner_node)
+        workflow.add_node("executor", executor_node)
+        workflow.add_node("delegator", delegator_node)
+
+        workflow.add_edge(START, "planner")
+        workflow.add_edge("planner", "executor")
+        workflow.add_conditional_edges("executor", should_delegate, {"delegator": "delegator", "__end__": END})
+        workflow.add_edge("delegator", END)
+
+        self.graph = workflow.compile(checkpointer=self.checkpointer)
 
     def bind_tools(self, tools: List):
         """

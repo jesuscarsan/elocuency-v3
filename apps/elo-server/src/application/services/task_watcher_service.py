@@ -189,12 +189,14 @@ class TaskWatcherService:
             if is_delegated:
                 # Try to extract reason from either format
                 if "DELEGATED_TO_HUMAN:" in response:
-                    reason = response.split("DELEGATED_TO_HUMAN:")[1].split("\n")[0].strip()
+                    # Capture everything AFTER the prefix as the reason
+                    # and replace literal \n if present (usually from string representations)
+                    reason = response.split("DELEGATED_TO_HUMAN:")[1].strip().replace("\\n", "\n")
                 else:
                     # Fallback for hallucinated calls like delegate_to_human(reason='...')
                     import re
                     match = re.search(r"delegate_to_human\((?:reason=)?['\"](.*?)['\"]\)", response)
-                    reason = match.group(1) if match else "Requested delegation to human."
+                    reason = match.group(1).replace("\\n", "\n") if match else response.strip().replace("\\n", "\n")
                 
                 logger.info(f"Task {task_file.name} was delegated to human. Reason: {reason}")
                 

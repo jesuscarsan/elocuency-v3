@@ -23,6 +23,10 @@ class ObsidianConfig(BaseModel):
 class FilesystemConfig(BaseModel):
     allowed_paths: List[str] = Field(default_factory=list)
 
+class N8nConfig(BaseModel):
+    base_url: str = "http://localhost:5678"
+    workflows_dir: str = "/elo-workspace/n8n/workflows"
+
 class MCPConfig(BaseModel):
     name: str
     active: bool = True
@@ -42,6 +46,7 @@ class AppConfig(BaseModel):
     server: ServerConfig = Field(default_factory=ServerConfig)
     ai: AIConfig
     obsidian: ObsidianConfig
+    n8n: N8nConfig
     filesystem: Optional[FilesystemConfig] = None
     paths: PathsConfig
     activated_mcps: List[MCPConfig] = Field(default_factory=list)
@@ -97,6 +102,12 @@ def load_config(config_path: Optional[str] = None) -> AppConfig:
         "port": int(os.getenv("SERVER_PORT", 8001)),
         "reload": os.getenv("SERVER_RELOAD", "true").lower() == "true",
         "auth_token": os.getenv("SERVER_AUTH_TOKEN")
+    }
+
+    # n8n Config
+    n8n_config = {
+        "base_url": os.getenv("N8N_HOST", "http://localhost:5678"),
+        "workflows_dir": os.getenv("N8N_WORKFLOWS_DIR", "/elo-workspace/n8n/workflows")
     }
 
     # Path Resolution Logic
@@ -164,6 +175,7 @@ def load_config(config_path: Optional[str] = None) -> AppConfig:
         "server": server_config,
         "ai": ai_config,
         "obsidian": obs_config,
+        "n8n": n8n_config,
         "paths": paths_config,
         "activated_mcps": config_dict.get("mcps", []),
         "activated_tools": config_dict.get("langchainTools", [])
