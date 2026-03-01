@@ -5,7 +5,7 @@ For more info see the /docs/Overview.pdf file.
 
 # Installation
 
-Docker required.
+Install Docker.
 
 > ./install.sh
 

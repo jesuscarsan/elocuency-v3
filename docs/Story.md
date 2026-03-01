@@ -13,3 +13,6 @@ For Elocuency v3, I started by creating Obsidian plugins with an AI assistant to
 The imagination is the limit, and I have plenty of it! 😂😂😂
 
 Enjoy and share! 😜
+
+You can find me on LinkedIn:
+https://www.linkedin.com/in/jesuscarballo/
