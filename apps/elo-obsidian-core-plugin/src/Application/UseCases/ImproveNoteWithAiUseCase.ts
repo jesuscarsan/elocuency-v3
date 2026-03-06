@@ -14,7 +14,7 @@ export class ImproveNoteWithAiUseCase {
 		private readonly llm: LlmPort,
 		private readonly editor: EditorPort,
 		private readonly translationService: TranslationService,
-	) {}
+	) { }
 
 	async execute(
 		showMessage: (keyOrMessage: string, args?: Record<string, any>) => void = (m) =>
@@ -69,7 +69,14 @@ export class ImproveNoteWithAiUseCase {
 			customCommands as string | string[],
 		);
 
-		const response = await this.llm.requestEnrichment({ prompt });
+		let response: any = null;
+		try {
+			response = await this.llm.requestEnrichment({ prompt });
+		} catch (e: any) {
+			console.error('Error connecting to Elo Server:', e);
+			showMessage('enhance.serverError', { error: e.message || String(e) });
+			return;
+		}
 
 		if (response) {
 			const frontmatterToProcess = response.frontmatter || {};

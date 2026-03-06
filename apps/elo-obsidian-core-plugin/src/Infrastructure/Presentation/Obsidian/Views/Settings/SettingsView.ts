@@ -9,6 +9,7 @@ import {
 } from 'obsidian';
 import ObsidianExtension from '@/Infrastructure/Presentation/Obsidian/main';
 import { LocationStrategy } from '@/Infrastructure/Presentation/Obsidian/settings';
+import { setFrontmatterLanguage } from '@elo/core';
 
 export class SettingsView extends PluginSettingTab {
 	plugin: ObsidianExtension;
@@ -37,6 +38,7 @@ export class SettingsView extends PluginSettingTab {
 					.setValue(this.plugin.settings.userLanguage)
 					.onChange(async (value: string) => {
 						this.plugin.settings.userLanguage = value.trim();
+						setFrontmatterLanguage(this.plugin.settings.userLanguage);
 						await this.plugin.saveSettings();
 					});
 			});

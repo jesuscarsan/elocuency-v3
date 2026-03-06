@@ -140,4 +140,13 @@ describe('ImproveNoteWithAiUseCase', () => {
 
 		expect(showMessage).toHaveBeenCalledWith('enhance.failed');
 	});
+
+	it('should handle LLM server error', async () => {
+		editor.getValue.mockReturnValue('---\n"!!prompt": test\n---\nbody');
+		llm.requestEnrichment.mockRejectedValue(new Error('Server down'));
+
+		await useCase.execute(showMessage);
+
+		expect(showMessage).toHaveBeenCalledWith('enhance.serverError', { error: 'Server down' });
+	});
 });

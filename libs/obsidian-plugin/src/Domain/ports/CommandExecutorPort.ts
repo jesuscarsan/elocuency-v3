@@ -1,3 +1,3 @@
 export interface CommandExecutorPort {
-    executeCommand(commandId: string): Promise<void>;
+    executeCommand(commandId: string): Promise<boolean>;
 }

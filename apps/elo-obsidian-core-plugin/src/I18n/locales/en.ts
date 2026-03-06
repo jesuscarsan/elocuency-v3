@@ -103,6 +103,7 @@ export default {
 	'enhance.enhancing': 'Enhancing note with AI...',
 	'enhance.enhanced': 'Note enhanced!',
 	'enhance.failed': 'AI enhancement failed.',
+	'enhance.serverError': 'Error connecting to elo-server. Please check that the server is running and the URL in settings is correct. Details: {error}',
 	'enhance.promptNote': 'Generate content for an Obsidian note: "{title}".',
 	'enhance.promptFrontmatter': 'Current frontmatter (JSON): {json}',
 	'enhance.promptBody': 'Current body: "{body}"',
@@ -149,13 +150,14 @@ export default {
 	'missingNotes.list.generating': 'Generating {count} notes with template {template}...',
 	'missingNotes.list.finished': 'Finished generating notes.',
 
-	'apply.openNote': 'Open a markdown note to apply a template.',
-	'apply.noTemplates': 'No templates found.',
-	'apply.selectTemplate': 'Select a template',
-	'apply.noTemplateSelected': 'No template selected.',
+	'apply.openNote': 'Open a valid note before running this command.',
+	'apply.noTemplates': 'No templates were found for this file.',
+	'apply.selectTemplate': 'Select Template',
+	'apply.noTemplateSelected': 'No template was selected.',
 	'apply.applying': 'Applying template {template}...',
-	'apply.fetching': 'Fetching content from {url}...',
-	'apply.fetchError': 'Failed to fetch content from {url}',
+	'apply.invalidCommand': '⚠️ Invalid or missing command: {command}',
+	'apply.fetchError': 'Error fetching web context from {url}. Ensure the server matches http://url',
+	'apply.serverError': 'Error connecting to elo-server. Please check that the server is running and the URL in settings is correct. Details: {error}',
 	'apply.prompt':
 		"Obsidian note: '{title}'\n\nFrontmatter: '{frontmatterJson}'\n\nCurrent note content:\n{currentBody}\n\nAdditional context (URL):\n{urlContext}\n\nInstruction:\n{promptTemplate}\n\nIMPORTANT: Your response must be a VALID JSON object with the following keys:\n- \"frontmatter\": Object with updated or new metadata (Optional).\n- \"body\": String with the content of the note body (markdown).\n\nDO NOT RETURN ANYTHING OTHER THAN THE JSON. In the fields 'Works' and 'Countries' and all proper names, return them as markdown links style: [[name]]",
 

@@ -44,11 +44,17 @@ class PathsConfig(BaseModel):
     mcps: str
     local_tools: List[str] = Field(default_factory=list)
 
+class UserConfig(BaseModel):
+    language: str = "es"
+    locations_folder: str = "Mi mundo"
+    target_folder: str = ""
+
 class AppConfig(BaseModel):
     server: ServerConfig = Field(default_factory=ServerConfig)
     ai: AIConfig
     obsidian: ObsidianConfig
     n8n: N8nConfig
+    user: UserConfig = Field(default_factory=UserConfig)
     filesystem: Optional[FilesystemConfig] = None
     paths: PathsConfig
     activated_mcps: List[MCPConfig] = Field(default_factory=list)
@@ -82,12 +88,20 @@ def load_config(config_path: Optional[str] = None) -> AppConfig:
             
     # 2. Map JSON keys to AppConfig structure (handling flattening/renaming)
     
+    # User Config
+    user_data = config_dict.get("user", {})
+    user_config = {
+        "language": user_data.get("language", "es"),
+        "locations_folder": user_data.get("locationsFolder", "Mi mundo"),
+        "target_folder": user_data.get("targetFolder", "")
+    }
+    
     # AI Config
     ai_data = config_dict.get("ai", {})
     ai_config = {
-        "api_key": os.getenv("GOOGLE_AI_API_KEY", os.getenv("GOOGLE_API_KEY", "")),
+        "api_key": os.getenv("GOOGLE_AI_API_KEY", ""),
         "model": ai_data.get("model", os.getenv("AI_MODEL", "gemini-2.0-flash")),
-        "search_api_key": os.getenv("GOOGLE_SEARCH_API_KEY", os.getenv("GOOGLE_AI_API_KEY", os.getenv("GOOGLE_API_KEY"))),
+        "search_api_key": os.getenv("GOOGLE_SEARCH_API_KEY", os.getenv("GOOGLE_AI_API_KEY")),
         "search_engine_id": ai_data.get("search_engine_id", os.getenv("GOOGLE_SEARCH_ENGINE_ID"))
     }
     
@@ -181,6 +195,7 @@ def load_config(config_path: Optional[str] = None) -> AppConfig:
         "ai": ai_config,
         "obsidian": obs_config,
         "n8n": n8n_config,
+        "user": user_config,
         "paths": paths_config,
         "activated_mcps": config_dict.get("mcps", []),
         "activated_tools": config_dict.get("langchainTools", [])

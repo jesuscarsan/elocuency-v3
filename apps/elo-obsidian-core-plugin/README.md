@@ -6,7 +6,7 @@ This repo must be installed from the elocuency framework.
 
 ## Documentation
 
-- [Overview](docs/overview.md)
+- [Overview](docs/Overview.md)
 - [Architecture](docs/architecture.md)
 - [Testing Strategy](../../libs/core-typescript/docs/Testing-strategy.md)
 

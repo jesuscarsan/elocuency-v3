@@ -105,6 +105,7 @@ export default {
 	'enhance.enhancing': 'Mejorando nota con IA...',
 	'enhance.enhanced': '¡Nota mejorada!',
 	'enhance.failed': 'La mejora con IA ha fallado.',
+	'enhance.serverError': 'Error de conexión con elo-server. Comprueba que el servidor está funcionando y la URL en ajustes es correcta. Detalles: {error}',
 	'enhance.promptNote': 'Genera contenido para una nota de Obsidian: "{title}".',
 	'enhance.promptFrontmatter': 'Frontmatter actual (JSON): {json}',
 	'enhance.promptBody': 'Cuerpo actual: "{body}"',
@@ -157,8 +158,10 @@ export default {
 	'apply.selectTemplate': 'Selecciona una plantilla',
 	'apply.noTemplateSelected': 'No se seleccionó ninguna plantilla.',
 	'apply.applying': 'Aplicando la plantilla {template}...',
+	'apply.invalidCommand': '⚠️ Comando inválido o no encontrado: {command}',
 	'apply.fetching': 'Obteniendo contenido de {url}...',
 	'apply.fetchError': 'Error al obtener contenido de {url}',
+	'apply.serverError': 'Error de conexión con elo-server. Comprueba que el servidor está funcionando y la URL en ajustes es correcta. Detalles: {error}',
 	'apply.prompt':
 		"Nota de obsidian: '{title}'\n\nFrontmatter: '{frontmatterJson}'\n\nContenido actual de la nota:\n{currentBody}\n\nContexto adicional (URL):\n{urlContext}\n\nInstrucción:\n{promptTemplate}\n\nIMPORTANTE: Tu respuesta debe ser un objeto JSON VÁLIDO con las siguientes claves:\n- \"frontmatter\": Objeto con los metadatos actualizados o nuevos (Opcional).\n- \"body\": String con el contenido del cuerpo de la nota (markdown).\n\nNO DEVUELVAS NADA MÁS QUE EL JSON. En los campos 'Obras' y 'Países' y todos los nombres propios, devuélvelos como links the markdown estilo: [[nombre]]",
 

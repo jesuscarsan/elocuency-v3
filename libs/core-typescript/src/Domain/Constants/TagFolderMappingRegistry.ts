@@ -1,4 +1,4 @@
-export const TagFolderMappingRegistry: Record<string, string> = {
+export const DefaultTagFolderMappingRegistry: Record<string, string> = {
     "Personas/Conocidos-mios": "(Conocidos)",
     "Personas/Compañeros-de-trabajo": "(Conocidos)",
     "Personas/Vecinos": "(Conocidos)",
@@ -25,5 +25,13 @@ export const TagFolderMappingRegistry: Record<string, string> = {
     "Eventos/Festivales-de-cine": "(Eventos)",
     "Eventos/Festivales-de-música": "(Eventos)",
     "Eventos/Festivales-de-teatro": "(Eventos)",
-
 };
+
+export const TagFolderMappingRegistry: Record<string, string> = { ...DefaultTagFolderMappingRegistry };
+
+export function setTagFolderMapping(mapping: Record<string, string>) {
+    for (const key of Object.keys(TagFolderMappingRegistry)) {
+        delete TagFolderMappingRegistry[key];
+    }
+    Object.assign(TagFolderMappingRegistry, mapping);
+}

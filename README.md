@@ -20,4 +20,4 @@ A set of CLI commands is available to interact with the Elocuency environment fr
 
 Run `elo --help` to view a list of available commands.
 
-For detailed command information, see the [Commands documentation](apps/elo-cli/docs/Commands.md).
+For detailed command information, see the [Commands documentation](apps/elo-cli/docs/User-guide.md).

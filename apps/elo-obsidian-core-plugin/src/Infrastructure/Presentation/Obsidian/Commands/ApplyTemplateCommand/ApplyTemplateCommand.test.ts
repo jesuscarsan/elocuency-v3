@@ -85,7 +85,7 @@ describe('ApplyTemplateCommand', () => {
 		await context.createFolder('Templates');
 		await context.createFile(
 			'Templates/Standard Template.md',
-			'---\ntags: [template]\n"!!prompt": Summarize this\n---\n# Template Content\n',
+			'---\ntags: [template]\n"!!prompt": Summarize this\n"!!commands": ["ApplyPromptCommand"]\n---\n# Template Content\n',
 		);
 
 		await context.createFolder('Notes');
@@ -143,7 +143,7 @@ describe('ApplyTemplateCommand', () => {
 		await context.createFolder('Notes');
 		await context.createFile(
 			'Templates/Url Template.md',
-			'---\ntags: [template]\n"!!prompt": Summarize this\n---\n# Template Content\n',
+			'---\ntags: [template]\n"!!prompt": Summarize this\n"!!commands": ["ApplyPromptCommand"]\n---\n# Template Content\n',
 		);
 
 		const targetFile = await context.createFile(
@@ -179,7 +179,7 @@ describe('ApplyTemplateCommand', () => {
 	test('should filter out tags from prompt and ignore tags from LLM response', async () => {
 		// Setup
 		await context.createFolder('Templates');
-		await context.createFile('Templates/Tag filter.md', '---\n"!!prompt": Add metadata\n---\n');
+		await context.createFile('Templates/Tag filter.md', '---\n"!!prompt": Add metadata\n"!!commands": ["ApplyPromptCommand"]\n---\n');
 
 		// 1. Verify Prompt filtering: Note HAS tags
 		const noteWithTags = await context.createFile(

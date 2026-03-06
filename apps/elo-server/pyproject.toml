@@ -29,7 +29,7 @@ testpaths = ["tests"]
 python_files = ["*_test.py"]
 pythonpath = "."
 env = [
-    "GOOGLE_API_KEY=test-key",
+    "GOOGLE_AI_API_KEY=test-key",
     "VAULT_PATH=/tmp/vault",
 ]
 

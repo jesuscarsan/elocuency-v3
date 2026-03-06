@@ -4,6 +4,7 @@ import { mcpCommand } from './commands/mcp.js';
 import { completionCommand } from './commands/completion.js';
 import { chatCommand } from './commands/chat.js';
 import { devCommand } from './commands/dev.js';
+import { vaultCommand } from './commands/vault.js';
 import { readFileSync } from 'node:fs';
 
 const packageJson = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf-8'));
@@ -22,6 +23,7 @@ program.addCommand(mcpCommand);
 program.addCommand(completionCommand);
 program.addCommand(chatCommand);
 program.addCommand(devCommand);
+program.addCommand(vaultCommand);
 
 // Parse arguments
 program.parse(process.argv);

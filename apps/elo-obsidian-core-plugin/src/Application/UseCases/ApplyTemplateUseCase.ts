@@ -86,38 +86,101 @@ export class ApplyTemplateUseCase {
 		// ... Logic continues similar to Command ...
 		// Re-composition logic
 		let finalFrontmatter = mergedFrontmatter;
-		const normalizedBody = mergedSplit.body;
+		let finalBody = mergedSplit.body;
 
-		// Prompt URL Logic
 		const promptUrl =
 			config.promptUrl ||
-			(mergedFrontmatter && (mergedFrontmatter['!!promptUrl'] as string)) ||
+			(finalFrontmatter && (finalFrontmatter['!!promptUrl'] as string)) ||
 			predefinedPromptUrl;
 
-		if (config.prompt) {
-			let urlContext = '';
-			if (promptUrl) {
-				try {
-					this.uiService.showMessage('apply.fetching', { url: promptUrl });
-					urlContext = await this.networkPort.getText(promptUrl);
-				} catch (e) {
-					console.error('Error fetching prompt URL:', e);
-					this.uiService.showMessage('apply.fetchError', { url: promptUrl });
+		// Move Note (!!path)
+		let currentNotePath = notePath;
+		if (config.path) {
+			const targetPath = config.path.endsWith('.md')
+				? config.path
+				: `${config.path.replace(/\/$/, '')}/${currentNote.path.split('/').pop()}`;
+			await this.noteRepository.renameNote(currentNotePath, targetPath);
+			currentNotePath = targetPath;
+		}
+
+		// Reconstruct final merged content immediately
+		const frontmatterBlock = finalFrontmatter ? formatFrontmatterBlock(finalFrontmatter) : '';
+		const finalContent = [frontmatterBlock, finalBody].filter(Boolean).join('\n\n');
+
+		// First, save the template data 
+		await this.noteRepository.saveNote({
+			path: currentNotePath,
+			content: finalContent,
+			frontmatter: (finalFrontmatter as any) || {},
+			body: finalBody,
+		});
+
+		// Organize
+		if (finalFrontmatter) {
+			// PersonasNoteOrganizer handles organization logic
+		}
+
+		// Execute Commands sequentially
+		if (config.commands) {
+			TemplateContext.activeConfig = config;
+			for (const cmdId of config.commands) {
+				if (cmdId === 'ApplyPromptCommand') {
+					await this.executePromptLogic(currentNotePath, config, promptUrl);
+				} else {
+					const success = await this.commandExecutor.executeCommand(cmdId);
+					if (!success) {
+						this.uiService.showMessage('apply.invalidCommand', { command: cmdId });
+					}
 				}
 			}
+			TemplateContext.activeConfig = null;
+		}
+	}
 
-			// AI Enrichment
-			const filename = currentNote.path.split('/').pop() || '';
-			const title = filename.endsWith('.md') ? filename.slice(0, -3) : filename;
+	private async executePromptLogic(
+		notePath: string,
+		config: any,
+		promptUrl?: string,
+	) {
+		const currentNote = await this.noteRepository.getNote(notePath);
+		if (!currentNote) return;
+
+		const split = splitFrontmatter(currentNote.content);
+		let finalFrontmatter: Record<string, unknown> | null =
+			parseFrontmatter(split.frontmatterText) || {};
+		let finalBody = split.body;
+
+		let urlContext = '';
+		if (promptUrl) {
+			try {
+				this.uiService.showMessage('apply.fetching', { url: promptUrl });
+				urlContext = await this.networkPort.getText(promptUrl);
+			} catch (e) {
+				console.error('Error fetching prompt URL:', e);
+				this.uiService.showMessage('apply.fetchError', { url: promptUrl });
+			}
+		}
+
+		const filename = currentNote.path.split('/').pop() || '';
+		const title = filename.endsWith('.md') ? filename.slice(0, -3) : filename;
+		
+		if (config.prompt) {
 			const prompt = this.buildPrompt(
 				title,
-				mergedFrontmatter,
+				finalFrontmatter,
 				config.prompt,
-				normalizedBody,
+				finalBody,
 				urlContext,
 			);
 
-			const enrichment = await this.llm.requestEnrichment({ prompt });
+			let enrichment: any = null;
+			try {
+				enrichment = await this.llm.requestEnrichment({ prompt });
+			} catch (e: any) {
+				console.error('Error connecting to Elo Server:', e);
+				this.uiService.showMessage('apply.serverError', { error: e.message || String(e) });
+				return;
+			}
 
 			if (enrichment) {
 				if (enrichment.frontmatter) {
@@ -125,84 +188,45 @@ export class ApplyTemplateUseCase {
 					delete enrichment.frontmatter.tag;
 				}
 
-				let updatedFrontmatter = applyFrontmatterUpdates(
-					mergedFrontmatter,
+				finalFrontmatter = applyFrontmatterUpdates(
+					finalFrontmatter as Record<string, unknown>,
 					enrichment.frontmatter,
 				);
 
-				// Image Search Logic
-				if (
-					updatedFrontmatter &&
-					Array.isArray(updatedFrontmatter[FrontmatterKeys.EloImages]) &&
-					(updatedFrontmatter[FrontmatterKeys.EloImages] as any[]).length === 0
-				) {
-					const filename = currentNote.path.split('/').pop() || '';
-					const title = filename.endsWith('.md') ? filename.slice(0, -3) : filename;
-					try {
-						const images = await this.imageService.searchImages(title, 3);
-						if (images.length > 0) {
-							updatedFrontmatter = {
-								...updatedFrontmatter,
-								[FrontmatterKeys.EloImages]: images,
-							};
-						}
-					} catch (e) {
-						console.error('Error searching images for template:', e);
-					}
-				}
-
-				if (updatedFrontmatter) {
-					finalFrontmatter = updatedFrontmatter;
-				}
-
-				// Body merging logic
-				const bodyFromGemini =
-					enrichment.body !== undefined && enrichment.body !== null
-						? enrichment.body.trim()
-						: normalizedBody || '';
-
-				// Reconstruct content
-				const frontmatterBlock = finalFrontmatter ? formatFrontmatterBlock(finalFrontmatter) : '';
-				const finalBody = bodyFromGemini;
-				const finalContent = [frontmatterBlock, finalBody].filter(Boolean).join('\n\n');
-
-				// Save
-				await this.noteRepository.saveNote({
-					path: notePath,
-					content: finalContent,
-					frontmatter: (finalFrontmatter as any) || {},
-					body: finalBody,
-				});
-
-				// Organize
-				if (finalFrontmatter) {
-					// We need to pass TFile to organizer.
-					// PersonasNoteOrganizer expects TFile and Frontmatter.
-					// This is where leaky abstraction bites.
-					// We should update PersonasNoteOrganizer to accept NoteEntity or path.
-					// For now, I might have to fetch TFile in Adapter or change Organizer.
-					// I will assume Organizer accepts path + frontmatter in future refactor.
-					// I'll comment this out or create a wrapper.
-				}
-
-				// Move Note (!!path)
-				if (config.path) {
-					const targetPath = config.path.endsWith('.md')
-						? config.path
-						: `${config.path.replace(/\/$/, '')}/${currentNote.path.split('/').pop()}`;
-					await this.noteRepository.renameNote(notePath, targetPath);
-				}
-
-				// Execute Commands
-				if (config.commands) {
-					TemplateContext.activeConfig = config;
-					for (const cmdId of config.commands) {
-						await this.commandExecutor.executeCommand(cmdId);
-					}
-					TemplateContext.activeConfig = null;
+				if (enrichment.body !== undefined && enrichment.body !== null) {
+					finalBody = enrichment.body.trim();
 				}
 			}
 		}
+
+		// Perform image search if needed after AI
+		if (
+			finalFrontmatter &&
+			Array.isArray(finalFrontmatter[FrontmatterKeys.EloImages]) &&
+			(finalFrontmatter[FrontmatterKeys.EloImages] as any[]).length === 0
+		) {
+			try {
+				const images = await this.imageService.searchImages(title, 3);
+				if (images.length > 0) {
+					finalFrontmatter = {
+						...finalFrontmatter,
+						[FrontmatterKeys.EloImages]: images,
+					};
+				}
+			} catch (e) {
+				console.error('Error searching images for template:', e);
+			}
+		}
+
+		const frontmatterBlock = finalFrontmatter ? formatFrontmatterBlock(finalFrontmatter) : '';
+		const finalContent = [frontmatterBlock, finalBody].filter(Boolean).join('\n\n');
+
+		await this.noteRepository.saveNote({
+			path: notePath,
+			content: finalContent,
+			frontmatter: (finalFrontmatter as any) || {},
+			body: finalBody,
+		});
 	}
 
 	private buildPrompt(

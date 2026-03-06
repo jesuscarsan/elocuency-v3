@@ -101,7 +101,7 @@ prompt_var() {
     fi
 }
 
-prompt_var "GOOGLE_API_KEY" "Enter Google API Key" "" "true"
+prompt_var "GOOGLE_AI_API_KEY" "Enter Google AI API Key" "" "true"
 prompt_var "OBSIDIAN_API_KEY" "Enter Obsidian API Key" "obsidian-secret-key" "true"
 prompt_var "OBSIDIAN_URL" "Enter Obsidian URL" "http://host.docker.internal:27124"
 prompt_var "NGROK_AUTHTOKEN" "Enter Ngrok Authtoken" "" "true"

@@ -125,7 +125,7 @@ describe('ApplyTemplateUseCase', () => {
 			{
 				template: {
 					basename: 'T1',
-					config: { prompt: 'P', promptUrl: 'http://fail' },
+					config: { prompt: 'P', promptUrl: 'http://fail', commands: ['ApplyPromptCommand'] },
 					content: 'T',
 				},
 				score: 1,
@@ -138,14 +138,41 @@ describe('ApplyTemplateUseCase', () => {
 		expect(uiService.showMessage).toHaveBeenCalledWith('apply.fetchError', { url: 'http://fail' });
 	});
 
-	it('should handle images if configured in template', async () => {
+	it('should handle LLM server error', async () => {
 		const note = NoteMother.create({ path: 'test.md', content: 'C' });
 		noteRepository.getNote.mockResolvedValue(note);
 		templateRepository.getAllTemplates.mockResolvedValue([
 			{
 				template: {
 					basename: 'T1',
-					config: { prompt: 'P', images: { count: 1, query: 'Q' } },
+					config: { prompt: 'P', commands: ['ApplyPromptCommand'] },
+					content: 'T',
+				},
+				score: 1,
+			} as any,
+		]);
+		llm.requestEnrichment.mockRejectedValue(new Error('Server down'));
+
+		await useCase.execute(note.path);
+		expect(uiService.showMessage).toHaveBeenCalledWith('apply.serverError', { error: 'Server down' });
+	});
+
+	it('should handle images if configured in template', async () => {
+		const note = NoteMother.create({ path: 'test.md', content: 'C' });
+		
+		let savedContent = 'C';
+		noteRepository.getNote.mockImplementation(async (path: string) => {
+			return NoteMother.create({ path, content: savedContent });
+		});
+		
+		noteRepository.saveNote.mockImplementation(async (n: any) => {
+			savedContent = n.content;
+		});
+		templateRepository.getAllTemplates.mockResolvedValue([
+			{
+				template: {
+					basename: 'T1',
+					config: { prompt: 'P', images: { count: 1, query: 'Q' }, commands: ['ApplyPromptCommand'] },
 					content: '---\n"' + FrontmatterKeys.EloImages + '": []\n---\nBody',
 				},
 				score: 1,
@@ -197,12 +224,20 @@ describe('ApplyTemplateUseCase', () => {
 
 	it('should handle image search failure', async () => {
 		const note = NoteMother.create({ path: 'test.md', content: 'C' });
-		noteRepository.getNote.mockResolvedValue(note);
+
+		let savedContent = 'C';
+		noteRepository.getNote.mockImplementation(async (path: string) => {
+			return NoteMother.create({ path, content: savedContent });
+		});
+		
+		noteRepository.saveNote.mockImplementation(async (n: any) => {
+			savedContent = n.content;
+		});
 		templateRepository.getAllTemplates.mockResolvedValue([
 			{
 				template: {
 					basename: 'T1',
-					config: { prompt: 'P' },
+					config: { prompt: 'P', commands: ['ApplyPromptCommand'] },
 					content: '---\n"' + FrontmatterKeys.EloImages + '": []\n---\nBody',
 				},
 				score: 1,

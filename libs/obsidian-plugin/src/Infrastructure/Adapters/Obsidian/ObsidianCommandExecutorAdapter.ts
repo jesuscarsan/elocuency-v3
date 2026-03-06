@@ -4,7 +4,7 @@ import { CommandExecutorPort } from '../../../Domain/Ports/CommandExecutorPort';
 export class ObsidianCommandExecutorAdapter implements CommandExecutorPort {
 	constructor(private readonly app: App) { }
 
-	async executeCommand(commandId: string): Promise<void> {
+	async executeCommand(commandId: string): Promise<boolean> {
 		let command = (this.app as any).commands?.findCommand(commandId);
 		let finalCommandId = commandId;
 
@@ -34,13 +34,15 @@ export class ObsidianCommandExecutorAdapter implements CommandExecutorPort {
 				} else {
 					(this.app as any).commands.executeCommandById(finalCommandId);
 				}
+				return true;
 			} catch (e: any) {
 				console.error(`Error executing command ${finalCommandId}:`, e);
 				new Notice(`Error executing command ${finalCommandId}: ${e.message}`);
+				return false;
 			}
 		} else {
 			console.warn(`Command not found: ${commandId}`);
-			new Notice(`Command not found: ${commandId}`);
+			return false;
 		}
 	}
 }

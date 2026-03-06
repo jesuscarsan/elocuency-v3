@@ -320,7 +320,7 @@ def bootstrap():
     )
 
     # 3. Initialize API (Infrastructure)
-    app = create_app(ask_ai_use_case, lifespan=lifespan)
+    app = create_app(ask_ai_use_case, config=config, lifespan=lifespan)
     app.state.ai_tools_use_case = ai_tools_use_case
     
     # 4. Add LangServe Routes
