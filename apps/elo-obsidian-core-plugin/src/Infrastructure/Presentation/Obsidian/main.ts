@@ -17,7 +17,7 @@ import { createHeaderProgressRenderer } from './MarkdownPostProcessors/HeaderPro
 import { createHeaderMetadataRenderer } from './MarkdownPostProcessors/HeaderMetadataRenderer';
 import en from '@/I18n/locales/en';
 import es from '@/I18n/locales/es';
-import { EloServerLlmAdapter as LlmAdapter, setFrontmatterLanguage, setTagFolderMapping, DefaultTagFolderMappingRegistry } from '@elo/core';
+import { EloServerLlmAdapter as LlmAdapter, setFrontmatterLanguage, setTagFolderMapping } from '@elo/core';
 
 export default class ObsidianExtension extends Plugin {
 	settings: UnresolvedLinkGeneratorSettings = DEFAULT_SETTINGS;
@@ -126,28 +126,20 @@ export default class ObsidianExtension extends Plugin {
 			if (exists) {
 				const content = await this.app.vault.adapter.read(configPath);
 				config = JSON.parse(content);
+				
+				// Sync mapping
+				if (config.tagFolderMapping) {
+					setTagFolderMapping(config.tagFolderMapping);
+				} else {
+					setTagFolderMapping({});
+				}
 			} else {
-				// Initialize with defaults if it doesn't exist
-				config = {
-					tagFolderMapping: DefaultTagFolderMappingRegistry
-				};
-				await this.app.vault.create(configPath, JSON.stringify(config, null, 4));
+				setTagFolderMapping({});
 			}
-
-			// Sync mapping
-			if (config.tagFolderMapping) {
-				setTagFolderMapping(config.tagFolderMapping);
-			} else {
-				// If config exists but lacks the mapping array, add it and save
-				config.tagFolderMapping = DefaultTagFolderMappingRegistry;
-				await this.app.vault.adapter.write(configPath, JSON.stringify(config, null, 4));
-				setTagFolderMapping(config.tagFolderMapping);
-			}
-
 		} catch (e) {
-			console.error('Failed to load or initialize elo-config.json', e);
-			// Fallback to defaults
-			setTagFolderMapping(DefaultTagFolderMappingRegistry);
+			console.error('Failed to load elo-config.json', e);
+			// Fallback to empty mappings
+			setTagFolderMapping({});
 		}
 	}
 

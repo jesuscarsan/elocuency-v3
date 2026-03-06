@@ -1,0 +1,62 @@
+{
+    "markdownVaults": [
+        "/Users/joshua/my-docs/KBs/JACS"
+    ],
+    "markdownVaults--": [
+        "/Users/joshua/my-docs/KBs/JACS",
+        "/Users/joshua/my-docs/KBs/Cocina",
+        "/Users/joshua/my-docs/KBs/Tecnolog\u00eda",
+        "/Users/joshua/my-docs/KBs/teo-3-eso-kb"
+    ],
+    "mcps": [
+        {
+            "name": "elo-obsidian-api-mcp",
+            "active": true
+        },
+        {
+            "name": "mcp-obsidian",
+            "active": false
+        }
+    ],
+    "langchainTools": [
+        {
+            "name": "n8n_workflows",
+            "active": true
+        }
+    ],
+    "ai": {
+        "model": "gemini-2.0-flash"
+    },
+    "obsidian": {
+        "url": "http://host.docker.internal:27123",
+        "lastIndexDatetime": "2026-02-18T18:11:14"
+    },
+    "tagFolderMapping": {
+        "Personas/Conocidos-mios": "(Conocidos)",
+        "Personas/Compañeros-de-trabajo": "(Conocidos)",
+        "Personas/Vecinos": "(Conocidos)",
+        "Personas/Familia": "(Familia)",
+        "Personas/Públicas": "(Personajes)",
+        "Personas/Históricas": "(Históricos)",
+        "Obras/Películas": "(Audiovisuales)",
+        "Obras/Videojuegos": "(Audiovisuales)",
+        "Obras/Canciones": "(Música)",
+        "Obras/Libros": "(Libros)",
+        "Obras/Bebidas": "(Gastronomía)",
+        "Obras/Comidas": "(Gastronomía)",
+        "Obras/Canales-Stream": "(Medios)",
+        "Obras/Series-TV": "(Audiovisuales)",
+        "Orgs/Multinacionales": "(Empresas)",
+        "Orgs/Empresas": "(Empresas)",
+        "Orgs/Colegios": "(Colegios)",
+        "Lugares/Restaurantes": "(Restaurantes)",
+        "Lugares/Bares": "(Bares)",
+        "Lugares/Cafeterías": "(Bares)",
+        "Lugares/Negocios": "(Negocios)",
+        "Lugares/Tiendas": "(Tiendas)",
+        "Eventos/Fiestas": "(Eventos)",
+        "Eventos/Festivales-de-cine": "(Eventos)",
+        "Eventos/Festivales-de-música": "(Eventos)",
+        "Eventos/Festivales-de-teatro": "(Eventos)"
+    }
+}
